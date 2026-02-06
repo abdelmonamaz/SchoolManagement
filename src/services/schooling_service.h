@@ -1,0 +1,48 @@
+#pragma once
+
+#include <QList>
+#include <QString>
+
+#include "common/result.h"
+#include "models/niveau.h"
+#include "models/salle.h"
+
+class INiveauRepository;
+class IClasseRepository;
+class IMatiereRepository;
+class ISalleRepository;
+
+class SchoolingService {
+public:
+    SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
+                     IMatiereRepository* matiereRepo, ISalleRepository* salleRepo);
+
+    // Niveaux
+    Result<QList<Niveau>> getAllNiveaux();
+    Result<int> createNiveau(const QString& nom);
+    Result<bool> updateNiveau(int id, const QString& nom);
+    Result<bool> deleteNiveau(int id);
+
+    // Classes
+    Result<QList<Classe>> getClassesByNiveau(int niveauId);
+    Result<int> createClasse(const QString& nom, int niveauId);
+    Result<bool> updateClasse(int id, const QString& nom, int niveauId);
+    Result<bool> deleteClasse(int id);
+
+    // Matieres
+    Result<QList<Matiere>> getMatieresByNiveau(int niveauId);
+    Result<int> createMatiere(const QString& nom, int niveauId);
+    Result<bool> deleteMatiere(int id);
+
+    // Salles
+    Result<QList<Salle>> getAllSalles();
+    Result<int> createSalle(const QString& nom, int capacite, const QString& equipement);
+    Result<bool> updateSalle(int id, const QString& nom, int capacite, const QString& equipement);
+    Result<bool> deleteSalle(int id);
+
+private:
+    INiveauRepository* m_niveauRepo;
+    IClasseRepository* m_classeRepo;
+    IMatiereRepository* m_matiereRepo;
+    ISalleRepository* m_salleRepo;
+};
