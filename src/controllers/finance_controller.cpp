@@ -1,5 +1,6 @@
 #include "controllers/finance_controller.h"
 #include "services/finance_service.h"
+#include "database/database_worker.h"
 
 static QString statutProjetToString(GS::StatutProjet s) {
     switch (s) {
@@ -37,8 +38,12 @@ static QVariantMap donToMap(const Don& d) {
     };
 }
 
-FinanceController::FinanceController(FinanceService* service, QObject* parent)
-    : QObject(parent), m_service(service) {}
+FinanceController::FinanceController(FinanceService* service, DatabaseWorker* worker, QObject* parent)
+    : QObject(parent), m_service(service), m_worker(worker)
+{
+    connect(m_worker, &DatabaseWorker::queryCompleted, this, &FinanceController::onQueryCompleted);
+    connect(m_worker, &DatabaseWorker::queryError, this, &FinanceController::onQueryError);
+}
 
 void FinanceController::setLoading(bool v) {
     if (m_loading != v) { m_loading = v; emit loadingChanged(); }
@@ -48,149 +53,222 @@ void FinanceController::setLoading(bool v) {
 
 void FinanceController::loadPaymentsByMonth(int month, int year) {
     setLoading(true);
-    auto result = m_service->getPaymentsByMonth(month, year);
-    if (result.isOk()) {
-        m_payments.clear();
-        for (const auto& p : result.value()) m_payments.append(paiementToMap(p));
-        emit paymentsChanged();
-    } else {
-        m_errorMessage = result.errorMessage(); emit errorMessageChanged();
-    }
-    setLoading(false);
+    m_worker->submit("Finance.loadPaymentsByMonth", [svc = m_service, month, year]() -> QVariant {
+        auto result = svc->getPaymentsByMonth(month, year);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& p : result.value()) list.append(paiementToMap(p));
+        return list;
+    });
 }
 
 void FinanceController::loadPaymentsByStudent(int eleveId) {
     setLoading(true);
-    auto result = m_service->getPaymentsByStudent(eleveId);
-    if (result.isOk()) {
-        m_payments.clear();
-        for (const auto& p : result.value()) m_payments.append(paiementToMap(p));
-        emit paymentsChanged();
-    } else {
-        m_errorMessage = result.errorMessage(); emit errorMessageChanged();
-    }
-    setLoading(false);
+    m_worker->submit("Finance.loadPaymentsByStudent", [svc = m_service, eleveId]() -> QVariant {
+        auto result = svc->getPaymentsByStudent(eleveId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& p : result.value()) list.append(paiementToMap(p));
+        return list;
+    });
 }
 
 void FinanceController::recordPayment(const QVariantMap& data) {
-    auto result = m_service->recordPayment(
-        data.value("eleveId").toInt(),
-        data.value("montant").toDouble(),
-        data.value("mois").toInt(),
-        data.value("annee").toInt());
-    if (result.isOk()) emit operationSucceeded("Paiement enregistré");
-    else emit operationFailed(result.errorMessage());
+    m_worker->submit("Finance.recordPayment", [svc = m_service, data]() -> QVariant {
+        auto result = svc->recordPayment(
+            data.value("eleveId").toInt(),
+            data.value("montant").toDouble(),
+            data.value("mois").toInt(),
+            data.value("annee").toInt());
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 void FinanceController::deletePayment(int id) {
-    auto result = m_service->deletePayment(id);
-    if (result.isOk()) emit operationSucceeded("Paiement supprimé");
-    else emit operationFailed(result.errorMessage());
+    m_worker->submit("Finance.deletePayment", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deletePayment(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 // ─── Projets ───
 
 void FinanceController::loadProjets() {
     setLoading(true);
-    auto result = m_service->getAllProjets();
-    if (result.isOk()) {
-        m_projets.clear();
-        for (const auto& p : result.value()) m_projets.append(projetToMap(p));
-        emit projetsChanged();
-    } else {
-        m_errorMessage = result.errorMessage(); emit errorMessageChanged();
-    }
-    setLoading(false);
+    m_worker->submit("Finance.loadProjets", [svc = m_service]() -> QVariant {
+        auto result = svc->getAllProjets();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& p : result.value()) list.append(projetToMap(p));
+        return list;
+    });
 }
 
 void FinanceController::createProjet(const QVariantMap& data) {
-    auto result = m_service->createProjet(
-        data.value("nom").toString(),
-        data.value("description").toString(),
-        data.value("objectifFinancier").toDouble());
-    if (result.isOk()) {
-        emit operationSucceeded("Projet créé");
-        loadProjets();
-    } else {
-        emit operationFailed(result.errorMessage());
-    }
+    m_worker->submit("Finance.createProjet", [svc = m_service, data]() -> QVariant {
+        auto result = svc->createProjet(
+            data.value("nom").toString(),
+            data.value("description").toString(),
+            data.value("objectifFinancier").toDouble());
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 void FinanceController::updateProjet(int id, const QVariantMap& data) {
-    Projet p;
-    p.id = id;
-    p.nom = data.value("nom").toString();
-    p.description = data.value("description").toString();
-    p.objectifFinancier = data.value("objectifFinancier").toDouble();
-    auto statut = data.value("statut").toString();
-    if (statut == QStringLiteral("Terminé")) p.statut = GS::StatutProjet::Termine;
-    else if (statut == QStringLiteral("En pause")) p.statut = GS::StatutProjet::EnPause;
-    else p.statut = GS::StatutProjet::EnCours;
-    auto result = m_service->updateProjet(p);
-    if (result.isOk()) {
-        emit operationSucceeded("Projet mis à jour");
-        loadProjets();
-    } else {
-        emit operationFailed(result.errorMessage());
-    }
+    m_worker->submit("Finance.updateProjet", [svc = m_service, id, data]() -> QVariant {
+        Projet p;
+        p.id = id;
+        p.nom = data.value("nom").toString();
+        p.description = data.value("description").toString();
+        p.objectifFinancier = data.value("objectifFinancier").toDouble();
+        auto statut = data.value("statut").toString();
+        if (statut == QStringLiteral("Terminé")) p.statut = GS::StatutProjet::Termine;
+        else if (statut == QStringLiteral("En pause")) p.statut = GS::StatutProjet::EnPause;
+        else p.statut = GS::StatutProjet::EnCours;
+        auto result = svc->updateProjet(p);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 void FinanceController::deleteProjet(int id) {
-    auto result = m_service->deleteProjet(id);
-    if (result.isOk()) {
-        emit operationSucceeded("Projet supprimé");
-        loadProjets();
-    } else {
-        emit operationFailed(result.errorMessage());
-    }
+    m_worker->submit("Finance.deleteProjet", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deleteProjet(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 // ─── Donateurs & Dons ───
 
 void FinanceController::loadDonateurs() {
     setLoading(true);
-    auto result = m_service->getAllDonateurs();
-    if (result.isOk()) {
-        m_donateurs.clear();
-        for (const auto& d : result.value()) m_donateurs.append(donateurToMap(d));
-        emit donateursChanged();
-    } else {
-        m_errorMessage = result.errorMessage(); emit errorMessageChanged();
-    }
-    setLoading(false);
+    m_worker->submit("Finance.loadDonateurs", [svc = m_service]() -> QVariant {
+        auto result = svc->getAllDonateurs();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& d : result.value()) list.append(donateurToMap(d));
+        return list;
+    });
 }
 
 void FinanceController::createDonateur(const QVariantMap& data) {
-    auto result = m_service->createDonateur(
-        data.value("nom").toString(),
-        data.value("telephone").toString(),
-        data.value("adresse").toString());
-    if (result.isOk()) {
-        emit operationSucceeded("Donateur ajouté");
-        loadDonateurs();
-    } else {
-        emit operationFailed(result.errorMessage());
-    }
+    m_worker->submit("Finance.createDonateur", [svc = m_service, data]() -> QVariant {
+        auto result = svc->createDonateur(
+            data.value("nom").toString(),
+            data.value("telephone").toString(),
+            data.value("adresse").toString());
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
 }
 
 void FinanceController::loadDonsByProjet(int projetId) {
     setLoading(true);
-    auto result = m_service->getDonsByProjet(projetId);
-    if (result.isOk()) {
-        m_dons.clear();
-        for (const auto& d : result.value()) m_dons.append(donToMap(d));
-        emit donsChanged();
-    } else {
-        m_errorMessage = result.errorMessage(); emit errorMessageChanged();
-    }
-    setLoading(false);
+    m_worker->submit("Finance.loadDonsByProjet", [svc = m_service, projetId]() -> QVariant {
+        auto result = svc->getDonsByProjet(projetId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& d : result.value()) list.append(donToMap(d));
+        return list;
+    });
 }
 
 void FinanceController::recordDon(const QVariantMap& data) {
-    auto result = m_service->recordDon(
-        data.value("donateurId").toInt(),
-        data.value("projetId").toInt(),
-        data.value("montant").toDouble());
-    if (result.isOk()) emit operationSucceeded("Don enregistré");
-    else emit operationFailed(result.errorMessage());
+    m_worker->submit("Finance.recordDon", [svc = m_service, data]() -> QVariant {
+        auto result = svc->recordDon(
+            data.value("donateurId").toInt(),
+            data.value("projetId").toInt(),
+            data.value("montant").toDouble());
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+// ─── Async result handlers ───
+
+void FinanceController::onQueryCompleted(const QString& queryId, const QVariant& result) {
+    if (!queryId.startsWith("Finance.")) return;
+
+    auto map = result.toMap();
+    bool isError = map.contains("error");
+
+    // Payments
+    if (queryId == "Finance.loadPaymentsByMonth" || queryId == "Finance.loadPaymentsByStudent") {
+        if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
+        else { m_payments = result.toList(); emit paymentsChanged(); }
+        setLoading(false);
+    }
+    else if (queryId == "Finance.recordPayment") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Paiement enregistré");
+    }
+    else if (queryId == "Finance.deletePayment") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Paiement supprimé");
+    }
+    // Projets
+    else if (queryId == "Finance.loadProjets") {
+        if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
+        else { m_projets = result.toList(); emit projetsChanged(); }
+        setLoading(false);
+    }
+    else if (queryId == "Finance.createProjet") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Projet créé"); loadProjets(); }
+    }
+    else if (queryId == "Finance.updateProjet") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Projet mis à jour"); loadProjets(); }
+    }
+    else if (queryId == "Finance.deleteProjet") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Projet supprimé"); loadProjets(); }
+    }
+    // Donateurs
+    else if (queryId == "Finance.loadDonateurs") {
+        if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
+        else { m_donateurs = result.toList(); emit donateursChanged(); }
+        setLoading(false);
+    }
+    else if (queryId == "Finance.createDonateur") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Donateur ajouté"); loadDonateurs(); }
+    }
+    // Dons
+    else if (queryId == "Finance.loadDonsByProjet") {
+        if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
+        else { m_dons = result.toList(); emit donsChanged(); }
+        setLoading(false);
+    }
+    else if (queryId == "Finance.recordDon") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Don enregistré");
+    }
+}
+
+void FinanceController::onQueryError(const QString& queryId, const QString& error) {
+    if (!queryId.startsWith("Finance.")) return;
+
+    if (queryId.startsWith("Finance.load")) {
+        m_errorMessage = error; emit errorMessageChanged();
+        setLoading(false);
+    } else {
+        emit operationFailed(error);
+    }
 }

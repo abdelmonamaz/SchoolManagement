@@ -11,11 +11,13 @@ class INiveauRepository;
 class IClasseRepository;
 class IMatiereRepository;
 class ISalleRepository;
+class IEquipementRepository;
 
 class SchoolingService {
 public:
     SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
-                     IMatiereRepository* matiereRepo, ISalleRepository* salleRepo);
+                     IMatiereRepository* matiereRepo, ISalleRepository* salleRepo,
+                     IEquipementRepository* equipementRepo);
 
     // Niveaux
     Result<QList<Niveau>> getAllNiveaux();
@@ -24,12 +26,14 @@ public:
     Result<bool> deleteNiveau(int id);
 
     // Classes
+    Result<QList<Classe>> getAllClasses();
     Result<QList<Classe>> getClassesByNiveau(int niveauId);
     Result<int> createClasse(const QString& nom, int niveauId);
     Result<bool> updateClasse(int id, const QString& nom, int niveauId);
     Result<bool> deleteClasse(int id);
 
     // Matieres
+    Result<QList<Matiere>> getAllMatieres();
     Result<QList<Matiere>> getMatieresByNiveau(int niveauId);
     Result<int> createMatiere(const QString& nom, int niveauId);
     Result<bool> deleteMatiere(int id);
@@ -40,9 +44,15 @@ public:
     Result<bool> updateSalle(int id, const QString& nom, int capacite, const QString& equipement);
     Result<bool> deleteSalle(int id);
 
+    // Equipements
+    Result<QList<Equipement>> getAllEquipements();
+    Result<int> createEquipement(const QString& nom);
+    Result<bool> deleteEquipement(int id);
+
 private:
     INiveauRepository* m_niveauRepo;
     IClasseRepository* m_classeRepo;
     IMatiereRepository* m_matiereRepo;
     ISalleRepository* m_salleRepo;
+    IEquipementRepository* m_equipementRepo;
 };

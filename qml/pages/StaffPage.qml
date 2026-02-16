@@ -8,7 +8,19 @@ Item {
 
     property bool showModal: false
     property bool isEditing: false
-    property string selectedStatus: "active"
+    property int editingId: -1
+    property string selectedStatus: "Actif"
+
+    Component.onCompleted: staffController.loadProfesseurs()
+    Connections {
+        target: staffController
+        function onOperationSucceeded(msg) { console.log("StaffPage:", msg); showModal = false; staffController.loadProfesseurs() }
+        function onOperationFailed(err) { console.warn("StaffPage error:", err) }
+    }
+    function resetModal() {
+        fieldNom.text = ""; fieldPrenom.text = ""; fieldTelephone.text = ""
+        fieldAdresse.text = ""; fieldTaux.text = "25"; selectedStatus = "Actif"; editingId = -1
+    }
 
     ColumnLayout {
         id: mainLayout
@@ -16,10 +28,8 @@ Item {
         anchors.right: parent.right
         spacing: 28
 
-        // ─── Header ───
         RowLayout {
             Layout.fillWidth: true
-
             PageHeader {
                 Layout.fillWidth: true
                 title: "Gestion du Personnel"
@@ -31,13 +41,11 @@ Item {
                 iconName: "plus"
                 onClicked: {
                     isEditing = false
-                    selectedStatus = "active"
+                    resetModal()
                     showModal = true
                 }
             }
         }
-
-        // ─── Search & Filter Bar ───
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
@@ -86,8 +94,6 @@ Item {
                 }
             }
         }
-
-        // ─── Professor Cards Grid ───
         GridLayout {
             Layout.fillWidth: true
             columns: 3
@@ -95,41 +101,7 @@ Item {
             rowSpacing: 20
 
             Repeater {
-                model: ListModel {
-                    ListElement {
-                        name: "Sheikh Omar Al-Faruq"
-                        specialty: "Langue Arabe & Fiqh"
-                        phone: "22 445 667"
-                        hours: 42
-                        rate: 35
-                        status: "active"
-                    }
-                    ListElement {
-                        name: "Mme. Fatma Zahra"
-                        specialty: "Tajwid & Mémorisation"
-                        phone: "55 123 456"
-                        hours: 38
-                        rate: 30
-                        status: "active"
-                    }
-                    ListElement {
-                        name: "Sheikh Ahmed Ben Youssef"
-                        specialty: "Histoire de l'Islam"
-                        phone: "98 765 432"
-                        hours: 25
-                        rate: 40
-                        status: "active"
-                    }
-                    ListElement {
-                        name: "M. Youssef Mansouri"
-                        specialty: "Mathématiques & Sciences"
-                        phone: "44 332 211"
-                        hours: 30
-                        rate: 25
-                        status: "on_leave"
-                    }
-                }
-
+                model: staffController.professeurs
                 delegate: Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: profCardCol.implicitHeight + 48
@@ -147,13 +119,12 @@ Item {
                         anchors.margins: 24
                         spacing: 18
 
-                        // Header: Avatar + Name + Status
                         RowLayout {
                             width: parent.width
                             spacing: 14
 
                             Avatar {
-                                initials: model.name.charAt(0)
+                                initials: modelData.nom.charAt(0)
                                 size: 56
                                 bgColor: Style.bgSecondary
                                 textColor: Style.primary
@@ -165,7 +136,7 @@ Item {
                                 spacing: 4
 
                                 Text {
-                                    text: model.name
+                                    text: modelData.nom + " " + modelData.prenom
                                     font.pixelSize: 14
                                     font.bold: true
                                     color: Style.textPrimary
@@ -174,8 +145,8 @@ Item {
                                 }
 
                                 Badge {
-                                    text: model.status === "active" ? "Actif" : "En congé"
-                                    variant: model.status === "active" ? "success" : "warning"
+                                    text: modelData.statut === "Actif" ? "Actif" : "En congé"
+                                    variant: modelData.statut === "Actif" ? "success" : "warning"
                                 }
                             }
 
@@ -187,7 +158,13 @@ Item {
                                     iconSize: 14
                                     onClicked: {
                                         isEditing = true
-                                        selectedStatus = model.status
+                                        editingId = modelData.id
+                                        fieldNom.text = modelData.nom
+                                        fieldPrenom.text = modelData.prenom
+                                        fieldTelephone.text = modelData.telephone
+                                        fieldAdresse.text = modelData.adresse
+                                        fieldTaux.text = String(modelData.prixHeureActuel)
+                                        selectedStatus = modelData.statut
                                         showModal = true
                                     }
                                 }
@@ -196,34 +173,14 @@ Item {
                                     iconName: "delete"
                                     iconSize: 14
                                     hoverColor: Style.errorColor
+                                    onClicked: staffController.deleteProfesseur(modelData.id)
                                 }
                             }
                         }
 
-                        // Info rows
                         Column {
                             width: parent.width
                             spacing: 8
-
-                            RowLayout {
-                                width: parent.width
-                                spacing: 8
-
-                                IconLabel {
-                                    iconName: "briefcase"
-                                    iconSize: 14
-                                    iconColor: Style.successColor
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: model.specialty
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    color: Style.textSecondary
-                                    elide: Text.ElideRight
-                                }
-                            }
 
                             RowLayout {
                                 width: parent.width
@@ -237,15 +194,34 @@ Item {
 
                                 Text {
                                     Layout.fillWidth: true
-                                    text: model.phone
+                                    text: modelData.telephone
                                     font.pixelSize: 11
                                     font.bold: true
                                     color: Style.textTertiary
                                 }
                             }
+
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+
+                                IconLabel {
+                                    iconName: "briefcase"
+                                    iconSize: 14
+                                    iconColor: Style.successColor
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.adresse
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    color: Style.textSecondary
+                                    elide: Text.ElideRight
+                                }
+                            }
                         }
 
-                        // Hours & Rate card
                         Rectangle {
                             width: parent.width
                             height: 70
@@ -262,11 +238,11 @@ Item {
                                     spacing: 2
 
                                     SectionLabel {
-                                        text: "HEURES/FÉVRIER"
+                                        text: "STATUT"
                                     }
 
                                     Text {
-                                        text: model.hours + "h"
+                                        text: modelData.statut
                                         font.pixelSize: 18
                                         font.weight: Font.Black
                                         color: Style.textPrimary
@@ -289,7 +265,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: model.rate + " DT"
+                                        text: modelData.prixHeureActuel + " DT"
                                         font.pixelSize: 18
                                         font.weight: Font.Black
                                         color: Style.primary
@@ -299,7 +275,6 @@ Item {
                             }
                         }
 
-                        // Total & Pay button
                         Separator { width: parent.width }
 
                         RowLayout {
@@ -310,11 +285,11 @@ Item {
                                 spacing: 2
 
                                 SectionLabel {
-                                    text: "TOTAL À RÉGLER"
+                                    text: "TAUX HORAIRE"
                                 }
 
                                 Text {
-                                    text: (model.hours * model.rate) + " DT"
+                                    text: modelData.prixHeureActuel + " DT/H"
                                     font.pixelSize: 20
                                     font.weight: Font.Black
                                     color: Style.textPrimary
@@ -362,7 +337,6 @@ Item {
         }
     }
 
-    // ─── Add/Edit Modal ───
     ModalOverlay {
         show: showModal
         modalWidth: 520
@@ -388,37 +362,41 @@ Item {
                 rowSpacing: 18
 
                 FormField {
+                    id: fieldNom
                     Layout.fillWidth: true
-                    Layout.columnSpan: 2
-                    label: "NOM COMPLET"
-                    placeholder: "Nom et prénom..."
+                    label: "NOM"
+                    placeholder: "Nom..."
                 }
 
                 FormField {
+                    id: fieldPrenom
                     Layout.fillWidth: true
-                    label: "SPÉCIALITÉ"
-                    placeholder: "ex: Arabe, Coran..."
+                    label: "PRÉNOM"
+                    placeholder: "Prénom..."
                 }
 
                 FormField {
+                    id: fieldTelephone
                     Layout.fillWidth: true
                     label: "TÉLÉPHONE"
                     placeholder: "XX XXX XXX"
                 }
 
                 FormField {
+                    id: fieldAdresse
                     Layout.fillWidth: true
-                    label: "HEURES TRAVAILLÉES"
-                    placeholder: "0"
+                    label: "ADRESSE"
+                    placeholder: "Adresse..."
                 }
 
                 FormField {
+                    id: fieldTaux
                     Layout.fillWidth: true
+                    Layout.columnSpan: 2
                     label: "TAUX HORAIRE (DT/H)"
                     text: "25"
                 }
 
-                // Statut (full width)
                 Column {
                     Layout.fillWidth: true
                     Layout.columnSpan: 2
@@ -436,8 +414,8 @@ Item {
                             Layout.fillWidth: true
                             height: 44
                             radius: 12
-                            color: selectedStatus === "active" ? Style.primary : Style.bgPage
-                            border.color: selectedStatus === "active" ? Style.primary : Style.borderLight
+                            color: selectedStatus === "Actif" ? Style.primary : Style.bgPage
+                            border.color: selectedStatus === "Actif" ? Style.primary : Style.borderLight
 
                             Behavior on color {
                                 ColorAnimation { duration: 150 }
@@ -448,13 +426,13 @@ Item {
                                 text: "ACTIF"
                                 font.pixelSize: 11
                                 font.weight: Font.Black
-                                color: selectedStatus === "active" ? "#FFFFFF" : Style.textTertiary
+                                color: selectedStatus === "Actif" ? "#FFFFFF" : Style.textTertiary
                             }
 
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: selectedStatus = "active"
+                                onClicked: selectedStatus = "Actif"
                             }
                         }
 
@@ -462,8 +440,8 @@ Item {
                             Layout.fillWidth: true
                             height: 44
                             radius: 12
-                            color: selectedStatus === "on_leave" ? Style.warningColor : Style.bgPage
-                            border.color: selectedStatus === "on_leave" ? Style.warningColor : Style.borderLight
+                            color: selectedStatus === "En congé" ? Style.warningColor : Style.bgPage
+                            border.color: selectedStatus === "En congé" ? Style.warningColor : Style.borderLight
 
                             Behavior on color {
                                 ColorAnimation { duration: 150 }
@@ -474,13 +452,13 @@ Item {
                                 text: "EN CONGÉ"
                                 font.pixelSize: 11
                                 font.weight: Font.Black
-                                color: selectedStatus === "on_leave" ? "#FFFFFF" : Style.textTertiary
+                                color: selectedStatus === "En congé" ? "#FFFFFF" : Style.textTertiary
                             }
 
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: selectedStatus = "on_leave"
+                                onClicked: selectedStatus = "En congé"
                             }
                         }
                     }
@@ -496,7 +474,21 @@ Item {
                 width: parent.width - 64
                 confirmText: "ENREGISTRER"
                 onCancel: showModal = false
-                onConfirm: showModal = false
+                onConfirm: {
+                    var data = {
+                        nom: fieldNom.text,
+                        prenom: fieldPrenom.text,
+                        telephone: fieldTelephone.text,
+                        adresse: fieldAdresse.text,
+                        prixHeureActuel: parseFloat(fieldTaux.text)
+                    }
+                    if (isEditing) {
+                        data.statut = selectedStatus
+                        staffController.updateProfesseur(editingId, data)
+                    } else {
+                        staffController.createProfesseur(data)
+                    }
+                }
             }
         }
     }

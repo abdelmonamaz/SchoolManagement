@@ -18,11 +18,14 @@ public:
     Result<QList<Eleve>> getStudentsByClasse(int classeId);
     Result<std::optional<Eleve>> getStudentById(int id);
     Result<int> createStudent(const QString& nom, const QString& prenom, const QString& telephone,
-                              const QString& adresse, GS::TypePublic categorie, int classeId);
+                              const QString& adresse, const QString& dateNaissance,
+                              GS::TypePublic categorie, int classeId);
     Result<bool> updateStudent(const Eleve& eleve);
     Result<bool> deleteStudent(int id);
     Result<int> getTotalCount();
     Result<QList<Eleve>> searchByName(const QString& query);
+    Result<bool> unassignStudentsFromClasse(int classeId);
+    Result<bool> removeStudentFromClasse(int studentId);
 
 private:
     IEleveRepository* m_eleveRepo;

@@ -28,6 +28,7 @@ Result<std::optional<Eleve>> StudentService::getStudentById(int id)
 
 Result<int> StudentService::createStudent(const QString& nom, const QString& prenom,
                                            const QString& telephone, const QString& adresse,
+                                           const QString& dateNaissance,
                                            GS::TypePublic categorie, int classeId)
 {
     if (nom.trimmed().isEmpty()) {
@@ -42,6 +43,7 @@ Result<int> StudentService::createStudent(const QString& nom, const QString& pre
     e.prenom = prenom.trimmed();
     e.telephone = telephone.trimmed();
     e.adresse = adresse.trimmed();
+    e.dateNaissance = dateNaissance.trimmed();
     e.categorie = categorie;
     e.classeId = classeId;
     return m_eleveRepo->create(e);
@@ -67,6 +69,16 @@ Result<bool> StudentService::deleteStudent(int id)
 Result<int> StudentService::getTotalCount()
 {
     return m_eleveRepo->countAll();
+}
+
+Result<bool> StudentService::unassignStudentsFromClasse(int classeId)
+{
+    return m_eleveRepo->unassignClasse(classeId);
+}
+
+Result<bool> StudentService::removeStudentFromClasse(int studentId)
+{
+    return m_eleveRepo->removeFromClasse(studentId);
 }
 
 Result<QList<Eleve>> StudentService::searchByName(const QString& query)

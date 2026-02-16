@@ -119,6 +119,7 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  prenom TEXT NOT NULL,"
             "  telephone TEXT,"
             "  adresse TEXT,"
+            "  date_naissance TEXT,"
             "  categorie TEXT NOT NULL,"
             "  classe_id INTEGER REFERENCES classes(id)"
             ")"),
@@ -129,6 +130,13 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  nom TEXT NOT NULL,"
             "  niveau_id INTEGER REFERENCES niveaux(id)"
+            ")"),
+
+        // ── Équipements ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS equipements ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  nom TEXT NOT NULL UNIQUE"
             ")"),
 
         // ── Séances ──
@@ -201,6 +209,31 @@ void DatabaseManager::createTables(QSqlDatabase& db)
 
     qInfo() << "[DatabaseManager] Schema created / verified –"
             << statements.size() << "tables.";
+
+    // ── Migrations incrémentales ──
+    runMigrations(db);
+}
+
+// Ajoute les colonnes manquantes sur une base existante (idempotent).
+void DatabaseManager::runMigrations(QSqlDatabase& db)
+{
+    // Helper : vérifie si une colonne existe dans une table via PRAGMA table_info.
+    auto columnExists = [&](const QString& table, const QString& column) -> bool {
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral("PRAGMA table_info(%1)").arg(table));
+        if (!q.exec()) return false;
+        while (q.next()) {
+            if (q.value(1).toString() == column) return true;
+        }
+        return false;
+    };
+
+    // Migration 1 : ajout de date_naissance dans eleves
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("date_naissance"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE eleves ADD COLUMN date_naissance TEXT"));
+        qInfo() << "[DatabaseManager] Migration: added column eleves.date_naissance";
+    }
 }
 
 void DatabaseManager::seedInitialData(QSqlDatabase& db)
@@ -222,13 +255,13 @@ void DatabaseManager::seedInitialData(QSqlDatabase& db)
     // ── Salles ──
     const QStringList salles {
         QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle A1', 30, 'Tableau blanc, Projecteur')"),
+                        "VALUES ('Salle A1', 30, 'Tableau Blanc, Projecteur')"),
         QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle A2', 25, 'Tableau blanc')"),
+                        "VALUES ('Salle A2', 25, 'Tableau Blanc, WiFi')"),
         QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle B1', 40, 'Tableau blanc, Projecteur, Ordinateurs')"),
+                        "VALUES ('Salle B1', 40, 'Tableau Digital, Projecteur, Système Audio')"),
         QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Labo Sciences', 20, 'Équipement de laboratoire')"),
+                        "VALUES ('Labo Sciences', 20, 'Tableau Blanc, WiFi')"),
     };
     for (const auto& sql : salles)
         execStatement(db, sql);
@@ -250,6 +283,17 @@ void DatabaseManager::seedInitialData(QSqlDatabase& db)
         QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('5A', 5)"),
     };
     for (const auto& sql : classes)
+        execStatement(db, sql);
+
+    // ── Équipements ──
+    const QStringList equipements {
+        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Projecteur')"),
+        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Tableau Blanc')"),
+        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Tableau Digital')"),
+        QStringLiteral("INSERT INTO equipements (nom) VALUES ('WiFi')"),
+        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Système Audio')"),
+    };
+    for (const auto& sql : equipements)
         execStatement(db, sql);
 
     qInfo() << "[DatabaseManager] Seed data inserted.";

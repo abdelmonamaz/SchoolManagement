@@ -18,6 +18,10 @@ DatabaseWorker::DatabaseWorker(const QString& dbPath, QObject* parent)
           QStringLiteral("gs_worker_")
           + QUuid::createUuid().toString(QUuid::WithoutBraces))
 {
+    qRegisterMetaType<std::function<QVariant()>>("std::function<QVariant()>");
+
+    connect(this, &DatabaseWorker::enqueueQuery,
+            this, &DatabaseWorker::executeAsync, Qt::QueuedConnection);
 }
 
 DatabaseWorker::~DatabaseWorker()
@@ -63,6 +67,12 @@ void DatabaseWorker::stop()
 QString DatabaseWorker::connectionName() const
 {
     return m_connectionName;
+}
+
+void DatabaseWorker::submit(const QString& queryId,
+                            std::function<QVariant()> queryFunc)
+{
+    emit enqueueQuery(queryId, std::move(queryFunc));
 }
 
 // ---------------------------------------------------------------------------

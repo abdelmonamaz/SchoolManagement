@@ -4,11 +4,13 @@
 #include "repositories/isalle_repository.h"
 
 SchoolingService::SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
-                                   IMatiereRepository* matiereRepo, ISalleRepository* salleRepo)
+                                   IMatiereRepository* matiereRepo, ISalleRepository* salleRepo,
+                                   IEquipementRepository* equipementRepo)
     : m_niveauRepo(niveauRepo)
     , m_classeRepo(classeRepo)
     , m_matiereRepo(matiereRepo)
     , m_salleRepo(salleRepo)
+    , m_equipementRepo(equipementRepo)
 {
 }
 
@@ -49,6 +51,11 @@ Result<bool> SchoolingService::deleteNiveau(int id)
 
 // --- Classes ---
 
+Result<QList<Classe>> SchoolingService::getAllClasses()
+{
+    return m_classeRepo->getAll();
+}
+
 Result<QList<Classe>> SchoolingService::getClassesByNiveau(int niveauId)
 {
     return m_classeRepo->getByNiveauId(niveauId);
@@ -85,6 +92,11 @@ Result<bool> SchoolingService::deleteClasse(int id)
 }
 
 // --- Matieres ---
+
+Result<QList<Matiere>> SchoolingService::getAllMatieres()
+{
+    return m_matiereRepo->getAll();
+}
 
 Result<QList<Matiere>> SchoolingService::getMatieresByNiveau(int niveauId)
 {
@@ -151,4 +163,27 @@ Result<bool> SchoolingService::updateSalle(int id, const QString& nom, int capac
 Result<bool> SchoolingService::deleteSalle(int id)
 {
     return m_salleRepo->remove(id);
+}
+
+// --- Equipements ---
+
+Result<QList<Equipement>> SchoolingService::getAllEquipements()
+{
+    return m_equipementRepo->getAll();
+}
+
+Result<int> SchoolingService::createEquipement(const QString& nom)
+{
+    if (nom.trimmed().isEmpty()) {
+        return Result<int>::error("Le nom de l'equipement ne peut pas etre vide.");
+    }
+
+    Equipement e;
+    e.nom = nom.trimmed();
+    return m_equipementRepo->create(e);
+}
+
+Result<bool> SchoolingService::deleteEquipement(int id)
+{
+    return m_equipementRepo->remove(id);
 }

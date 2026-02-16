@@ -27,6 +27,7 @@ class ISalleRepository;
 class INiveauRepository;
 class IClasseRepository;
 class IMatiereRepository;
+class IEquipementRepository;
 class IProfesseurRepository;
 class IEleveRepository;
 class ISeanceRepository;
@@ -58,6 +59,7 @@ private:
     std::unique_ptr<INiveauRepository> m_niveauRepo;
     std::unique_ptr<IClasseRepository> m_classeRepo;
     std::unique_ptr<IMatiereRepository> m_matiereRepo;
+    std::unique_ptr<IEquipementRepository> m_equipementRepo;
     std::unique_ptr<IProfesseurRepository> m_profRepo;
     std::unique_ptr<IEleveRepository> m_eleveRepo;
     std::unique_ptr<ISeanceRepository> m_seanceRepo;

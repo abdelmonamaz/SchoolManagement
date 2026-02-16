@@ -18,3 +18,8 @@ struct Matiere {
     QString nom;
     int niveauId = 0;
 };
+
+struct Equipement {
+    int id = 0;
+    QString nom;
+};

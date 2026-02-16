@@ -37,6 +37,9 @@ private:
 
     /** Inserts default reference rows (niveaux, salles, classes). */
     static void seedInitialData(QSqlDatabase& db);
+
+    /** Applies incremental column additions on an existing database (idempotent). */
+    static void runMigrations(QSqlDatabase& db);
 };
 
 #endif // DATABASE_MANAGER_H

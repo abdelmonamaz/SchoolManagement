@@ -10,6 +10,7 @@ struct Eleve {
     QString prenom;
     QString telephone;
     QString adresse;
+    QString dateNaissance;  // format ISO : YYYY-MM-DD
     GS::TypePublic categorie = GS::TypePublic::Jeune;
     int classeId = 0;
 };

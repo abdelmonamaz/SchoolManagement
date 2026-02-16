@@ -5,6 +5,7 @@
 #include <QVariantMap>
 
 class GradesService;
+class DatabaseWorker;
 
 class GradesController : public QObject {
     Q_OBJECT
@@ -14,7 +15,7 @@ class GradesController : public QObject {
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
 public:
-    explicit GradesController(GradesService* service, QObject* parent = nullptr);
+    explicit GradesController(GradesService* service, DatabaseWorker* worker, QObject* parent = nullptr);
 
     QVariantList grades() const { return m_grades; }
     double classAverage() const { return m_classAverage; }
@@ -35,10 +36,15 @@ signals:
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
 
+private slots:
+    void onQueryCompleted(const QString& queryId, const QVariant& result);
+    void onQueryError(const QString& queryId, const QString& error);
+
 private:
     void setLoading(bool v);
 
     GradesService* m_service = nullptr;
+    DatabaseWorker* m_worker = nullptr;
     QVariantList m_grades;
     double m_classAverage = 0.0;
     bool m_loading = false;

@@ -6,9 +6,12 @@
 
 #include "database/database_worker.h"
 
+#include <QEventLoop>
+
 // Repositories
 #include "repositories/sqlite/sqlite_salle_repository.h"
 #include "repositories/sqlite/sqlite_niveau_repository.h"
+#include "repositories/sqlite/sqlite_equipement_repository.h"
 #include "repositories/sqlite/sqlite_prof_repository.h"
 #include "repositories/sqlite/sqlite_eleve_repository.h"
 #include "repositories/sqlite/sqlite_seance_repository.h"
@@ -56,16 +59,22 @@ void AppController::setupDatabase() {
     QString dbPath = dataDir + "/gestion_scolaire.db";
 
     m_dbWorker = std::make_unique<DatabaseWorker>(dbPath);
+
+    // Wait synchronously for the worker thread to initialise the DB
+    QEventLoop loop;
+    connect(m_dbWorker.get(), &DatabaseWorker::ready, &loop, &QEventLoop::quit);
     m_dbWorker->start();
+    loop.exec();
 }
 
 void AppController::createRepositories() {
-    const auto& conn = m_dbWorker->connectionName();
+    const auto conn = m_dbWorker->connectionName();
 
     m_salleRepo = std::make_unique<SqliteSalleRepository>(conn);
     m_niveauRepo = std::make_unique<SqliteNiveauRepository>(conn);
     m_classeRepo = std::make_unique<SqliteClasseRepository>(conn);
     m_matiereRepo = std::make_unique<SqliteMatiereRepository>(conn);
+    m_equipementRepo = std::make_unique<SqliteEquipementRepository>(conn);
     m_profRepo = std::make_unique<SqliteProfesseurRepository>(conn);
     m_eleveRepo = std::make_unique<SqliteEleveRepository>(conn);
     m_seanceRepo = std::make_unique<SqliteSeanceRepository>(conn);
@@ -78,7 +87,7 @@ void AppController::createRepositories() {
 
 void AppController::createServices() {
     m_schoolingService = std::make_unique<SchoolingService>(
-        m_niveauRepo.get(), m_classeRepo.get(), m_matiereRepo.get(), m_salleRepo.get());
+        m_niveauRepo.get(), m_classeRepo.get(), m_matiereRepo.get(), m_salleRepo.get(), m_equipementRepo.get());
 
     m_studentService = std::make_unique<StudentService>(
         m_eleveRepo.get(), m_classeRepo.get());
@@ -100,14 +109,17 @@ void AppController::createServices() {
 }
 
 void AppController::createControllers() {
-    m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), this);
-    m_studentController = std::make_unique<StudentController>(m_studentService.get(), this);
-    m_staffController = std::make_unique<StaffController>(m_staffService.get(), this);
-    m_attendanceController = std::make_unique<AttendanceController>(m_attendanceService.get(), this);
-    m_examsController = std::make_unique<ExamsController>(m_attendanceService.get(), this);
-    m_gradesController = std::make_unique<GradesController>(m_gradesService.get(), this);
-    m_financeController = std::make_unique<FinanceController>(m_financeService.get(), this);
-    m_dashboardController = std::make_unique<DashboardController>(m_dashboardService.get(), this);
+    auto* w = m_dbWorker.get();
+    m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
+    m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
+    m_staffController = std::make_unique<StaffController>(m_staffService.get(), w, this);
+    m_attendanceController = std::make_unique<AttendanceController>(m_attendanceService.get(), w, this);
+    m_examsController = std::make_unique<ExamsController>(m_attendanceService.get(), w, this);
+    m_gradesController = std::make_unique<GradesController>(m_gradesService.get(), w, this);
+    m_financeController = std::make_unique<FinanceController>(m_financeService.get(), w, this);
+    m_dashboardController = std::make_unique<DashboardController>(
+        m_dashboardService.get(), m_schoolingService.get(),
+        m_staffService.get(), m_studentService.get(), w, this);
 }
 
 void AppController::registerWithQml(QQmlApplicationEngine& engine) {

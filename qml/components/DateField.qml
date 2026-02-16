@@ -1,0 +1,197 @@
+import QtQuick 2.15
+import QtQuick.Layouts 1.15
+
+// Champ de saisie de date réutilisable : label + JJ / MM / AAAA
+// La catégorie (Jeune/Adulte) est calculée automatiquement selon l'âge.
+// Usage:
+//   DateField {
+//       label: "DATE DE NAISSANCE"
+//       // accès : isValid, age, categorie, clear()
+//   }
+Column {
+    id: root
+
+    property string label: ""
+
+    // Validation calendaire stricte : ranges + nombre de jours réels dans le mois (années bissextiles incluses)
+    readonly property bool isValid: {
+        if (yearInput.text.length !== 4) return false
+        var d = parseInt(dayInput.text)
+        var m = parseInt(monthInput.text)
+        var y = parseInt(yearInput.text)
+        if (isNaN(d) || isNaN(m) || isNaN(y)) return false
+        if (m < 1 || m > 12 || y < 1900 || y > 2099 || d < 1) return false
+        // new Date(y, m, 0) = dernier jour du mois m (JS : mois 0-indexé, jour 0 = veille du 1er)
+        var daysInMonth = new Date(y, m, 0).getDate()
+        return d <= daysInMonth
+    }
+
+    // Représentation ISO YYYY-MM-DD pour le stockage en base de données
+    readonly property string dateString: isValid
+        ? (yearInput.text + "-"
+           + (monthInput.text.length === 1 ? "0" + monthInput.text : monthInput.text) + "-"
+           + (dayInput.text.length   === 1 ? "0" + dayInput.text   : dayInput.text))
+        : ""
+
+    // Âge calculé en années complètes (-1 si date invalide)
+    readonly property int age: {
+        if (!isValid) return -1
+        var today = new Date()
+        var d = parseInt(dayInput.text)
+        var m = parseInt(monthInput.text)
+        var y = parseInt(yearInput.text)
+        var a = today.getFullYear() - y
+        if (today.getMonth() + 1 < m ||
+            (today.getMonth() + 1 === m && today.getDate() < d)) {
+            a--
+        }
+        return a
+    }
+
+    // Catégorie déduite : < 12 ans → Jeune, ≥ 12 ans → Adulte
+    readonly property string categorie: age < 0 ? "" : (age < 12 ? "Jeune" : "Adulte")
+
+    // Réinitialise les trois champs
+    function clear() {
+        dayInput.text = ""
+        monthInput.text = ""
+        yearInput.text = ""
+    }
+
+    // Pré-remplit les champs depuis une chaîne ISO YYYY-MM-DD
+    function setDate(isoString) {
+        if (isoString && isoString.length === 10) {
+            yearInput.text  = isoString.substring(0, 4)
+            monthInput.text = isoString.substring(5, 7)
+            dayInput.text   = isoString.substring(8, 10)
+        } else {
+            clear()
+        }
+    }
+
+    spacing: 6
+
+    Text {
+        visible: root.label !== ""
+        text: root.label
+        font.pixelSize: 9
+        font.weight: Font.Black
+        color: Style.textTertiary
+        font.letterSpacing: 1
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 44
+        radius: 12
+        color: Style.bgPage
+        border.color: Style.borderLight
+
+        HoverHandler {
+            cursorShape: Qt.IBeamCursor
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 2
+
+            // ── Jour ──
+            TextInput {
+                id: dayInput
+                Layout.preferredWidth: 22
+                font.pixelSize: 13
+                font.bold: true
+                color: Style.textPrimary
+                maximumLength: 2
+                validator: IntValidator { bottom: 1; top: 31 }
+                inputMethodHints: Qt.ImhDigitsOnly
+                clip: true
+                selectByMouse: true
+
+                onTextChanged: {
+                    if (text.length === 2) monthInput.forceActiveFocus()
+                }
+
+                Text {
+                    visible: !dayInput.text
+                    text: "JJ"
+                    font: dayInput.font
+                    color: Style.textTertiary
+                }
+            }
+
+            Text {
+                text: "/"
+                font.pixelSize: 13
+                font.bold: true
+                color: Style.textTertiary
+            }
+
+            // ── Mois ──
+            TextInput {
+                id: monthInput
+                Layout.preferredWidth: 22
+                font.pixelSize: 13
+                font.bold: true
+                color: Style.textPrimary
+                maximumLength: 2
+                validator: IntValidator { bottom: 1; top: 12 }
+                inputMethodHints: Qt.ImhDigitsOnly
+                clip: true
+                selectByMouse: true
+
+                onTextChanged: {
+                    if (text.length === 2) yearInput.forceActiveFocus()
+                }
+
+                Keys.onBacktabPressed: function(event) {
+                    event.accepted = true
+                    dayInput.forceActiveFocus()
+                }
+
+                Text {
+                    visible: !monthInput.text
+                    text: "MM"
+                    font: monthInput.font
+                    color: Style.textTertiary
+                }
+            }
+
+            Text {
+                text: "/"
+                font.pixelSize: 13
+                font.bold: true
+                color: Style.textTertiary
+            }
+
+            // ── Année ──
+            TextInput {
+                id: yearInput
+                Layout.preferredWidth: 44
+                font.pixelSize: 13
+                font.bold: true
+                color: Style.textPrimary
+                maximumLength: 4
+                validator: IntValidator { bottom: 1900; top: 2099 }
+                inputMethodHints: Qt.ImhDigitsOnly
+                clip: true
+                selectByMouse: true
+
+                Keys.onBacktabPressed: function(event) {
+                    event.accepted = true
+                    monthInput.forceActiveFocus()
+                }
+
+                Text {
+                    visible: !yearInput.text
+                    text: "AAAA"
+                    font: yearInput.font
+                    color: Style.textTertiary
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+    }
+}

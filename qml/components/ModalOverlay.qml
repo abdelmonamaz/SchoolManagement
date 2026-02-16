@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import QtQuick.Controls 2.15
 
 // Composant modal réutilisable avec overlay, animation et conteneur centré.
 // Usage:
@@ -9,7 +10,7 @@ import QtQuick.Layouts 1.15
 //       onClose: showMyModal = false
 //       Column { ... contenu du modal ... }
 //   }
-Rectangle {
+Popup {
     id: modalOverlay
 
     property bool show: false
@@ -21,27 +22,22 @@ Rectangle {
 
     default property alias content: contentContainer.data
 
-    anchors.fill: parent
-    color: "#0F172A99"
+    parent: Overlay.overlay
+    anchors.centerIn: parent
+    width: modalWidth
+    implicitHeight: contentContainer.implicitHeight
+    modal: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     visible: show
-    opacity: show ? 1.0 : 0.0
 
-    Behavior on opacity {
-        NumberAnimation { duration: 200 }
+    onVisibleChanged: {
+        if (!visible && show) close()
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: modalOverlay.close()
-    }
-
-    Rectangle {
-        anchors.centerIn: parent
-        width: modalWidth
-        implicitHeight: contentContainer.implicitHeight
+    background: Rectangle {
         radius: modalRadius
         color: modalColor
-        scale: show ? 1.0 : 0.95
+        border.color: Style.borderLight
 
         Behavior on scale {
             NumberAnimation {
@@ -49,15 +45,15 @@ Rectangle {
                 easing.type: Easing.OutCubic
             }
         }
+    }
 
-        MouseArea {
-            anchors.fill: parent
-        }
+    Column {
+        id: contentContainer
+        width: parent.width
+        spacing: 0
+    }
 
-        Column {
-            id: contentContainer
-            width: parent.width
-            spacing: 0
-        }
+    Overlay.modal: Rectangle {
+        color: "#0F172A99"
     }
 }

@@ -7,6 +7,7 @@ import QtQuick.Layouts 1.15
 //       width: parent.width
 //       label: "NOM COMPLET"
 //       placeholder: "ex: Ahmed Ben Moussa"
+//       nextTabItem: autreChamp.inputItem
 //   }
 Column {
     id: root
@@ -15,7 +16,10 @@ Column {
     property string placeholder: ""
     property alias text: input.text
     property alias inputItem: input
+    property alias validator: input.validator
     property int fieldHeight: 44
+    property var nextTabItem: null
+    property var prevTabItem: null
 
     spacing: 6
 
@@ -35,6 +39,10 @@ Column {
         color: Style.bgPage
         border.color: Style.borderLight
 
+        HoverHandler {
+            cursorShape: Qt.IBeamCursor
+        }
+
         TextInput {
             id: input
             anchors.fill: parent
@@ -43,6 +51,17 @@ Column {
             font.bold: true
             color: Style.textPrimary
             clip: true
+            selectByMouse: true
+
+            Keys.onTabPressed: function(event) {
+                event.accepted = true
+                if (root.nextTabItem) root.nextTabItem.forceActiveFocus()
+            }
+
+            Keys.onBacktabPressed: function(event) {
+                event.accepted = true
+                if (root.prevTabItem) root.prevTabItem.forceActiveFocus()
+            }
 
             Text {
                 visible: !input.text

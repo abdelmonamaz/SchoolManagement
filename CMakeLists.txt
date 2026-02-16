@@ -10,9 +10,11 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Sql)
 qt_policy(SET QTP0001 NEW) # Préfixe /qt/qml/
 qt_policy(SET QTP0004 NEW) # Gestion propre des dossiers
 
-qt_add_executable(GestionScolaire
-    src/main.cpp
+# ═══════════════════════════════════════════════════════════════
+# GS_Core : common, models, repositories, database
+# ═══════════════════════════════════════════════════════════════
 
+add_library(GS_Core STATIC
     # Common
     src/common/enums.h
     src/common/result.h
@@ -41,6 +43,8 @@ qt_add_executable(GestionScolaire
     src/repositories/sqlite/sqlite_salle_repository.cpp
     src/repositories/sqlite/sqlite_niveau_repository.h
     src/repositories/sqlite/sqlite_niveau_repository.cpp
+    src/repositories/sqlite/sqlite_equipement_repository.h
+    src/repositories/sqlite/sqlite_equipement_repository.cpp
     src/repositories/sqlite/sqlite_prof_repository.h
     src/repositories/sqlite/sqlite_prof_repository.cpp
     src/repositories/sqlite/sqlite_eleve_repository.h
@@ -57,7 +61,16 @@ qt_add_executable(GestionScolaire
     src/database/database_manager.cpp
     src/database/database_worker.h
     src/database/database_worker.cpp
+)
 
+target_include_directories(GS_Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(GS_Core PUBLIC Qt6::Core Qt6::Sql)
+
+# ═══════════════════════════════════════════════════════════════
+# GS_Services : services + controllers
+# ═══════════════════════════════════════════════════════════════
+
+add_library(GS_Services STATIC
     # Services
     src/services/schooling_service.h
     src/services/schooling_service.cpp
@@ -91,16 +104,21 @@ qt_add_executable(GestionScolaire
     src/controllers/finance_controller.cpp
     src/controllers/dashboard_controller.h
     src/controllers/dashboard_controller.cpp
+)
 
-    # App bootstrap
+target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core)
+
+# ═══════════════════════════════════════════════════════════════
+# Exécutable principal
+# ═══════════════════════════════════════════════════════════════
+
+qt_add_executable(GestionScolaire
+    src/main.cpp
     src/app/app_controller.h
     src/app/app_controller.cpp
 )
 
-# Include directories for relative includes
-target_include_directories(GestionScolaire PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-# Module principal
+# Module QML principal
 qt_add_qml_module(GestionScolaire
     URI GestionScolaire
     VERSION 1.0
@@ -112,11 +130,13 @@ qt_add_qml_module(GestionScolaire
         fonts/Inter-Black.ttf
 )
 
-# Inclusion des modules secondaires
+# Modules QML secondaires
 add_subdirectory(qml/components)
 add_subdirectory(qml/pages)
 
 target_link_libraries(GestionScolaire PRIVATE
+    GS_Core
+    GS_Services
     Qt6::Core
     Qt6::Quick
     Qt6::QuickControls2

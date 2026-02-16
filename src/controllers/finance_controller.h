@@ -5,6 +5,7 @@
 #include <QVariantMap>
 
 class FinanceService;
+class DatabaseWorker;
 
 class FinanceController : public QObject {
     Q_OBJECT
@@ -16,7 +17,7 @@ class FinanceController : public QObject {
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
 public:
-    explicit FinanceController(FinanceService* service, QObject* parent = nullptr);
+    explicit FinanceController(FinanceService* service, DatabaseWorker* worker, QObject* parent = nullptr);
 
     QVariantList payments() const { return m_payments; }
     QVariantList projets() const { return m_projets; }
@@ -53,10 +54,15 @@ signals:
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
 
+private slots:
+    void onQueryCompleted(const QString& queryId, const QVariant& result);
+    void onQueryError(const QString& queryId, const QString& error);
+
 private:
     void setLoading(bool v);
 
     FinanceService* m_service = nullptr;
+    DatabaseWorker* m_worker = nullptr;
     QVariantList m_payments;
     QVariantList m_projets;
     QVariantList m_donateurs;

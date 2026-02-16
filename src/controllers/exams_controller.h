@@ -5,6 +5,7 @@
 #include <QVariantMap>
 
 class AttendanceService;
+class DatabaseWorker;
 
 class ExamsController : public QObject {
     Q_OBJECT
@@ -13,7 +14,7 @@ class ExamsController : public QObject {
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
 public:
-    explicit ExamsController(AttendanceService* service, QObject* parent = nullptr);
+    explicit ExamsController(AttendanceService* service, DatabaseWorker* worker, QObject* parent = nullptr);
 
     QVariantList exams() const { return m_exams; }
     bool loading() const { return m_loading; }
@@ -31,10 +32,15 @@ signals:
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
 
+private slots:
+    void onQueryCompleted(const QString& queryId, const QVariant& result);
+    void onQueryError(const QString& queryId, const QString& error);
+
 private:
     void setLoading(bool v);
 
     AttendanceService* m_service = nullptr;
+    DatabaseWorker* m_worker = nullptr;
     QVariantList m_exams;
     bool m_loading = false;
     QString m_errorMessage;

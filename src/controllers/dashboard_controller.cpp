@@ -1,45 +1,25 @@
 #include "controllers/dashboard_controller.h"
 #include "services/dashboard_service.h"
+#include "services/schooling_service.h"
+#include "services/staff_service.h"
+#include "services/student_service.h"
+#include "database/database_worker.h"
 
-static QString categorieSeanceToString(GS::CategorieSeance c) {
-    switch (c) {
-        case GS::CategorieSeance::Cours: return QStringLiteral("Cours");
-        case GS::CategorieSeance::Examen: return QStringLiteral("Examen");
-        case GS::CategorieSeance::Evenement: return QStringLiteral("Événement");
-    }
-    return QStringLiteral("Cours");
+#include <QDateTime>
+
+DashboardController::DashboardController(DashboardService* service,
+                                         SchoolingService* schoolingService,
+                                         StaffService* staffService,
+                                         StudentService* studentService,
+                                         DatabaseWorker* worker,
+                                         QObject* parent)
+    : QObject(parent), m_service(service),
+      m_schoolingService(schoolingService), m_staffService(staffService),
+      m_studentService(studentService), m_worker(worker)
+{
+    connect(m_worker, &DatabaseWorker::queryCompleted, this, &DashboardController::onQueryCompleted);
+    connect(m_worker, &DatabaseWorker::queryError, this, &DashboardController::onQueryError);
 }
-
-static QString typePresenceToString(GS::TypePresence t) {
-    switch (t) {
-        case GS::TypePresence::Present: return QStringLiteral("Présent");
-        case GS::TypePresence::Absent: return QStringLiteral("Absent");
-        case GS::TypePresence::Retard: return QStringLiteral("Retard");
-    }
-    return QStringLiteral("Présent");
-}
-
-static QVariantMap seanceToMap(const Seance& s) {
-    return {
-        {"id", s.id}, {"matiereId", s.matiereId}, {"profId", s.profId},
-        {"salleId", s.salleId}, {"classeId", s.classeId},
-        {"dateHeureDebut", s.dateHeureDebut.toString(Qt::ISODate)},
-        {"dureeMinutes", s.dureeMinutes},
-        {"typeSeance", categorieSeanceToString(s.typeSeance)}
-    };
-}
-
-static QVariantMap participationToMap(const Participation& p) {
-    return {
-        {"id", p.id}, {"seanceId", p.seanceId}, {"eleveId", p.eleveId},
-        {"statut", typePresenceToString(p.statut)},
-        {"note", p.note < 0 ? QVariant() : QVariant(p.note)},
-        {"estInvite", p.estInvite}
-    };
-}
-
-DashboardController::DashboardController(DashboardService* service, QObject* parent)
-    : QObject(parent), m_service(service) {}
 
 void DashboardController::setLoading(bool v) {
     if (m_loading != v) { m_loading = v; emit loadingChanged(); }
@@ -48,43 +28,126 @@ void DashboardController::setLoading(bool v) {
 void DashboardController::loadDashboard() {
     setLoading(true);
 
-    // Total students
-    auto studentsResult = m_service->getTotalStudents();
-    if (studentsResult.isOk()) m_totalStudents = studentsResult.value();
+    m_worker->submit("Dashboard.load",
+        [dashSvc = m_service, schoolSvc = m_schoolingService,
+         staffSvc = m_staffService, studentSvc = m_studentService]() -> QVariant
+    {
+        QVariantMap data;
 
-    // Active courses
-    auto coursesResult = m_service->getActiveCoursesCount();
-    if (coursesResult.isOk()) m_activeCourses = coursesResult.value();
+        // Build lookup maps
+        QMap<int, QString> salles, matieres, classes, profs, eleves;
 
-    // Average attendance
-    auto attendanceResult = m_service->getAverageAttendanceRate();
-    if (attendanceResult.isOk()) m_averageAttendance = attendanceResult.value();
+        auto sallesR = schoolSvc->getAllSalles();
+        if (sallesR.isOk()) for (const auto& s : sallesR.value()) salles[s.id] = s.nom;
 
-    // School average
-    auto avgResult = m_service->getSchoolAverage();
-    if (avgResult.isOk()) m_schoolAverage = avgResult.value();
+        auto matieresR = schoolSvc->getAllMatieres();
+        if (matieresR.isOk()) for (const auto& m : matieresR.value()) matieres[m.id] = m.nom;
 
-    // Live sessions
-    auto liveResult = m_service->getLiveSessions();
-    if (liveResult.isOk()) {
-        m_liveSessions.clear();
-        for (const auto& s : liveResult.value()) m_liveSessions.append(seanceToMap(s));
-    }
+        auto classesR = schoolSvc->getAllClasses();
+        if (classesR.isOk()) for (const auto& c : classesR.value()) classes[c.id] = c.nom;
 
-    // Recent grades
-    auto gradesResult = m_service->getRecentGrades(10);
-    if (gradesResult.isOk()) {
-        m_recentGrades.clear();
-        for (const auto& p : gradesResult.value()) m_recentGrades.append(participationToMap(p));
-    }
+        auto profsR = staffSvc->getAllProfesseurs();
+        if (profsR.isOk()) for (const auto& p : profsR.value()) profs[p.id] = p.prenom + " " + p.nom;
 
-    // Upcoming exams
-    auto examsResult = m_service->getUpcomingExams(5);
-    if (examsResult.isOk()) {
-        m_upcomingExams.clear();
-        for (const auto& s : examsResult.value()) m_upcomingExams.append(seanceToMap(s));
-    }
+        auto elevesR = studentSvc->getAllStudents();
+        if (elevesR.isOk()) for (const auto& e : elevesR.value()) eleves[e.id] = e.prenom + " " + e.nom;
+
+        // Scalar stats
+        auto studentsResult = dashSvc->getTotalStudents();
+        data["totalStudents"] = studentsResult.isOk() ? studentsResult.value() : 0;
+
+        auto coursesResult = dashSvc->getActiveCoursesCount();
+        data["activeCourses"] = coursesResult.isOk() ? coursesResult.value() : 0;
+
+        auto attendanceResult = dashSvc->getAverageAttendanceRate();
+        data["averageAttendance"] = attendanceResult.isOk() ? attendanceResult.value() : 0.0;
+
+        auto avgResult = dashSvc->getSchoolAverage();
+        data["schoolAverage"] = avgResult.isOk() ? avgResult.value() : 0.0;
+
+        // Live sessions (enriched)
+        QVariantList liveList;
+        auto liveResult = dashSvc->getLiveSessions();
+        if (liveResult.isOk()) {
+            QDateTime now = QDateTime::currentDateTime();
+            for (const auto& s : liveResult.value()) {
+                QDateTime end = s.dateHeureDebut.addSecs(s.dureeMinutes * 60);
+                int elapsed = s.dateHeureDebut.secsTo(now);
+                int total = s.dureeMinutes * 60;
+                int progress = total > 0 ? qBound(0, elapsed * 100 / total, 100) : 0;
+                QString timeSlot = s.dateHeureDebut.toString("HH:mm") + " - " + end.toString("HH:mm");
+
+                liveList.append(QVariantMap{
+                    {"id", s.id},
+                    {"room", salles.value(s.salleId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"subject", matieres.value(s.matiereId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"className", classes.value(s.classeId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"prof", profs.value(s.profId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"timeSlot", timeSlot},
+                    {"progress", progress}
+                });
+            }
+        }
+        data["liveSessions"] = liveList;
+
+        // Recent grades (enriched)
+        QVariantList gradesList;
+        auto gradesResult = dashSvc->getRecentGrades(10);
+        if (gradesResult.isOk()) {
+            for (const auto& p : gradesResult.value()) {
+                gradesList.append(QVariantMap{
+                    {"id", p.id},
+                    {"student", eleves.value(p.eleveId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"note", p.note},
+                    {"score", QString::number(p.note, 'f', 1) + "/20"}
+                });
+            }
+        }
+        data["recentGrades"] = gradesList;
+
+        // Upcoming exams (enriched)
+        QVariantList examsList;
+        auto examsResult = dashSvc->getUpcomingExams(5);
+        if (examsResult.isOk()) {
+            for (const auto& s : examsResult.value()) {
+                examsList.append(QVariantMap{
+                    {"id", s.id},
+                    {"title", matieres.value(s.matiereId, QStringLiteral("Examen"))},
+                    {"className", classes.value(s.classeId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"room", salles.value(s.salleId, QString::fromUtf8("\xe2\x80\x94"))},
+                    {"day", QString::number(s.dateHeureDebut.date().day())},
+                    {"month", s.dateHeureDebut.toString("MMM").toUpper()},
+                    {"time", s.dateHeureDebut.toString("HH:mm")}
+                });
+            }
+        }
+        data["upcomingExams"] = examsList;
+
+        return data;
+    });
+}
+
+void DashboardController::onQueryCompleted(const QString& queryId, const QVariant& result) {
+    if (queryId != "Dashboard.load") return;
+
+    auto data = result.toMap();
+
+    m_totalStudents = data["totalStudents"].toInt();
+    m_activeCourses = data["activeCourses"].toInt();
+    m_averageAttendance = data["averageAttendance"].toDouble();
+    m_schoolAverage = data["schoolAverage"].toDouble();
+    m_liveSessions = data["liveSessions"].toList();
+    m_recentGrades = data["recentGrades"].toList();
+    m_upcomingExams = data["upcomingExams"].toList();
 
     emit dataChanged();
+    setLoading(false);
+}
+
+void DashboardController::onQueryError(const QString& queryId, const QString& error) {
+    if (queryId != "Dashboard.load") return;
+
+    m_errorMessage = error;
+    emit errorMessageChanged();
     setLoading(false);
 }

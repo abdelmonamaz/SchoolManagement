@@ -11,4 +11,6 @@ public:
 
     virtual Result<QList<Eleve>> getByClasseId(int classeId) = 0;
     virtual Result<int> countAll() = 0;
+    virtual Result<bool> unassignClasse(int classeId) = 0;
+    virtual Result<bool> removeFromClasse(int studentId) = 0;
 };

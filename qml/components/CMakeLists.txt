@@ -23,8 +23,24 @@ qt_add_qml_module(GestionScolaire_Components
         DataTable.qml
         ModalOverlay.qml
         FormField.qml
+        DateField.qml
         Separator.qml
         Avatar.qml
         SectionLabel.qml
         ModalButtons.qml
+        schooling/LevelSidebar.qml
+        schooling/SubjectsSection.qml
+        schooling/ClassesSection.qml
+        schooling/RoomsSection.qml
+        schooling/NiveauModals.qml
+        schooling/MatiereDeleteModal.qml
+        schooling/ClassModals.qml
+        schooling/ClassStudentsPopup.qml
+        schooling/RoomModals.qml
+        schooling/ManageEquipmentsModal.qml
+        students/StudentListView.qml
+        students/StudentDetailView.qml
+        students/StudentRegistrationModal.qml
+        students/StudentEditModal.qml
+        students/StudentDeleteModal.qml
 )

@@ -19,13 +19,14 @@ static GS::TypePublic stringToTypePublic(const QString& s) {
 
 static Eleve rowToEleve(const QSqlQuery& query) {
     Eleve e;
-    e.id = query.value(0).toInt();
-    e.nom = query.value(1).toString();
-    e.prenom = query.value(2).toString();
-    e.telephone = query.value(3).toString();
-    e.adresse = query.value(4).toString();
-    e.categorie = stringToTypePublic(query.value(5).toString());
-    e.classeId = query.value(6).toInt();
+    e.id            = query.value(0).toInt();
+    e.nom           = query.value(1).toString();
+    e.prenom        = query.value(2).toString();
+    e.telephone     = query.value(3).toString();
+    e.adresse       = query.value(4).toString();
+    e.dateNaissance = query.value(5).toString();
+    e.categorie     = stringToTypePublic(query.value(6).toString());
+    e.classeId      = query.value(7).toInt();
     return e;
 }
 
@@ -35,7 +36,7 @@ SqliteEleveRepository::SqliteEleveRepository(const QString& connectionName)
 Result<QList<Eleve>> SqliteEleveRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, categorie, classe_id FROM eleves"))) {
+    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, date_naissance, categorie, classe_id FROM eleves"))) {
         return Result<QList<Eleve>>::error(query.lastError().text());
     }
     QList<Eleve> list;
@@ -46,7 +47,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getAll() {
 Result<std::optional<Eleve>> SqliteEleveRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, categorie, classe_id FROM eleves WHERE id = ?"));
+    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, date_naissance, categorie, classe_id FROM eleves WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<Eleve>>::error(query.lastError().text());
     if (query.next()) return Result<std::optional<Eleve>>::success(rowToEleve(query));
@@ -57,11 +58,13 @@ Result<int> SqliteEleveRepository::create(const Eleve& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO eleves (nom, prenom, telephone, adresse, categorie, classe_id) VALUES (?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO eleves (nom, prenom, telephone, adresse, date_naissance, categorie, classe_id)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
+    query.addBindValue(entity.dateNaissance);
     query.addBindValue(typePublicToString(entity.categorie));
     query.addBindValue(entity.classeId);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
@@ -72,11 +75,12 @@ Result<bool> SqliteEleveRepository::update(const Eleve& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE eleves SET nom=?, prenom=?, telephone=?, adresse=?, categorie=?, classe_id=? WHERE id=?"));
+        "UPDATE eleves SET nom=?, prenom=?, telephone=?, adresse=?, date_naissance=?, categorie=?, classe_id=? WHERE id=?"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
+    query.addBindValue(entity.dateNaissance);
     query.addBindValue(typePublicToString(entity.categorie));
     query.addBindValue(entity.classeId);
     query.addBindValue(entity.id);
@@ -96,7 +100,7 @@ Result<bool> SqliteEleveRepository::remove(int id) {
 Result<QList<Eleve>> SqliteEleveRepository::getByClasseId(int classeId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, categorie, classe_id FROM eleves WHERE classe_id = ?"));
+    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, date_naissance, categorie, classe_id FROM eleves WHERE classe_id = ?"));
     query.addBindValue(classeId);
     if (!query.exec()) return Result<QList<Eleve>>::error(query.lastError().text());
     QList<Eleve> list;
@@ -112,4 +116,22 @@ Result<int> SqliteEleveRepository::countAll() {
     }
     query.next();
     return Result<int>::success(query.value(0).toInt());
+}
+
+Result<bool> SqliteEleveRepository::unassignClasse(int classeId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("UPDATE eleves SET classe_id = NULL WHERE classe_id = ?"));
+    query.addBindValue(classeId);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteEleveRepository::removeFromClasse(int studentId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("UPDATE eleves SET classe_id = NULL WHERE id = ?"));
+    query.addBindValue(studentId);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
 }

@@ -6,13 +6,6 @@
 #include <QVariant>
 #include <functional>
 
-/**
- * @brief Threaded worker that owns a dedicated SQLite connection.
- *
- * DatabaseWorker lives on its own QThread so that all database I/O stays
- * off the GUI thread.  Call start() once; when the schema is ready the
- * ready() signal is emitted.  After that, submit work via executeAsync().
- */
 class DatabaseWorker : public QObject
 {
     Q_OBJECT
@@ -21,38 +14,30 @@ public:
     explicit DatabaseWorker(const QString& dbPath, QObject* parent = nullptr);
     ~DatabaseWorker() override;
 
-    /** Moves this object to its internal thread and starts it. */
     void start();
-
-    /** Gracefully stops the internal thread and removes the DB connection. */
     void stop();
-
-    /** Returns the unique connection name used by this worker. */
     QString connectionName() const;
 
-public slots:
     /**
-     * @brief Runs @p queryFunc on the worker thread.
-     * @param queryId   Caller-defined identifier echoed back in the result signal.
-     * @param queryFunc Lambda that performs the actual query and returns a QVariant.
+     * @brief Submit a query from ANY thread. The lambda runs on the worker thread.
      *
-     * On success emits queryCompleted(); on exception emits queryError().
+     * Call this from the main/GUI thread. The queryFunc will be marshalled
+     * to the worker thread via a queued signal/slot connection.
+     * Results come back via queryCompleted / queryError signals.
      */
-    void executeAsync(const QString& queryId, std::function<QVariant()> queryFunc);
+    void submit(const QString& queryId, std::function<QVariant()> queryFunc);
 
 signals:
-    /** Emitted once the connection is open and the schema is in place. */
     void ready();
-
-    /** Emitted when executeAsync() finishes successfully. */
     void queryCompleted(const QString& queryId, const QVariant& result);
-
-    /** Emitted when executeAsync() catches an error. */
     void queryError(const QString& queryId, const QString& error);
 
+    // Internal signal for cross-thread dispatch
+    void enqueueQuery(const QString& queryId, std::function<QVariant()> queryFunc);
+
 private slots:
-    /** Called automatically when the internal thread starts. */
     void onThreadStarted();
+    void executeAsync(const QString& queryId, std::function<QVariant()> queryFunc);
 
 private:
     QThread m_thread;

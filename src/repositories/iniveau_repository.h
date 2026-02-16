@@ -23,3 +23,8 @@ public:
 
     virtual Result<QList<Matiere>> getByNiveauId(int niveauId) = 0;
 };
+
+class IEquipementRepository : public IRepository<Equipement> {
+public:
+    ~IEquipementRepository() override = default;
+};

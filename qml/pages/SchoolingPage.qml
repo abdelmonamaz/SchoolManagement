@@ -1,5 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import QtQuick.Controls 2.15
+import Qt.labs.settings 1.0
 import UI.Components
 
 Item {
@@ -7,57 +9,83 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     property string activeTab: "levels"
-    property int selectedLevel: 0
+    property int selectedNiveauId: -1
     property bool showRoomModal: false
     property bool showClassModal: false
+    property bool showEditClassModal: false
+    property var editingClass: ({id: 0, nom: ""})
+    property var selectedEquipments: []
+    property bool showClassStudentsPopup: false
+    property int classPopupClasseId: 0
+    property string classPopupClasseNom: ""
+    property bool showDeleteClassConfirm: false
+    property int deletingClasseId: 0
+    property bool showNiveauModal: false
+    property bool showEditNiveauModal: false
+    property var editingNiveau: ({id: 0, nom: ""})
+    property bool showDeleteNiveauConfirm: false
+    property int deletingNiveauId: 0
+    property bool showDeleteMatiereConfirm: false
+    property int deletingMatiereId: 0
+    property bool showEditRoomModal: false
+    property var editingRoom: ({id: 0, nom: "", capaciteChaises: 20, equipement: ""})
+    property bool showDeleteRoomConfirm: false
+    property int deletingRoomId: 0
+    property bool showManageEquipmentsModal: false
 
-    readonly property var levelsData: [
-        {
-            name: "Niveau 1",
-            subjects: ["Arabe", "Coran", "Mathématiques"],
-            classes: [
-                { name: "A", students: 15 },
-                { name: "B", students: 18 },
-                { name: "C", students: 12 }
-            ]
-        },
-        {
-            name: "Niveau 2",
-            subjects: ["Arabe", "Coran", "Mathématiques", "Histoires"],
-            classes: [
-                { name: "A", students: 20 },
-                { name: "B", students: 16 },
-                { name: "C", students: 16 }
-            ]
-        },
-        {
-            name: "Niveau 3",
-            subjects: ["Arabe", "Coran", "Mathématiques", "Fiqh"],
-            classes: [
-                { name: "A", students: 12 },
-                { name: "B", students: 14 },
-                { name: "C", students: 12 }
-            ]
-        },
-        {
-            name: "Niveau 4",
-            subjects: ["Arabe", "Coran", "Tajwid", "Fiqh"],
-            classes: [
-                { name: "A", students: 16 },
-                { name: "B", students: 16 },
-                { name: "C", students: 16 }
-            ]
-        },
-        {
-            name: "Niveau 5",
-            subjects: ["Arabe", "Coran", "Tajwid", "Fiqh", "Hadith"],
-            classes: [
-                { name: "A", students: 14 },
-                { name: "B", students: 14 },
-                { name: "C", students: 14 }
-            ]
+    Component.onCompleted: {
+        schoolingController.loadNiveaux()
+        schoolingController.loadSalles()
+        schoolingController.loadEquipements()
+        studentController.loadStudents()
+    }
+
+    Connections {
+        target: schoolingController
+        function onNiveauxChanged() {
+            if (selectedNiveauId < 0 && schoolingController.niveaux.length > 0)
+                selectNiveau(schoolingController.niveaux[0].id)
         }
-    ]
+        function onOperationSucceeded(msg) {
+            console.log("SchoolingPage:", msg)
+            schoolingController.loadNiveaux()
+            schoolingController.loadSalles()
+            schoolingController.loadAllClasses()
+            studentController.loadStudents()
+            if (selectedNiveauId > 0) {
+                schoolingController.loadClassesByNiveau(selectedNiveauId)
+                schoolingController.loadMatieresByNiveau(selectedNiveauId)
+            }
+        }
+        function onOperationFailed(err) { console.warn("SchoolingPage error:", err) }
+    }
+
+    Connections {
+        target: studentController
+        function onStudentsChanged() {
+            var cnt = 0
+            var sts = studentController.students
+            for (var i = 0; i < sts.length; i++)
+                if (sts[i].classeId === classPopupClasseId) cnt++
+            console.log("SchoolingPage studentsChanged: " + cnt + " élève(s) dans classe", classPopupClasseId)
+        }
+        function onOperationSucceeded(msg) { console.log("SchoolingPage studentController OK:", msg) }
+        function onOperationFailed(err) { console.warn("SchoolingPage studentController ERREUR:", err) }
+    }
+
+    function selectNiveau(niveauId) {
+        selectedNiveauId = niveauId
+        schoolingController.loadClassesByNiveau(niveauId)
+        schoolingController.loadMatieresByNiveau(niveauId)
+    }
+
+    function selectedNiveauNom() {
+        var list = schoolingController.niveaux
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === selectedNiveauId) return list[i].nom
+        }
+        return ""
+    }
 
     ColumnLayout {
         id: mainLayout
@@ -146,279 +174,57 @@ Item {
                 RowLayout {
                     spacing: 24
 
-                    Column {
-                        Layout.preferredWidth: 220
-                        spacing: 12
-
-                        SectionLabel {
-                            text: "SÉLECTIONNER UN NIVEAU"
-                            leftPadding: 4
+                    LevelSidebar {
+                        Layout.alignment: Qt.AlignTop
+                        niveaux: schoolingController.niveaux
+                        selectedNiveauId: schoolPage.selectedNiveauId
+                        onNiveauSelected: (niveauId) => schoolPage.selectNiveau(niveauId)
+                        onNiveauEditRequested: (id, nom) => {
+                            schoolPage.editingNiveau = {id: id, nom: nom}
+                            schoolPage.showEditNiveauModal = true
                         }
-
-                        Column {
-                            width: parent.width
-                            spacing: 8
-
-                            Repeater {
-                                model: levelsData.length
-
-                                Rectangle {
-                                    width: 220
-                                    height: 52
-                                    radius: 16
-                                    color: selectedLevel === index ? Style.primary : Style.bgWhite
-                                    border.color: selectedLevel === index ? Style.primary : Style.borderLight
-
-                                    Behavior on color { ColorAnimation { duration: 150 } }
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 12
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: levelsData[index].name
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                            color: selectedLevel === index ? "#FFFFFF" : Style.textPrimary
-                                        }
-
-                                        Text {
-                                            text: "›"
-                                            font.pixelSize: 16
-                                            color: selectedLevel === index ? "#FFFFFF60" : Style.textTertiary
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: selectedLevel = index
-                                    }
-                                }
-                            }
+                        onNiveauDeleteRequested: (id) => {
+                            schoolPage.deletingNiveauId = id
+                            schoolPage.showDeleteNiveauConfirm = true
                         }
+                        onNiveauAddRequested: schoolPage.showNiveauModal = true
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 24
 
-                        AppCard {
+                        SubjectsSection {
                             Layout.fillWidth: true
-                            title: "Matières enseignées : " + levelsData[selectedLevel].name
-                            subtitle: "Ajoutez ou supprimez des cours pour ce niveau"
-
-                            Column {
-                                width: parent.width
-                                spacing: 18
-
-                                Flow {
-                                    width: parent.width
-                                    spacing: 12
-
-                                    Repeater {
-                                        model: levelsData[selectedLevel].subjects
-
-                                        Rectangle {
-                                            implicitWidth: subjectRow.implicitWidth + 24
-                                            height: 40
-                                            radius: 12
-                                            color: Style.bgPage
-                                            border.color: subjectCardMa.containsMouse ? Style.primary : Style.borderLight
-
-                                            Behavior on border.color { ColorAnimation { duration: 150 } }
-
-                                            RowLayout {
-                                                id: subjectRow
-                                                anchors.centerIn: parent
-                                                spacing: 8
-
-                                                Text {
-                                                    text: modelData
-                                                    font.pixelSize: 13
-                                                    font.bold: true
-                                                    color: Style.textPrimary
-                                                }
-
-                                                IconButton {
-                                                    iconName: "close"
-                                                    iconSize: 12
-                                                    hoverColor: Style.errorColor
-                                                }
-                                            }
-
-                                            MouseArea {
-                                                id: subjectCardMa
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Separator { width: parent.width }
-
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        height: 44
-                                        radius: 12
-                                        color: Style.bgPage
-                                        border.color: Style.borderLight
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 14
-                                            anchors.rightMargin: 14
-
-                                            IconLabel {
-                                                iconName: "book"
-                                                iconSize: 16
-                                                iconColor: Style.textTertiary
-                                            }
-
-                                            TextInput {
-                                                Layout.fillWidth: true
-                                                font.pixelSize: 13
-                                                font.bold: true
-                                                color: Style.textPrimary
-
-                                                Text {
-                                                    visible: !parent.text
-                                                    text: "Nom de la nouvelle matière..."
-                                                    font: parent.font
-                                                    color: Style.textTertiary
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    PrimaryButton {
-                                        text: "AJOUTER"
-                                        iconName: "plus"
-                                    }
-                                }
+                            matieres: schoolingController.matieres
+                            selectedNiveauNom: schoolPage.selectedNiveauNom()
+                            selectedNiveauId: schoolPage.selectedNiveauId
+                            onMatiereCreateRequested: (nom) => schoolingController.createMatiere(nom, selectedNiveauId)
+                            onMatiereDeleteRequested: (id) => {
+                                schoolPage.deletingMatiereId = id
+                                schoolPage.showDeleteMatiereConfirm = true
                             }
                         }
 
-                        AppCard {
+                        ClassesSection {
                             Layout.fillWidth: true
-                            title: "Groupes & Classes"
-                            subtitle: "Structure actuelle du " + levelsData[selectedLevel].name
-
-                            GridLayout {
-                                width: parent.width
-                                columns: 3
-                                columnSpacing: 18
-                                rowSpacing: 18
-
-                                Repeater {
-                                    model: levelsData[selectedLevel].classes
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        implicitHeight: 140
-                                        radius: 24
-                                        color: Style.bgPage
-                                        border.color: classCardMa.containsMouse ? Style.primary : Style.borderLight
-
-                                        Behavior on border.color { ColorAnimation { duration: 200 } }
-
-                                        Column {
-                                            anchors.fill: parent
-                                            anchors.margins: 20
-                                            spacing: 12
-
-                                            RowLayout {
-                                                width: parent.width
-
-                                                Rectangle {
-                                                    width: 48; height: 48; radius: 16
-                                                    color: classCardMa.containsMouse ? Style.primary : Style.bgWhite
-                                                    Behavior on color { ColorAnimation { duration: 200 } }
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: modelData.name
-                                                        font.pixelSize: 18
-                                                        font.weight: Font.Black
-                                                        color: classCardMa.containsMouse ? "#FFFFFF" : Style.primary
-                                                    }
-                                                }
-
-                                                Item { Layout.fillWidth: true }
-
-                                                Badge {
-                                                    text: modelData.students + " Élèves"
-                                                    variant: "neutral"
-                                                }
-                                            }
-
-                                            Column {
-                                                width: parent.width
-                                                spacing: 2
-
-                                                Text {
-                                                    text: "Classe " + (selectedLevel + 1) + modelData.name
-                                                    font.pixelSize: 14
-                                                    font.weight: Font.Black
-                                                    color: Style.textPrimary
-                                                }
-
-                                                SectionLabel { text: "CAPACITÉ OPTIMALE" }
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            id: classCardMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                        }
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: 140
-                                    radius: 24
-                                    color: "transparent"
-                                    border.color: addClassMa.containsMouse ? Style.primary : Style.borderMedium
-                                    border.width: 2
-
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 10
-
-                                        IconLabel {
-                                            iconName: "plus"
-                                            iconSize: 24
-                                            iconColor: addClassMa.containsMouse ? Style.primary : Style.textTertiary
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-
-                                        SectionLabel {
-                                            text: "NOUVEAU GROUPE"
-                                            font.pixelSize: 10
-                                            color: addClassMa.containsMouse ? Style.primary : Style.textTertiary
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: addClassMa
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: showClassModal = true
-                                    }
-                                }
+                            classes: schoolingController.classes
+                            students: studentController.students
+                            selectedNiveauNom: schoolPage.selectedNiveauNom()
+                            onClassCardClicked: (classeId, classeNom) => {
+                                schoolPage.classPopupClasseId = classeId
+                                schoolPage.classPopupClasseNom = classeNom
+                                schoolPage.showClassStudentsPopup = true
                             }
+                            onClassEditRequested: (id, nom) => {
+                                schoolPage.editingClass = {id: id, nom: nom}
+                                schoolPage.showEditClassModal = true
+                            }
+                            onClassDeleteRequested: (id) => {
+                                schoolPage.deletingClasseId = id
+                                schoolPage.showDeleteClassConfirm = true
+                            }
+                            onClassAddRequested: schoolPage.showClassModal = true
                         }
                     }
                 }
@@ -432,114 +238,21 @@ Item {
             visible: active
 
             sourceComponent: Component {
-                Column {
-                    width: parent.width
-                    spacing: 24
-
-                    RowLayout {
-                        width: parent.width
-                        Item { Layout.fillWidth: true }
-                        PrimaryButton {
-                            text: "Ajouter une Salle"
-                            iconName: "plus"
-                            onClicked: showRoomModal = true
+                RoomsSection {
+                    salles: schoolingController.salles
+                    onRoomAddRequested: schoolPage.showRoomModal = true
+                    onRoomEditRequested: (id, nom, capaciteChaises, equipement) => {
+                        schoolPage.editingRoom = {
+                            id: id,
+                            nom: nom,
+                            capaciteChaises: capaciteChaises,
+                            equipement: equipement
                         }
+                        schoolPage.showEditRoomModal = true
                     }
-
-                    GridLayout {
-                        width: parent.width
-                        columns: 4
-                        columnSpacing: 20
-                        rowSpacing: 20
-
-                        Repeater {
-                            model: ListModel {
-                                ListElement { roomName: "Salle A1"; capacity: 30; equipment: "Projecteur, Tableau Blanc" }
-                                ListElement { roomName: "Salle B4"; capacity: 25; equipment: "Tableau Blanc" }
-                                ListElement { roomName: "Grande Salle"; capacity: 60; equipment: "Projecteur, Système Audio, Tableau Blanc" }
-                                ListElement { roomName: "Labo 1"; capacity: 20; equipment: "Tableaux Digitaux, WiFi" }
-                            }
-
-                            delegate: Rectangle {
-                                property string roomEquipment: model.equipment
-
-                                Layout.fillWidth: true
-                                implicitHeight: roomCardCol.implicitHeight + 48
-                                radius: 24
-                                color: Style.bgWhite
-                                border.color: roomCardMa.containsMouse ? Style.borderMedium : Style.borderLight
-                                Behavior on border.color { ColorAnimation { duration: 200 } }
-
-                                Column {
-                                    id: roomCardCol
-                                    anchors.fill: parent
-                                    anchors.margins: 24
-                                    spacing: 18
-
-                                    RowLayout {
-                                        width: parent.width
-
-                                        Rectangle {
-                                            width: 48; height: 48; radius: 16; color: Style.bgPage
-                                            Text { anchors.centerIn: parent; text: "🏫"; font.pixelSize: 20 }
-                                        }
-
-                                        Item { Layout.fillWidth: true }
-
-                                        Row {
-                                            spacing: 4
-                                            IconButton { iconName: "edit"; iconSize: 14; onClicked: showRoomModal = true }
-                                            IconButton { iconName: "delete"; iconSize: 14; hoverColor: Style.errorColor }
-                                        }
-                                    }
-
-                                    Column {
-                                        width: parent.width
-                                        spacing: 8
-                                        Text { text: model.roomName; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                                        Badge { text: model.capacity + " Places"; variant: "info" }
-                                    }
-
-                                    Separator { width: parent.width }
-
-                                    Column {
-                                        width: parent.width
-                                        spacing: 8
-
-                                        SectionLabel { text: "ÉQUIPEMENTS" }
-
-                                        Flow {
-                                            width: parent.width
-                                            spacing: 6
-
-                                            Repeater {
-                                                model: roomEquipment ? roomEquipment.split(", ") : []
-
-                                                Rectangle {
-                                                    implicitWidth: equipRow.implicitWidth + 12
-                                                    height: 24; radius: 8
-                                                    color: Style.bgPage; border.color: Style.borderLight
-
-                                                    RowLayout {
-                                                        id: equipRow
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-                                                        Text { text: "✓"; font.pixelSize: 10; color: Style.successColor }
-                                                        Text { text: modelData; font.pixelSize: 10; font.bold: true; color: Style.textSecondary }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: roomCardMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                }
-                            }
-                        }
+                    onRoomDeleteRequested: (id) => {
+                        schoolPage.deletingRoomId = id
+                        schoolPage.showDeleteRoomConfirm = true
                     }
                 }
             }
@@ -548,115 +261,134 @@ Item {
         Item { Layout.preferredHeight: 32 }
     }
 
-    // ─── Class Modal ───
-    ModalOverlay {
-        show: showClassModal
-        modalWidth: 420
-        onClose: showClassModal = false
+    // ─── All Modals ───
+    NiveauModals {
+        showCreate: showNiveauModal
+        showEdit: showEditNiveauModal
+        showDelete: showDeleteNiveauConfirm
+        editingNiveau: schoolPage.editingNiveau
+        deletingNiveauId: schoolPage.deletingNiveauId
 
-        Column {
-            width: parent.width
-            spacing: 0
-            padding: 32
-
-            Text {
-                text: "Nouveau Groupe (" + levelsData[selectedLevel].name + ")"
-                font.pixelSize: 22
-                font.weight: Font.Black
-                color: Style.textPrimary
-                bottomPadding: 24
-            }
-
-            FormField {
-                width: parent.width - 64
-                label: "NOM DU GROUPE"
-                placeholder: "ex: A, B, Matin, etc."
-            }
-
-            Item { width: 1; height: 24 }
-
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "CRÉER"
-                onCancel: showClassModal = false
-                onConfirm: showClassModal = false
-            }
+        onCreateRequested: (nom) => {
+            schoolingController.createNiveau(nom)
+            showNiveauModal = false
+        }
+        onEditRequested: (id, nom) => {
+            schoolingController.updateNiveau(id, nom)
+            showEditNiveauModal = false
+        }
+        onDeleteRequested: (id) => {
+            schoolingController.deleteNiveau(id)
+            showDeleteNiveauConfirm = false
+        }
+        onCloseRequested: {
+            showNiveauModal = false
+            showEditNiveauModal = false
+            showDeleteNiveauConfirm = false
         }
     }
 
-    // ─── Room Modal ───
-    ModalOverlay {
-        show: showRoomModal
-        modalWidth: 480
-        onClose: showRoomModal = false
+    MatiereDeleteModal {
+        show: showDeleteMatiereConfirm
+        deletingMatiereId: schoolPage.deletingMatiereId
 
-        Column {
-            width: parent.width
-            spacing: 0
-            padding: 32
+        onDeleteRequested: (id) => {
+            schoolingController.deleteMatiere(id)
+            showDeleteMatiereConfirm = false
+        }
+        onCloseRequested: showDeleteMatiereConfirm = false
+    }
 
-            Text {
-                text: "Nouvelle Salle"
-                font.pixelSize: 22
-                font.weight: Font.Black
-                color: Style.textPrimary
-                bottomPadding: 24
-            }
+    ClassModals {
+        showCreate: showClassModal
+        showEdit: showEditClassModal
+        showDelete: showDeleteClassConfirm
+        editingClass: schoolPage.editingClass
+        deletingClasseId: schoolPage.deletingClasseId
+        selectedNiveauNom: schoolPage.selectedNiveauNom()
+        selectedNiveauId: schoolPage.selectedNiveauId
 
-            Column {
-                width: parent.width - 64
-                spacing: 18
+        onCreateRequested: (nom, niveauId) => {
+            schoolingController.createClasse(nom, niveauId)
+            showClassModal = false
+        }
+        onEditRequested: (id, nom, niveauId) => {
+            schoolingController.updateClasse(id, nom, niveauId)
+            showEditClassModal = false
+        }
+        onDeleteRequested: (id) => {
+            studentController.unassignStudentsFromClasse(id)
+            schoolingController.deleteClasse(id)
+            showDeleteClassConfirm = false
+        }
+        onCloseRequested: {
+            showClassModal = false
+            showEditClassModal = false
+            showDeleteClassConfirm = false
+        }
+    }
 
-                FormField { width: parent.width; label: "NOM DE LA SALLE"; placeholder: "ex: Salle B1" }
-                FormField { width: parent.width; label: "CAPACITÉ"; text: "20" }
+    ClassStudentsPopup {
+        show: showClassStudentsPopup
+        classeId: classPopupClasseId
+        classeNom: classPopupClasseNom
+        students: studentController.students
 
-                Column {
-                    width: parent.width
-                    spacing: 8
-
-                    SectionLabel { text: "ÉQUIPEMENTS" }
-
-                    GridLayout {
-                        width: parent.width
-                        columns: 2
-                        columnSpacing: 8
-                        rowSpacing: 8
-
-                        Repeater {
-                            model: ["Projecteur", "Tableau Blanc", "Tableau Digital", "WiFi", "Système Audio"]
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 40; radius: 12
-                                color: Style.bgPage; border.color: Style.borderLight
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData; font.pixelSize: 11; font.bold: true; color: Style.textSecondary
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        parent.color = parent.color === Style.primary ? Style.bgPage : Style.primary
-                                        parent.children[0].color = parent.color === Style.primary ? "#FFFFFF" : Style.textSecondary
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Item { width: 1; height: 24 }
-
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "ENREGISTRER"
-                onCancel: showRoomModal = false
-                onConfirm: showRoomModal = false
+        onCloseRequested: showClassStudentsPopup = false
+        onStudentViewRequested: (studentId) => {
+            var win = schoolPage.ApplicationWindow.window
+            if (win) {
+                win.pendingStudentId = studentId
+                win.currentPage = "students"
             }
         }
+        onStudentRemoveRequested: (studentId) => {
+            studentController.removeStudentFromClasse(studentId)
+        }
+    }
+
+    RoomModals {
+        showCreate: showRoomModal
+        showEdit: showEditRoomModal
+        showDelete: showDeleteRoomConfirm
+        editingRoom: schoolPage.editingRoom
+        deletingRoomId: schoolPage.deletingRoomId
+        availableEquipments: schoolingController.equipements
+        selectedEquipments: schoolPage.selectedEquipments
+
+        onCreateRequested: (data) => {
+            schoolingController.createSalle(data)
+            showRoomModal = false
+        }
+        onEditRequested: (id, data) => {
+            schoolingController.updateSalle(id, data)
+            showEditRoomModal = false
+        }
+        onDeleteRequested: (id) => {
+            schoolingController.deleteSalle(id)
+            showDeleteRoomConfirm = false
+        }
+        onCloseRequested: {
+            showRoomModal = false
+            showEditRoomModal = false
+            showDeleteRoomConfirm = false
+        }
+        onManageEquipmentsRequested: showManageEquipmentsModal = true
+    }
+
+    ManageEquipmentsModal {
+        show: showManageEquipmentsModal
+        availableEquipments: schoolingController.equipements
+
+        onEquipmentAdded: (name) => {
+            schoolingController.createEquipement(name)
+        }
+        onEquipmentDeleted: (index) => {
+            var equip = schoolingController.equipements[index]
+            if (equip && equip.id) {
+                schoolingController.deleteEquipement(equip.id)
+            }
+        }
+        onCloseRequested: showManageEquipmentsModal = false
     }
 }

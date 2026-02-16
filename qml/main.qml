@@ -20,6 +20,7 @@ ApplicationWindow {
 
     property string currentPage: "dashboard"
     property bool showNotifications: false
+    property int pendingStudentId: 0
 
     // ─── Font Loading ───
     FontLoader { id: fontRegular; source: "qrc:/qt/qml//GestionScolaire/fonts/Inter-Regular.ttf" }

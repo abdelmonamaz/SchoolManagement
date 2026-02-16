@@ -2,8 +2,13 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QVariantMap>
 
 class DashboardService;
+class SchoolingService;
+class StaffService;
+class StudentService;
+class DatabaseWorker;
 
 class DashboardController : public QObject {
     Q_OBJECT
@@ -18,7 +23,12 @@ class DashboardController : public QObject {
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
 public:
-    explicit DashboardController(DashboardService* service, QObject* parent = nullptr);
+    explicit DashboardController(DashboardService* service,
+                                 SchoolingService* schoolingService,
+                                 StaffService* staffService,
+                                 StudentService* studentService,
+                                 DatabaseWorker* worker,
+                                 QObject* parent = nullptr);
 
     int totalStudents() const { return m_totalStudents; }
     int activeCourses() const { return m_activeCourses; }
@@ -37,10 +47,18 @@ signals:
     void loadingChanged();
     void errorMessageChanged();
 
+private slots:
+    void onQueryCompleted(const QString& queryId, const QVariant& result);
+    void onQueryError(const QString& queryId, const QString& error);
+
 private:
     void setLoading(bool v);
 
     DashboardService* m_service = nullptr;
+    SchoolingService* m_schoolingService = nullptr;
+    StaffService* m_staffService = nullptr;
+    StudentService* m_studentService = nullptr;
+    DatabaseWorker* m_worker = nullptr;
     int m_totalStudents = 0;
     int m_activeCourses = 0;
     double m_averageAttendance = 0.0;

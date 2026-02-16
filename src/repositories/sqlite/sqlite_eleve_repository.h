@@ -16,6 +16,8 @@ public:
 
     Result<QList<Eleve>> getByClasseId(int classeId) override;
     Result<int> countAll() override;
+    Result<bool> unassignClasse(int classeId) override;
+    Result<bool> removeFromClasse(int studentId) override;
 
 private:
     QString m_connectionName;
