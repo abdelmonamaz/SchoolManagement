@@ -2,11 +2,11 @@
 
 #include <QString>
 
-#include "repositories/iprof_repository.h"
+#include "repositories/ipersonnel_repository.h"
 
-class SqliteProfesseurRepository : public IProfesseurRepository {
+class SqlitePersonnelRepository : public IPersonnelRepository {
 public:
-    explicit SqliteProfesseurRepository(const QString& connectionName);
+    explicit SqlitePersonnelRepository(const QString& connectionName);
 
     Result<QList<Professeur>> getAll() override;
     Result<std::optional<Professeur>> getById(int id) override;

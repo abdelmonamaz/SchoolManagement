@@ -28,7 +28,7 @@ class INiveauRepository;
 class IClasseRepository;
 class IMatiereRepository;
 class IEquipementRepository;
-class IProfesseurRepository;
+class IPersonnelRepository;
 class IEleveRepository;
 class ISeanceRepository;
 class IParticipationRepository;
@@ -36,6 +36,7 @@ class IPaiementRepository;
 class IProjetRepository;
 class IDonateurRepository;
 class IDonRepository;
+class IPaiementPersonnelRepository;
 
 class AppController : public QObject {
     Q_OBJECT
@@ -60,7 +61,7 @@ private:
     std::unique_ptr<IClasseRepository> m_classeRepo;
     std::unique_ptr<IMatiereRepository> m_matiereRepo;
     std::unique_ptr<IEquipementRepository> m_equipementRepo;
-    std::unique_ptr<IProfesseurRepository> m_profRepo;
+    std::unique_ptr<IPersonnelRepository> m_profRepo;
     std::unique_ptr<IEleveRepository> m_eleveRepo;
     std::unique_ptr<ISeanceRepository> m_seanceRepo;
     std::unique_ptr<IParticipationRepository> m_participationRepo;
@@ -68,6 +69,7 @@ private:
     std::unique_ptr<IProjetRepository> m_projetRepo;
     std::unique_ptr<IDonateurRepository> m_donateurRepo;
     std::unique_ptr<IDonRepository> m_donRepo;
+    std::unique_ptr<IPaiementPersonnelRepository> m_paiementPersonnelRepo;
 
     // Services (owned)
     std::unique_ptr<SchoolingService> m_schoolingService;

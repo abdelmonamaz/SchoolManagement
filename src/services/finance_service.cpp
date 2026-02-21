@@ -4,13 +4,16 @@
 
 #include "repositories/ipaiement_repository.h"
 #include "repositories/ifinance_repository.h"
+#include "repositories/ipaiement_personnel_repository.h"
 
 FinanceService::FinanceService(IPaiementRepository* paiementRepo, IProjetRepository* projetRepo,
-                               IDonateurRepository* donateurRepo, IDonRepository* donRepo)
+                               IDonateurRepository* donateurRepo, IDonRepository* donRepo,
+                               IPaiementPersonnelRepository* paiementPersonnelRepo)
     : m_paiementRepo(paiementRepo)
     , m_projetRepo(projetRepo)
     , m_donateurRepo(donateurRepo)
     , m_donRepo(donRepo)
+    , m_paiementPersonnelRepo(paiementPersonnelRepo)
 {
 }
 
@@ -135,4 +138,54 @@ Result<int> FinanceService::recordDon(int donateurId, int projetId, double monta
 Result<double> FinanceService::getProjetTotalDons(int projetId)
 {
     return m_donRepo->getTotalByProjet(projetId);
+}
+
+// --- Paiements personnel ---
+
+Result<std::optional<PaiementMensuelPersonnel>>
+FinanceService::getPersonnelPayment(int personnelId, int mois, int annee)
+{
+    if (mois < 1 || mois > 12) {
+        return Result<std::optional<PaiementMensuelPersonnel>>::error(
+            "Le mois doit etre compris entre 1 et 12.");
+    }
+    if (annee < 2000) {
+        return Result<std::optional<PaiementMensuelPersonnel>>::error(
+            "L'annee n'est pas valide.");
+    }
+
+    return m_paiementPersonnelRepo->getByPersonnelAndMonth(personnelId, mois, annee);
+}
+
+Result<QList<PaiementMensuelPersonnel>>
+FinanceService::getAllPersonnelPaymentsForMonth(int mois, int annee)
+{
+    if (mois < 1 || mois > 12) {
+        return Result<QList<PaiementMensuelPersonnel>>::error(
+            "Le mois doit etre compris entre 1 et 12.");
+    }
+    if (annee < 2000) {
+        return Result<QList<PaiementMensuelPersonnel>>::error(
+            "L'annee n'est pas valide.");
+    }
+
+    return m_paiementPersonnelRepo->getByMonth(mois, annee);
+}
+
+Result<bool> FinanceService::savePersonnelPayment(const PaiementMensuelPersonnel& paiement)
+{
+    if (paiement.personnelId <= 0) {
+        return Result<bool>::error("L'ID du personnel n'est pas valide.");
+    }
+    if (paiement.mois < 1 || paiement.mois > 12) {
+        return Result<bool>::error("Le mois doit etre compris entre 1 et 12.");
+    }
+    if (paiement.annee < 2000) {
+        return Result<bool>::error("L'annee n'est pas valide.");
+    }
+    if (paiement.sommeDue < 0.0 || paiement.sommePaye < 0.0) {
+        return Result<bool>::error("Les montants ne peuvent pas etre negatifs.");
+    }
+
+    return m_paiementPersonnelRepo->upsert(paiement);
 }

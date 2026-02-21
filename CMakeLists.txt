@@ -32,10 +32,11 @@ add_library(GS_Core STATIC
     src/repositories/irepository.h
     src/repositories/isalle_repository.h
     src/repositories/iniveau_repository.h
-    src/repositories/iprof_repository.h
+    src/repositories/ipersonnel_repository.h
     src/repositories/ieleve_repository.h
     src/repositories/iseance_repository.h
     src/repositories/ipaiement_repository.h
+    src/repositories/ipaiement_personnel_repository.h
     src/repositories/ifinance_repository.h
 
     # SQLite implementations
@@ -45,14 +46,16 @@ add_library(GS_Core STATIC
     src/repositories/sqlite/sqlite_niveau_repository.cpp
     src/repositories/sqlite/sqlite_equipement_repository.h
     src/repositories/sqlite/sqlite_equipement_repository.cpp
-    src/repositories/sqlite/sqlite_prof_repository.h
-    src/repositories/sqlite/sqlite_prof_repository.cpp
+    src/repositories/sqlite/sqlite_personnel_repository.h
+    src/repositories/sqlite/sqlite_personnel_repository.cpp
     src/repositories/sqlite/sqlite_eleve_repository.h
     src/repositories/sqlite/sqlite_eleve_repository.cpp
     src/repositories/sqlite/sqlite_seance_repository.h
     src/repositories/sqlite/sqlite_seance_repository.cpp
     src/repositories/sqlite/sqlite_paiement_repository.h
     src/repositories/sqlite/sqlite_paiement_repository.cpp
+    src/repositories/sqlite/sqlite_paiement_personnel_repository.h
+    src/repositories/sqlite/sqlite_paiement_personnel_repository.cpp
     src/repositories/sqlite/sqlite_finance_repository.h
     src/repositories/sqlite/sqlite_finance_repository.cpp
 

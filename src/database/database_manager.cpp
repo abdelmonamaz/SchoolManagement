@@ -90,14 +90,20 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  niveau_id INTEGER REFERENCES niveaux(id) ON DELETE CASCADE"
             ")"),
 
-        // ── Professeurs ──
+        // ── Professeurs / Personnel ──
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS professeurs ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  nom TEXT NOT NULL,"
-            "  prenom TEXT NOT NULL,"
+            "  prenom TEXT,"
             "  telephone TEXT,"
             "  adresse TEXT,"
+            "  poste TEXT DEFAULT 'Enseignant',"
+            "  specialite TEXT,"
+            "  mode_paie TEXT DEFAULT 'Heure',"
+            "  valeur_base REAL DEFAULT 25.0,"
+            "  paye_pendant_vacances INTEGER DEFAULT 1,"
+            "  heures_travalies INTEGER DEFAULT 0,"
             "  statut TEXT DEFAULT 'Actif',"
             "  prix_heure_actuel REAL NOT NULL"
             ")"),
@@ -174,6 +180,19 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  annee_concernee INTEGER NOT NULL"
             ")"),
 
+        // ── Paiements personnel ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS paiements_personnel ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  personnel_id INTEGER NOT NULL REFERENCES professeurs(id) ON DELETE CASCADE,"
+            "  mois INTEGER NOT NULL CHECK(mois >= 1 AND mois <= 12),"
+            "  annee INTEGER NOT NULL CHECK(annee >= 2000),"
+            "  somme_due REAL NOT NULL DEFAULT 0.0,"
+            "  somme_payee REAL NOT NULL DEFAULT 0.0,"
+            "  date_modification TEXT NOT NULL,"
+            "  UNIQUE(personnel_id, mois, annee)"
+            ")"),
+
         // ── Projets ──
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS projets ("
@@ -233,6 +252,38 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         execStatement(db, QStringLiteral(
             "ALTER TABLE eleves ADD COLUMN date_naissance TEXT"));
         qInfo() << "[DatabaseManager] Migration: added column eleves.date_naissance";
+    }
+
+    // Migration 2-7 : ajout des nouvelles colonnes dans professeurs
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("poste"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN poste TEXT DEFAULT 'Enseignant'"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.poste";
+    }
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("specialite"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN specialite TEXT"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.specialite";
+    }
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("mode_paie"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN mode_paie TEXT DEFAULT 'Heure'"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.mode_paie";
+    }
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("valeur_base"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN valeur_base REAL DEFAULT 25.0"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.valeur_base";
+    }
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("paye_pendant_vacances"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN paye_pendant_vacances INTEGER DEFAULT 1"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.paye_pendant_vacances";
+    }
+    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("heures_travalies"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE professeurs ADD COLUMN heures_travalies INTEGER DEFAULT 0"));
+        qInfo() << "[DatabaseManager] Migration: added column professeurs.heures_travalies";
     }
 }
 

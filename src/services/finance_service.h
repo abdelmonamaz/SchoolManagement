@@ -11,11 +11,13 @@ class IPaiementRepository;
 class IProjetRepository;
 class IDonateurRepository;
 class IDonRepository;
+class IPaiementPersonnelRepository;
 
 class FinanceService {
 public:
     FinanceService(IPaiementRepository* paiementRepo, IProjetRepository* projetRepo,
-                   IDonateurRepository* donateurRepo, IDonRepository* donRepo);
+                   IDonateurRepository* donateurRepo, IDonRepository* donRepo,
+                   IPaiementPersonnelRepository* paiementPersonnelRepo);
 
     // Paiements mensuels
     Result<QList<PaiementMensualite>> getPaymentsByMonth(int month, int year);
@@ -36,9 +38,17 @@ public:
     Result<int> recordDon(int donateurId, int projetId, double montant);
     Result<double> getProjetTotalDons(int projetId);
 
+    // Paiements personnel
+    Result<std::optional<PaiementMensuelPersonnel>>
+        getPersonnelPayment(int personnelId, int mois, int annee);
+    Result<QList<PaiementMensuelPersonnel>>
+        getAllPersonnelPaymentsForMonth(int mois, int annee);
+    Result<bool> savePersonnelPayment(const PaiementMensuelPersonnel& paiement);
+
 private:
     IPaiementRepository* m_paiementRepo;
     IProjetRepository* m_projetRepo;
     IDonateurRepository* m_donateurRepo;
     IDonRepository* m_donRepo;
+    IPaiementPersonnelRepository* m_paiementPersonnelRepo;
 };

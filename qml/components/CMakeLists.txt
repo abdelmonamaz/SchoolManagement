@@ -28,6 +28,10 @@ qt_add_qml_module(GestionScolaire_Components
         Avatar.qml
         SectionLabel.qml
         ModalButtons.qml
+        MonthYearSelector.qml
+        PaymentPopup.qml
+        StaffCard.qml
+        StaffFormModal.qml
         schooling/LevelSidebar.qml
         schooling/SubjectsSection.qml
         schooling/ClassesSection.qml

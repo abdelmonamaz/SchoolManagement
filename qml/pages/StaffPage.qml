@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import QtQuick.Controls 2.15
 import UI.Components
 
 Item {
@@ -9,17 +10,73 @@ Item {
     property bool showModal: false
     property bool isEditing: false
     property int editingId: -1
-    property string selectedStatus: "Actif"
 
-    Component.onCompleted: staffController.loadProfesseurs()
+    property bool showDeleteConfirm: false
+    property int deleteTargetId: -1
+    property string deleteTargetName: ""
+
+    property bool showPaymentPopup: false
+    property int selectedPersonnelId: 0
+    property string selectedPersonnelName: ""
+
+    property int displayMonth: new Date().getMonth() + 1
+    property int displayYear: new Date().getFullYear()
+
+    property var monthNames: [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    ]
+
+    onDisplayMonthChanged: {
+        staffController.currentMonth = displayMonth
+        staffController.loadProfesseurs()
+    }
+
+    onDisplayYearChanged: {
+        staffController.currentYear = displayYear
+        staffController.loadProfesseurs()
+    }
+
+    Component.onCompleted: {
+        staffController.currentMonth = displayMonth
+        staffController.currentYear = displayYear
+        staffController.loadProfesseurs()
+    }
+
     Connections {
         target: staffController
-        function onOperationSucceeded(msg) { console.log("StaffPage:", msg); showModal = false; staffController.loadProfesseurs() }
+        function onOperationSucceeded(msg) {
+            console.log("StaffPage:", msg)
+            showModal = false
+            showPaymentPopup = false
+            staffController.loadProfesseurs()
+        }
         function onOperationFailed(err) { console.warn("StaffPage error:", err) }
+        function onPaymentDataLoaded(data) {
+            if (data.sommeDue !== undefined) {
+                paymentPopup.sommeDue = data.sommeDue
+            }
+            if (data.sommePaye !== undefined) {
+                paymentPopup.sommePaye = data.sommePaye
+            }
+        }
     }
-    function resetModal() {
-        fieldNom.text = ""; fieldPrenom.text = ""; fieldTelephone.text = ""
-        fieldAdresse.text = ""; fieldTaux.text = "25"; selectedStatus = "Actif"; editingId = -1
+
+    function simulatePay(member) {
+        var total = 0
+        var desc = ""
+        if (member.modePaie === "Heure") {
+            var hours = member.heuresTravailes || 0
+            total = hours * member.valeurBase
+            desc = "Calcul Horaire: " + hours + "h x " + member.valeurBase + " DT = " + total + " DT"
+        } else {
+            total = member.valeurBase
+            desc = "Salaire Fixe: " + total + " DT / mois"
+        }
+        console.log("=== Simulation de paie ===")
+        console.log("Membre:", member.nom)
+        console.log(desc)
+        console.log("Total:", total, "DT")
     }
 
     ColumnLayout {
@@ -28,34 +85,38 @@ Item {
         anchors.right: parent.right
         spacing: 28
 
+        // Header
         RowLayout {
             Layout.fillWidth: true
             PageHeader {
                 Layout.fillWidth: true
                 title: "Gestion du Personnel"
-                subtitle: "Administration des enseignants et calcul des honoraires."
+                subtitle: "Administration des contrats et suivi de l'activité."
             }
 
             PrimaryButton {
-                text: "Ajouter un Enseignant"
+                text: "Ajouter un membre"
                 iconName: "plus"
                 onClicked: {
                     isEditing = false
-                    resetModal()
+                    staffFormModal.reset()
                     showModal = true
                 }
             }
         }
+
+        // Search Bar
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
 
             SearchField {
                 Layout.fillWidth: true
-                placeholder: "Rechercher un professeur..."
+                placeholder: "Rechercher par nom ou poste..."
             }
 
             Rectangle {
+                id: monthButton
                 implicitWidth: monthRow.implicitWidth + 24
                 height: 42
                 radius: 16
@@ -74,7 +135,7 @@ Item {
                     }
 
                     Text {
-                        text: "FÉVRIER 2026"
+                        text: monthNames[displayMonth - 1].toUpperCase() + " " + displayYear
                         font.pixelSize: 10
                         font.weight: Font.Black
                         color: Style.textPrimary
@@ -91,9 +152,12 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    onClicked: monthYearSelector.show = !monthYearSelector.show
                 }
             }
         }
+
+        // Staff Grid
         GridLayout {
             Layout.fillWidth: true
             columns: 3
@@ -102,231 +166,24 @@ Item {
 
             Repeater {
                 model: staffController.professeurs
-                delegate: Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: profCardCol.implicitHeight + 48
-                    radius: 24
-                    color: Style.bgWhite
-                    border.color: profCardMa.containsMouse ? Qt.rgba(0.24, 0.35, 0.27, 0.2) : Style.borderLight
-
-                    Behavior on border.color {
-                        ColorAnimation { duration: 200 }
+                delegate: StaffCard {
+                    staffData: modelData
+                    onEditClicked: {
+                        isEditing = true
+                        editingId = modelData.id
+                        staffFormModal.populate(modelData)
+                        showModal = true
                     }
-
-                    Column {
-                        id: profCardCol
-                        anchors.fill: parent
-                        anchors.margins: 24
-                        spacing: 18
-
-                        RowLayout {
-                            width: parent.width
-                            spacing: 14
-
-                            Avatar {
-                                initials: modelData.nom.charAt(0)
-                                size: 56
-                                bgColor: Style.bgSecondary
-                                textColor: Style.primary
-                                textSize: 20
-                            }
-
-                            Column {
-                                Layout.fillWidth: true
-                                spacing: 4
-
-                                Text {
-                                    text: modelData.nom + " " + modelData.prenom
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                    color: Style.textPrimary
-                                    elide: Text.ElideRight
-                                    width: parent.width
-                                }
-
-                                Badge {
-                                    text: modelData.statut === "Actif" ? "Actif" : "En congé"
-                                    variant: modelData.statut === "Actif" ? "success" : "warning"
-                                }
-                            }
-
-                            Column {
-                                spacing: 4
-
-                                IconButton {
-                                    iconName: "edit"
-                                    iconSize: 14
-                                    onClicked: {
-                                        isEditing = true
-                                        editingId = modelData.id
-                                        fieldNom.text = modelData.nom
-                                        fieldPrenom.text = modelData.prenom
-                                        fieldTelephone.text = modelData.telephone
-                                        fieldAdresse.text = modelData.adresse
-                                        fieldTaux.text = String(modelData.prixHeureActuel)
-                                        selectedStatus = modelData.statut
-                                        showModal = true
-                                    }
-                                }
-
-                                IconButton {
-                                    iconName: "delete"
-                                    iconSize: 14
-                                    hoverColor: Style.errorColor
-                                    onClicked: staffController.deleteProfesseur(modelData.id)
-                                }
-                            }
-                        }
-
-                        Column {
-                            width: parent.width
-                            spacing: 8
-
-                            RowLayout {
-                                width: parent.width
-                                spacing: 8
-
-                                IconLabel {
-                                    iconName: "phone"
-                                    iconSize: 14
-                                    iconColor: Style.textTertiary
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: modelData.telephone
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    color: Style.textTertiary
-                                }
-                            }
-
-                            RowLayout {
-                                width: parent.width
-                                spacing: 8
-
-                                IconLabel {
-                                    iconName: "briefcase"
-                                    iconSize: 14
-                                    iconColor: Style.successColor
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: modelData.adresse
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    color: Style.textSecondary
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            width: parent.width
-                            height: 70
-                            radius: 16
-                            color: Style.bgPage
-                            border.color: Style.borderLight
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 14
-
-                                Column {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    SectionLabel {
-                                        text: "STATUT"
-                                    }
-
-                                    Text {
-                                        text: modelData.statut
-                                        font.pixelSize: 18
-                                        font.weight: Font.Black
-                                        color: Style.textPrimary
-                                    }
-                                }
-
-                                Rectangle {
-                                    width: 1
-                                    height: 32
-                                    color: Style.borderLight
-                                }
-
-                                Column {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    SectionLabel {
-                                        text: "TAUX HORAIRE"
-                                        anchors.right: parent.right
-                                    }
-
-                                    Text {
-                                        text: modelData.prixHeureActuel + " DT"
-                                        font.pixelSize: 18
-                                        font.weight: Font.Black
-                                        color: Style.primary
-                                        anchors.right: parent.right
-                                    }
-                                }
-                            }
-                        }
-
-                        Separator { width: parent.width }
-
-                        RowLayout {
-                            width: parent.width
-
-                            Column {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                SectionLabel {
-                                    text: "TAUX HORAIRE"
-                                }
-
-                                Text {
-                                    text: modelData.prixHeureActuel + " DT/H"
-                                    font.pixelSize: 20
-                                    font.weight: Font.Black
-                                    color: Style.textPrimary
-                                }
-                            }
-
-                            Rectangle {
-                                width: payBtnText.implicitWidth + 28
-                                height: 36
-                                radius: 12
-                                color: payBtnMa.containsMouse ? Style.primaryDark : Style.primary
-
-                                Text {
-                                    id: payBtnText
-                                    anchors.centerIn: parent
-                                    text: "RÉGLER"
-                                    font.pixelSize: 10
-                                    font.weight: Font.Black
-                                    color: "#FFFFFF"
-                                }
-
-                                MouseArea {
-                                    id: payBtnMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                }
-                            }
-                        }
+                    onDeleteClicked: {
+                        deleteTargetId = modelData.id
+                        deleteTargetName = modelData.nom || "ce membre"
+                        showDeleteConfirm = true
                     }
-
-                    MouseArea {
-                        id: profCardMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        propagateComposedEvents: true
-                        acceptedButtons: Qt.NoButton
+                    onPayClicked: {
+                        selectedPersonnelId = modelData.id
+                        selectedPersonnelName = modelData.nom
+                        staffController.loadPaymentData(modelData.id, displayMonth, displayYear)
+                        showPaymentPopup = true
                     }
                 }
             }
@@ -337,159 +194,175 @@ Item {
         }
     }
 
-    ModalOverlay {
+    // Staff Form Modal
+    StaffFormModal {
+        id: staffFormModal
         show: showModal
-        modalWidth: 520
-        onClose: showModal = false
+        isEditing: staffPage.isEditing
+        onCancelled: {
+            showModal = false
+            staffFormModal.reset()
+        }
+        onConfirmed: function(formData) {
+            if (isEditing) {
+                staffController.updateProfesseur(
+                    editingId,
+                    formData.nom,
+                    formData.telephone,
+                    formData.poste,
+                    formData.specialite,
+                    formData.modePaie,
+                    formData.valeurBase,
+                    formData.statut
+                )
+            } else {
+                staffController.createProfesseur(
+                    formData.nom,
+                    formData.telephone,
+                    formData.poste,
+                    formData.specialite,
+                    formData.modePaie,
+                    formData.valeurBase,
+                    formData.statut
+                )
+            }
+        }
+    }
+
+    // Popup de confirmation de suppression
+    ModalOverlay {
+        show: showDeleteConfirm
+        modalWidth: 480
+        modalRadius: 32
+        onClose: showDeleteConfirm = false
 
         Column {
             width: parent.width
-            spacing: 0
-            padding: 32
+            spacing: 24
+            padding: 40
 
-            Text {
-                text: isEditing ? "Modifier l'Enseignant" : "Nouvel Enseignant"
-                font.pixelSize: 22
-                font.weight: Font.Black
-                color: Style.textPrimary
-                bottomPadding: 28
-            }
+            RowLayout {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 16
 
-            GridLayout {
-                width: parent.width - 64
-                columns: 2
-                columnSpacing: 16
-                rowSpacing: 18
+                Rectangle {
+                    width: 56
+                    height: 56
+                    radius: 20
+                    color: Style.errorBg
 
-                FormField {
-                    id: fieldNom
-                    Layout.fillWidth: true
-                    label: "NOM"
-                    placeholder: "Nom..."
-                }
-
-                FormField {
-                    id: fieldPrenom
-                    Layout.fillWidth: true
-                    label: "PRÉNOM"
-                    placeholder: "Prénom..."
-                }
-
-                FormField {
-                    id: fieldTelephone
-                    Layout.fillWidth: true
-                    label: "TÉLÉPHONE"
-                    placeholder: "XX XXX XXX"
-                }
-
-                FormField {
-                    id: fieldAdresse
-                    Layout.fillWidth: true
-                    label: "ADRESSE"
-                    placeholder: "Adresse..."
-                }
-
-                FormField {
-                    id: fieldTaux
-                    Layout.fillWidth: true
-                    Layout.columnSpan: 2
-                    label: "TAUX HORAIRE (DT/H)"
-                    text: "25"
+                    IconLabel {
+                        anchors.centerIn: parent
+                        iconName: "alert"
+                        iconSize: 28
+                        iconColor: Style.errorColor
+                    }
                 }
 
                 Column {
                     Layout.fillWidth: true
-                    Layout.columnSpan: 2
-                    spacing: 6
+                    spacing: 4
 
-                    SectionLabel {
-                        text: "STATUT DE L'ENSEIGNANT"
+                    Text {
+                        text: "Confirmer la suppression"
+                        font.pixelSize: 22
+                        font.weight: Font.Black
+                        color: Style.textPrimary
                     }
 
-                    RowLayout {
-                        width: parent.width
-                        spacing: 12
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 44
-                            radius: 12
-                            color: selectedStatus === "Actif" ? Style.primary : Style.bgPage
-                            border.color: selectedStatus === "Actif" ? Style.primary : Style.borderLight
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "ACTIF"
-                                font.pixelSize: 11
-                                font.weight: Font.Black
-                                color: selectedStatus === "Actif" ? "#FFFFFF" : Style.textTertiary
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: selectedStatus = "Actif"
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 44
-                            radius: 12
-                            color: selectedStatus === "En congé" ? Style.warningColor : Style.bgPage
-                            border.color: selectedStatus === "En congé" ? Style.warningColor : Style.borderLight
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "EN CONGÉ"
-                                font.pixelSize: 11
-                                font.weight: Font.Black
-                                color: selectedStatus === "En congé" ? "#FFFFFF" : Style.textTertiary
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: selectedStatus = "En congé"
-                            }
-                        }
+                    Text {
+                        text: "CETTE ACTION EST IRRÉVERSIBLE"
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        color: Style.errorColor
+                        font.letterSpacing: 1
                     }
                 }
             }
 
-            Item {
-                width: 1
-                height: 28
+            Rectangle {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                implicitHeight: warningText.implicitHeight + 32
+                radius: 20
+                color: Style.errorBg
+                border.color: Style.errorBorder
+
+                Text {
+                    id: warningText
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    text: "Êtes-vous sûr de vouloir supprimer <b>" + deleteTargetName + "</b> du personnel ? Cette action ne peut pas être annulée."
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: Style.errorColor
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.RichText
+                    lineHeight: 1.5
+                }
             }
 
             ModalButtons {
-                width: parent.width - 64
-                confirmText: "ENREGISTRER"
-                onCancel: showModal = false
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                cancelText: "Annuler"
+                confirmText: "SUPPRIMER"
+                confirmColor: Style.errorColor
+                onCancel: {
+                    showDeleteConfirm = false
+                    deleteTargetId = -1
+                    deleteTargetName = ""
+                }
                 onConfirm: {
-                    var data = {
-                        nom: fieldNom.text,
-                        prenom: fieldPrenom.text,
-                        telephone: fieldTelephone.text,
-                        adresse: fieldAdresse.text,
-                        prixHeureActuel: parseFloat(fieldTaux.text)
-                    }
-                    if (isEditing) {
-                        data.statut = selectedStatus
-                        staffController.updateProfesseur(editingId, data)
-                    } else {
-                        staffController.createProfesseur(data)
-                    }
+                    staffController.deleteProfesseur(deleteTargetId)
+                    showDeleteConfirm = false
+                    deleteTargetId = -1
+                    deleteTargetName = ""
                 }
             }
+        }
+    }
+
+    // Payment Popup
+    PaymentPopup {
+        id: paymentPopup
+        show: showPaymentPopup
+        personnelId: selectedPersonnelId
+        personnelName: selectedPersonnelName
+        selectedMonth: displayMonth
+        selectedYear: displayYear
+
+        onSaveRequested: function(newSommeDue, newSommePaye) {
+            staffController.savePayment(
+                personnelId, selectedMonth, selectedYear,
+                newSommeDue, newSommePaye
+            )
+        }
+
+        onRecalculateRequested: {
+            staffController.recalculateSommeDue(
+                personnelId, selectedMonth, selectedYear
+            )
+        }
+
+        onClose: showPaymentPopup = false
+    }
+
+    // MonthYearSelector avec z-index élevé pour être au-dessus de tout
+    MonthYearSelector {
+        id: monthYearSelector
+        z: 1000
+        parent: staffPage
+        x: monthButton.x + monthButton.width - width
+        y: monthButton.y + monthButton.height + 8
+
+        selectedMonth: displayMonth
+        selectedYear: displayYear
+        onMonthYearChanged: function(month, year) {
+            displayMonth = month
+            displayYear = year
+            console.log("Période sélectionnée:", monthNames[month - 1], year)
         }
     }
 }

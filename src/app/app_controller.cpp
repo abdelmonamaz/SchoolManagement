@@ -12,11 +12,12 @@
 #include "repositories/sqlite/sqlite_salle_repository.h"
 #include "repositories/sqlite/sqlite_niveau_repository.h"
 #include "repositories/sqlite/sqlite_equipement_repository.h"
-#include "repositories/sqlite/sqlite_prof_repository.h"
+#include "repositories/sqlite/sqlite_personnel_repository.h"
 #include "repositories/sqlite/sqlite_eleve_repository.h"
 #include "repositories/sqlite/sqlite_seance_repository.h"
 #include "repositories/sqlite/sqlite_paiement_repository.h"
 #include "repositories/sqlite/sqlite_finance_repository.h"
+#include "repositories/sqlite/sqlite_paiement_personnel_repository.h"
 
 // Services
 #include "services/schooling_service.h"
@@ -75,7 +76,7 @@ void AppController::createRepositories() {
     m_classeRepo = std::make_unique<SqliteClasseRepository>(conn);
     m_matiereRepo = std::make_unique<SqliteMatiereRepository>(conn);
     m_equipementRepo = std::make_unique<SqliteEquipementRepository>(conn);
-    m_profRepo = std::make_unique<SqliteProfesseurRepository>(conn);
+    m_profRepo = std::make_unique<SqlitePersonnelRepository>(conn);
     m_eleveRepo = std::make_unique<SqliteEleveRepository>(conn);
     m_seanceRepo = std::make_unique<SqliteSeanceRepository>(conn);
     m_participationRepo = std::make_unique<SqliteParticipationRepository>(conn);
@@ -83,6 +84,7 @@ void AppController::createRepositories() {
     m_projetRepo = std::make_unique<SqliteProjetRepository>(conn);
     m_donateurRepo = std::make_unique<SqliteDonateurRepository>(conn);
     m_donRepo = std::make_unique<SqliteDonRepository>(conn);
+    m_paiementPersonnelRepo = std::make_unique<SqlitePaiementPersonnelRepository>(conn);
 }
 
 void AppController::createServices() {
@@ -102,7 +104,8 @@ void AppController::createServices() {
         m_participationRepo.get(), m_seanceRepo.get());
 
     m_financeService = std::make_unique<FinanceService>(
-        m_paiementRepo.get(), m_projetRepo.get(), m_donateurRepo.get(), m_donRepo.get());
+        m_paiementRepo.get(), m_projetRepo.get(), m_donateurRepo.get(), m_donRepo.get(),
+        m_paiementPersonnelRepo.get());
 
     m_dashboardService = std::make_unique<DashboardService>(
         m_eleveRepo.get(), m_seanceRepo.get(), m_participationRepo.get(), m_matiereRepo.get());
@@ -112,7 +115,7 @@ void AppController::createControllers() {
     auto* w = m_dbWorker.get();
     m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
-    m_staffController = std::make_unique<StaffController>(m_staffService.get(), w, this);
+    m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);
     m_attendanceController = std::make_unique<AttendanceController>(m_attendanceService.get(), w, this);
     m_examsController = std::make_unique<ExamsController>(m_attendanceService.get(), w, this);
     m_gradesController = std::make_unique<GradesController>(m_gradesService.get(), w, this);

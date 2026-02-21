@@ -54,7 +54,8 @@ Item {
                         id: monthCombo
                         model: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
                         currentIndex: 1
-                        onCurrentTextChanged: selectedMonth = currentText
+                        onCurrentIndexChanged: selectedMonth = model[currentIndex]
+                        Component.onCompleted: selectedMonth = model[currentIndex]
                         font.pixelSize: 10
                         font.weight: Font.Black
                         background: Rectangle {
@@ -78,7 +79,8 @@ Item {
                         id: yearCombo
                         model: [2025, 2026, 2027]
                         currentIndex: 1
-                        onCurrentTextChanged: selectedYear = parseInt(currentText)
+                        onCurrentIndexChanged: selectedYear = model[currentIndex]
+                        Component.onCompleted: selectedYear = model[currentIndex]
                         font.pixelSize: 10
                         font.weight: Font.Black
                         background: Rectangle {

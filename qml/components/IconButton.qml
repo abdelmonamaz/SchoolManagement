@@ -8,24 +8,27 @@ Rectangle {
 
     width: 36; height: 36
     radius: 10
-    color: mouseArea.containsMouse ? Style.bgPage : "transparent"
-    border.color: mouseArea.containsMouse ? Style.borderLight : "transparent"
+    color: mouseArea.pressed ? Qt.rgba(0.85, 0.85, 0.85, 1) : Style.bgPage
+    border.color: Style.borderLight
 
     Behavior on color { ColorAnimation { duration: 150 } }
 
     signal clicked()
 
+    HoverHandler {
+        id: hover
+    }
+
     IconLabel {
         anchors.centerIn: parent
         iconName: control.iconName
         iconSize: control.iconSize
-        iconColor: mouseArea.containsMouse ? control.hoverColor : Style.textTertiary
+        iconColor: hover.hovered ? control.hoverColor : Style.textTertiary
     }
 
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: control.clicked()
     }

@@ -14,6 +14,10 @@ Rectangle {
 
     Behavior on border.color { ColorAnimation { duration: 150 } }
 
+    HoverHandler {
+        cursorShape: Qt.IBeamCursor
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 16
@@ -32,6 +36,7 @@ Rectangle {
             font.pixelSize: 14
             color: Style.textPrimary
             clip: true
+            selectByMouse: true
 
             Text {
                 visible: !parent.text && !parent.activeFocus
