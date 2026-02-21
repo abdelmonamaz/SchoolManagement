@@ -20,16 +20,16 @@ static GS::StatutProf stringToStatutProf(const QString& s) {
 SqlitePersonnelRepository::SqlitePersonnelRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
 
-Result<QList<Professeur>> SqlitePersonnelRepository::getAll() {
+Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel FROM professeurs"))) {
-        return Result<QList<Professeur>>::error(query.lastError().text());
+    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel FROM personnel"))) {
+        return Result<QList<Personnel>>::error(query.lastError().text());
     }
 
-    QList<Professeur> list;
+    QList<Personnel> list;
     while (query.next()) {
-        Professeur p;
+        Personnel p;
         p.id = query.value(0).toInt();
         p.nom = query.value(1).toString();
         p.prenom = query.value(2).toString();
@@ -45,20 +45,20 @@ Result<QList<Professeur>> SqlitePersonnelRepository::getAll() {
         p.prixHeureActuel = query.value(12).toDouble();
         list.append(p);
     }
-    return Result<QList<Professeur>>::success(list);
+    return Result<QList<Personnel>>::success(list);
 }
 
-Result<std::optional<Professeur>> SqlitePersonnelRepository::getById(int id) {
+Result<std::optional<Personnel>> SqlitePersonnelRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel FROM professeurs WHERE id = ?"));
+    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel FROM personnel WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) {
-        return Result<std::optional<Professeur>>::error(query.lastError().text());
+        return Result<std::optional<Personnel>>::error(query.lastError().text());
     }
 
     if (query.next()) {
-        Professeur p;
+        Personnel p;
         p.id = query.value(0).toInt();
         p.nom = query.value(1).toString();
         p.prenom = query.value(2).toString();
@@ -72,16 +72,16 @@ Result<std::optional<Professeur>> SqlitePersonnelRepository::getById(int id) {
         p.heuresTravailes = query.value(10).toInt();
         p.statut = stringToStatutProf(query.value(11).toString());
         p.prixHeureActuel = query.value(12).toDouble();
-        return Result<std::optional<Professeur>>::success(p);
+        return Result<std::optional<Personnel>>::success(p);
     }
-    return Result<std::optional<Professeur>>::success(std::nullopt);
+    return Result<std::optional<Personnel>>::success(std::nullopt);
 }
 
-Result<int> SqlitePersonnelRepository::create(const Professeur& entity) {
+Result<int> SqlitePersonnelRepository::create(const Personnel& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO professeurs (nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel) "
+        "INSERT INTO personnel (nom, prenom, telephone, adresse, poste, specialite, mode_paie, valeur_base, paye_pendant_vacances, heures_travalies, statut, prix_heure_actuel) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
 
     query.addBindValue(entity.nom);
@@ -103,11 +103,11 @@ Result<int> SqlitePersonnelRepository::create(const Professeur& entity) {
     return Result<int>::success(query.lastInsertId().toInt());
 }
 
-Result<bool> SqlitePersonnelRepository::update(const Professeur& entity) {
+Result<bool> SqlitePersonnelRepository::update(const Personnel& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE professeurs SET nom=?, prenom=?, telephone=?, adresse=?, poste=?, specialite=?, mode_paie=?, valeur_base=?, paye_pendant_vacances=?, heures_travalies=?, statut=?, prix_heure_actuel=? "
+        "UPDATE personnel SET nom=?, prenom=?, telephone=?, adresse=?, poste=?, specialite=?, mode_paie=?, valeur_base=?, paye_pendant_vacances=?, heures_travalies=?, statut=?, prix_heure_actuel=? "
         "WHERE id=?"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
@@ -131,7 +131,7 @@ Result<bool> SqlitePersonnelRepository::update(const Professeur& entity) {
 Result<bool> SqlitePersonnelRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("DELETE FROM professeurs WHERE id = ?"));
+    query.prepare(QStringLiteral("DELETE FROM personnel WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) {
         return Result<bool>::error(query.lastError().text());
@@ -139,7 +139,7 @@ Result<bool> SqlitePersonnelRepository::remove(int id) {
     return Result<bool>::success(true);
 }
 
-Result<QList<TarifProfHistorique>> SqlitePersonnelRepository::getTarifHistorique(int profId) {
+Result<QList<TarifPersonnelHistorique>> SqlitePersonnelRepository::getTarifHistorique(int profId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
@@ -147,22 +147,22 @@ Result<QList<TarifProfHistorique>> SqlitePersonnelRepository::getTarifHistorique
         "WHERE prof_id = ? ORDER BY date_changement DESC"));
     query.addBindValue(profId);
     if (!query.exec()) {
-        return Result<QList<TarifProfHistorique>>::error(query.lastError().text());
+        return Result<QList<TarifPersonnelHistorique>>::error(query.lastError().text());
     }
 
-    QList<TarifProfHistorique> list;
+    QList<TarifPersonnelHistorique> list;
     while (query.next()) {
-        TarifProfHistorique t;
+        TarifPersonnelHistorique t;
         t.id = query.value(0).toInt();
         t.profId = query.value(1).toInt();
         t.nouveauPrix = query.value(2).toDouble();
         t.dateChangement = QDateTime::fromString(query.value(3).toString(), Qt::ISODate);
         list.append(t);
     }
-    return Result<QList<TarifProfHistorique>>::success(list);
+    return Result<QList<TarifPersonnelHistorique>>::success(list);
 }
 
-Result<int> SqlitePersonnelRepository::addTarifHistorique(const TarifProfHistorique& tarif) {
+Result<int> SqlitePersonnelRepository::addTarifHistorique(const TarifPersonnelHistorique& tarif) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(

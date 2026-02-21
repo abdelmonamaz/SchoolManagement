@@ -12,14 +12,14 @@ class StaffService {
 public:
     explicit StaffService(IPersonnelRepository* profRepo);
 
-    Result<QList<Professeur>> getAllProfesseurs();
-    Result<int> createProfesseur(const Professeur& prof);
-    Result<bool> updateProfesseur(const Professeur& prof);
-    Result<bool> deleteProfesseur(int id);
+    Result<QList<Personnel>> getAllPersonnel();
+    Result<int> createPersonnel(const Personnel& p);
+    Result<bool> updatePersonnel(const Personnel& p);
+    Result<bool> deletePersonnel(int id);
     Result<bool> updateTarif(int profId, double nouveauPrix);
-    Result<QList<TarifProfHistorique>> getTarifHistorique(int profId);
+    Result<QList<TarifPersonnelHistorique>> getTarifHistorique(int profId);
 
-    double calculateMonthlySalary(const Professeur& prof, int totalHours);
+    double calculateMonthlySalary(const Personnel& p, int totalHours);
     Result<double> calculateSommeDue(int personnelId, int mois, int annee);
 
 private:

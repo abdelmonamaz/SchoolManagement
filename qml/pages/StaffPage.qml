@@ -29,18 +29,18 @@ Item {
 
     onDisplayMonthChanged: {
         staffController.currentMonth = displayMonth
-        staffController.loadProfesseurs()
+        staffController.loadPersonnel()
     }
 
     onDisplayYearChanged: {
         staffController.currentYear = displayYear
-        staffController.loadProfesseurs()
+        staffController.loadPersonnel()
     }
 
     Component.onCompleted: {
         staffController.currentMonth = displayMonth
         staffController.currentYear = displayYear
-        staffController.loadProfesseurs()
+        staffController.loadPersonnel()
     }
 
     Connections {
@@ -49,7 +49,7 @@ Item {
             console.log("StaffPage:", msg)
             showModal = false
             showPaymentPopup = false
-            staffController.loadProfesseurs()
+            staffController.loadPersonnel()
         }
         function onOperationFailed(err) { console.warn("StaffPage error:", err) }
         function onPaymentDataLoaded(data) {
@@ -165,7 +165,7 @@ Item {
             rowSpacing: 20
 
             Repeater {
-                model: staffController.professeurs
+                model: staffController.personnel
                 delegate: StaffCard {
                     staffData: modelData
                     onEditClicked: {
@@ -205,7 +205,7 @@ Item {
         }
         onConfirmed: function(formData) {
             if (isEditing) {
-                staffController.updateProfesseur(
+                staffController.updatePersonnel(
                     editingId,
                     formData.nom,
                     formData.telephone,
@@ -216,7 +216,7 @@ Item {
                     formData.statut
                 )
             } else {
-                staffController.createProfesseur(
+                staffController.createPersonnel(
                     formData.nom,
                     formData.telephone,
                     formData.poste,
@@ -315,7 +315,7 @@ Item {
                     deleteTargetName = ""
                 }
                 onConfirm: {
-                    staffController.deleteProfesseur(deleteTargetId)
+                    staffController.deletePersonnel(deleteTargetId)
                     showDeleteConfirm = false
                     deleteTargetId = -1
                     deleteTargetName = ""

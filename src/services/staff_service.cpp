@@ -9,12 +9,12 @@ StaffService::StaffService(IPersonnelRepository* profRepo)
 {
 }
 
-Result<QList<Professeur>> StaffService::getAllProfesseurs()
+Result<QList<Personnel>> StaffService::getAllPersonnel()
 {
     return m_profRepo->getAll();
 }
 
-Result<int> StaffService::createProfesseur(const Professeur& prof)
+Result<int> StaffService::createPersonnel(const Personnel& prof)
 {
     if (prof.nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom ne peut pas etre vide.");
@@ -23,7 +23,7 @@ Result<int> StaffService::createProfesseur(const Professeur& prof)
         return Result<int>::error("La valeur de base ne peut pas etre negative.");
     }
 
-    Professeur p = prof;
+    Personnel p = prof;
     p.nom = p.nom.trimmed();
     p.prenom = p.prenom.trimmed();
     p.telephone = p.telephone.trimmed();
@@ -36,7 +36,7 @@ Result<int> StaffService::createProfesseur(const Professeur& prof)
     return m_profRepo->create(p);
 }
 
-Result<bool> StaffService::updateProfesseur(const Professeur& prof)
+Result<bool> StaffService::updatePersonnel(const Personnel& prof)
 {
     if (prof.nom.trimmed().isEmpty()) {
         return Result<bool>::error("Le nom ne peut pas etre vide.");
@@ -45,14 +45,14 @@ Result<bool> StaffService::updateProfesseur(const Professeur& prof)
         return Result<bool>::error("La valeur de base ne peut pas etre negative.");
     }
 
-    Professeur p = prof;
+    Personnel p = prof;
     // Synchroniser prixHeureActuel avec valeurBase pour compatibilité
     p.prixHeureActuel = p.valeurBase;
 
     return m_profRepo->update(p);
 }
 
-Result<bool> StaffService::deleteProfesseur(int id)
+Result<bool> StaffService::deletePersonnel(int id)
 {
     return m_profRepo->remove(id);
 }
@@ -63,7 +63,6 @@ Result<bool> StaffService::updateTarif(int profId, double nouveauPrix)
         return Result<bool>::error("Le nouveau prix ne peut pas etre negatif.");
     }
 
-    // Fetch the current professor
     auto profResult = m_profRepo->getById(profId);
     if (!profResult.isOk()) {
         return Result<bool>::error(profResult.errorMessage());
@@ -71,11 +70,11 @@ Result<bool> StaffService::updateTarif(int profId, double nouveauPrix)
 
     const auto& optProf = profResult.value();
     if (!optProf.has_value()) {
-        return Result<bool>::error("Professeur introuvable.");
+        return Result<bool>::error("Personnel introuvable.");
     }
 
     // Record the tariff change in history
-    TarifProfHistorique tarif;
+    TarifPersonnelHistorique tarif;
     tarif.profId = profId;
     tarif.nouveauPrix = nouveauPrix;
     tarif.dateChangement = QDateTime::currentDateTime();
@@ -85,20 +84,20 @@ Result<bool> StaffService::updateTarif(int profId, double nouveauPrix)
         return Result<bool>::error(histResult.errorMessage());
     }
 
-    // Update the professor's current rate
-    Professeur updated = optProf.value();
+    // Update the current rate
+    Personnel updated = optProf.value();
     updated.prixHeureActuel = nouveauPrix;
     return m_profRepo->update(updated);
 }
 
-Result<QList<TarifProfHistorique>> StaffService::getTarifHistorique(int profId)
+Result<QList<TarifPersonnelHistorique>> StaffService::getTarifHistorique(int profId)
 {
     return m_profRepo->getTarifHistorique(profId);
 }
 
-double StaffService::calculateMonthlySalary(const Professeur& prof, int totalHours)
+double StaffService::calculateMonthlySalary(const Personnel& p, int totalHours)
 {
-    return prof.prixHeureActuel * totalHours;
+    return p.prixHeureActuel * totalHours;
 }
 
 Result<double> StaffService::calculateSommeDue(int personnelId, int mois, int annee)
@@ -120,15 +119,13 @@ Result<double> StaffService::calculateSommeDue(int personnelId, int mois, int an
         return Result<double>::error("Personnel introuvable.");
     }
 
-    const Professeur& personnel = personnelOpt.value();
+    const Personnel& personnel = personnelOpt.value();
 
     if (personnel.modePaie == "Fixe") {
         // Salaire fixe mensuel
         return Result<double>::success(personnel.valeurBase);
     } else {
         // Mode horaire : utiliser heuresTravailes * valeurBase
-        // Note : Dans le futur, on pourra interroger une table sessions
-        // pour compter les heures réellement travaillées ce mois-là
         double total = personnel.heuresTravailes * personnel.valeurBase;
         return Result<double>::success(total);
     }

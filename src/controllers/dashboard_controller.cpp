@@ -46,7 +46,7 @@ void DashboardController::loadDashboard() {
         auto classesR = schoolSvc->getAllClasses();
         if (classesR.isOk()) for (const auto& c : classesR.value()) classes[c.id] = c.nom;
 
-        auto profsR = staffSvc->getAllProfesseurs();
+        auto profsR = staffSvc->getAllPersonnel();
         if (profsR.isOk()) for (const auto& p : profsR.value()) profs[p.id] = p.prenom + " " + p.nom;
 
         auto elevesR = studentSvc->getAllStudents();

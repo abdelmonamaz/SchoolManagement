@@ -98,7 +98,7 @@ Item {
     }
 
     function findProfName(id) {
-        var list = staffController.professeurs
+        var list = staffController.personnel
         for (var i = 0; i < list.length; i++)
             if (list[i].id === id) return list[i].prenom + " " + list[i].nom
         return "Prof #" + id
@@ -114,7 +114,7 @@ Item {
     Component.onCompleted: {
         schoolingController.loadNiveaux()
         schoolingController.loadSalles()
-        staffController.loadProfesseurs()
+        staffController.loadPersonnel()
         studentController.loadStudents()
         loadSeances()
     }
@@ -1084,7 +1084,7 @@ Item {
                     ComboBox {
                         id: newSeanceProf; width: parent.width
                         model: {
-                            var profs = staffController.professeurs
+                            var profs = staffController.personnel
                             var items = []
                             for (var i = 0; i < profs.length; i++)
                                 items.push({ displayName: profs[i].prenom + " " + profs[i].nom, id: profs[i].id })

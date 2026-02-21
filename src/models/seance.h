@@ -13,6 +13,8 @@ struct Seance {
     QDateTime dateHeureDebut;
     int dureeMinutes = 60;
     GS::CategorieSeance typeSeance = GS::CategorieSeance::Cours;
+    QString titre;       // used for Examen (titre de l'épreuve) and Événement (nom)
+    QString descriptif;  // used for Événement only
 };
 
 struct Participation {

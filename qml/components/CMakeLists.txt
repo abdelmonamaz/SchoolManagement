@@ -29,6 +29,8 @@ qt_add_qml_module(GestionScolaire_Components
         SectionLabel.qml
         ModalButtons.qml
         MonthYearSelector.qml
+        WeekPickerPopup.qml
+        DatePickerPopup.qml
         PaymentPopup.qml
         StaffCard.qml
         StaffFormModal.qml
@@ -47,4 +49,8 @@ qt_add_qml_module(GestionScolaire_Components
         students/StudentRegistrationModal.qml
         students/StudentEditModal.qml
         students/StudentDeleteModal.qml
+        exams/PlanningView.qml
+        exams/CalendarView.qml
+        exams/SessionFormModal.qml
+        exams/SessionDetailModal.qml
 )

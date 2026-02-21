@@ -11,7 +11,7 @@ static GS::StatutProf stringToStatutProf(const QString& s) {
     return s == QStringLiteral("En congé") ? GS::StatutProf::EnConge : GS::StatutProf::Actif;
 }
 
-static QVariantMap profToMap(const Professeur& p) {
+static QVariantMap personnelToMap(const Personnel& p) {
     return {
         {"id", p.id}, {"nom", p.nom}, {"prenom", p.prenom},
         {"telephone", p.telephone}, {"adresse", p.adresse},
@@ -48,19 +48,18 @@ void StaffController::setCurrentYear(int year) {
     }
 }
 
-void StaffController::loadProfesseurs() {
+void StaffController::loadPersonnel() {
     setLoading(true);
-    m_worker->submit("Staff.loadProfesseurs",
+    m_worker->submit("Staff.loadPersonnel",
                      [staffSvc = m_service, financeSvc = m_financeService,
                       month = m_currentMonth, year = m_currentYear]() -> QVariant {
-        // Charger tous les professeurs
-        auto profResult = staffSvc->getAllProfesseurs();
-        if (!profResult.isOk())
-            return QVariantMap{{"error", profResult.errorMessage()}};
+        auto result = staffSvc->getAllPersonnel();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
 
         // Charger tous les paiements du mois actuel
         auto paymentsResult = financeSvc->getAllPersonnelPaymentsForMonth(month, year);
-        QMap<int, PaiementMensuelPersonnel> paymentsMap;  // personnelId -> paiement complet
+        QMap<int, PaiementMensuelPersonnel> paymentsMap;
 
         if (paymentsResult.isOk()) {
             for (const auto& payment : paymentsResult.value()) {
@@ -69,15 +68,13 @@ void StaffController::loadProfesseurs() {
         }
 
         QVariantList list;
-        for (const auto& p : profResult.value()) {
-            auto map = profToMap(p);
+        for (const auto& p : result.value()) {
+            auto map = personnelToMap(p);
 
             if (paymentsMap.contains(p.id)) {
-                // Paiement existe: utiliser sommeDue et sommePaye de la BDD
                 map["sommeDue"] = paymentsMap[p.id].sommeDue;
                 map["sommePaye"] = paymentsMap[p.id].sommePaye;
             } else {
-                // Pas de paiement: calculer la valeur estimée
                 double estimated = 0.0;
                 if (p.modePaie == "Heure") {
                     estimated = p.heuresTravailes * p.valeurBase;
@@ -94,13 +91,13 @@ void StaffController::loadProfesseurs() {
     });
 }
 
-void StaffController::createProfesseur(const QString& nom, const QString& telephone,
+void StaffController::createPersonnel(const QString& nom, const QString& telephone,
                                        const QString& poste, const QString& specialite,
                                        const QString& modePaie, double valeurBase,
                                        const QString& statut) {
-    m_worker->submit("Staff.createProfesseur", [svc = m_service, nom, telephone, poste, specialite,
+    m_worker->submit("Staff.createPersonnel", [svc = m_service, nom, telephone, poste, specialite,
                                                  modePaie, valeurBase, statut]() -> QVariant {
-        Professeur p;
+        Personnel p;
         p.nom = nom.trimmed();
         p.prenom = "";  // Pas de prénom dans le formulaire
         p.telephone = telephone.trimmed();
@@ -112,20 +109,20 @@ void StaffController::createProfesseur(const QString& nom, const QString& teleph
         p.heuresTravailes = 0;
         p.statut = stringToStatutProf(statut);
 
-        auto result = svc->createProfesseur(p);
+        auto result = svc->createPersonnel(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
     });
 }
 
-void StaffController::updateProfesseur(int id, const QString& nom, const QString& telephone,
+void StaffController::updatePersonnel(int id, const QString& nom, const QString& telephone,
                                        const QString& poste, const QString& specialite,
                                        const QString& modePaie, double valeurBase,
                                        const QString& statut) {
-    m_worker->submit("Staff.updateProfesseur", [svc = m_service, id, nom, telephone, poste, specialite,
+    m_worker->submit("Staff.updatePersonnel", [svc = m_service, id, nom, telephone, poste, specialite,
                                                  modePaie, valeurBase, statut]() -> QVariant {
-        Professeur p;
+        Personnel p;
         p.id = id;
         p.nom = nom.trimmed();
         p.prenom = "";  // Pas de prénom dans le formulaire
@@ -138,16 +135,16 @@ void StaffController::updateProfesseur(int id, const QString& nom, const QString
         p.heuresTravailes = 0;
         p.statut = stringToStatutProf(statut);
 
-        auto result = svc->updateProfesseur(p);
+        auto result = svc->updatePersonnel(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
     });
 }
 
-void StaffController::deleteProfesseur(int id) {
-    m_worker->submit("Staff.deleteProfesseur", [svc = m_service, id]() -> QVariant {
-        auto result = svc->deleteProfesseur(id);
+void StaffController::deletePersonnel(int id) {
+    m_worker->submit("Staff.deletePersonnel", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deletePersonnel(id);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -164,7 +161,7 @@ void StaffController::updateTarif(int profId, double nouveauPrix) {
 }
 
 double StaffController::getMonthlySalary(int hours, double rate) {
-    Professeur p;
+    Personnel p;
     p.prixHeureActuel = rate;
     return m_service->calculateMonthlySalary(p, hours);
 }
@@ -246,26 +243,37 @@ void StaffController::onQueryCompleted(const QString& queryId, const QVariant& r
     auto map = result.toMap();
     bool isError = map.contains("error");
 
-    if (queryId == "Staff.loadProfesseurs") {
+    if (queryId == "Staff.loadPersonnel") {
         if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
-        else { m_professeurs = result.toList(); emit professeursChanged(); }
+        else {
+            m_personnel = result.toList();
+            // Filter enseignants
+            m_enseignants.clear();
+            for (const auto& item : m_personnel) {
+                auto m = item.toMap();
+                if (m.value("poste").toString() == QStringLiteral("Enseignant"))
+                    m_enseignants.append(item);
+            }
+            emit personnelChanged();
+            emit enseignantsChanged();
+        }
         setLoading(false);
     }
-    else if (queryId == "Staff.createProfesseur") {
+    else if (queryId == "Staff.createPersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Enseignant ajouté"); loadProfesseurs(); }
+        else { emit operationSucceeded("Personnel ajouté"); loadPersonnel(); }
     }
-    else if (queryId == "Staff.updateProfesseur") {
+    else if (queryId == "Staff.updatePersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Enseignant mis à jour"); loadProfesseurs(); }
+        else { emit operationSucceeded("Personnel mis à jour"); loadPersonnel(); }
     }
-    else if (queryId == "Staff.deleteProfesseur") {
+    else if (queryId == "Staff.deletePersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Enseignant supprimé"); loadProfesseurs(); }
+        else { emit operationSucceeded("Personnel supprimé"); loadPersonnel(); }
     }
     else if (queryId == "Staff.updateTarif") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Tarif mis à jour"); loadProfesseurs(); }
+        else { emit operationSucceeded("Tarif mis à jour"); loadPersonnel(); }
     }
     else if (queryId == "Staff.loadPaymentData") {
         setLoading(false);
@@ -287,7 +295,7 @@ void StaffController::onQueryCompleted(const QString& queryId, const QVariant& r
 void StaffController::onQueryError(const QString& queryId, const QString& error) {
     if (!queryId.startsWith("Staff.")) return;
 
-    if (queryId == "Staff.loadProfesseurs") {
+    if (queryId == "Staff.loadPersonnel") {
         m_errorMessage = error; emit errorMessageChanged();
         setLoading(false);
     } else {

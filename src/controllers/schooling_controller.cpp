@@ -75,6 +75,17 @@ void SchoolingController::loadClassesByNiveau(int niveauId) {
     });
 }
 
+void SchoolingController::loadAllMatieres() {
+    m_worker->submit("Schooling.loadAllMatieres", [svc = m_service]() -> QVariant {
+        auto result = svc->getAllMatieres();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& m : result.value()) list.append(matiereToMap(m));
+        return list;
+    });
+}
+
 void SchoolingController::loadMatieresByNiveau(int niveauId) {
     setLoading(true);
     m_worker->submit("Schooling.loadMatieres", [svc = m_service, niveauId]() -> QVariant {
@@ -269,6 +280,10 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
         if (isError) setError(map["error"].toString());
         else { m_classes = result.toList(); emit classesChanged(); }
         setLoading(false);
+    }
+    else if (queryId == "Schooling.loadAllMatieres") {
+        if (isError) setError(map["error"].toString());
+        else { m_allMatieres = result.toList(); emit allMatieresChanged(); }
     }
     else if (queryId == "Schooling.loadMatieres") {
         if (isError) setError(map["error"].toString());

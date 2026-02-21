@@ -13,6 +13,7 @@ class SchoolingController : public QObject {
     Q_PROPERTY(QVariantList classes READ classes NOTIFY classesChanged)
     Q_PROPERTY(QVariantList allClasses READ allClasses NOTIFY allClassesChanged)
     Q_PROPERTY(QVariantList matieres READ matieres NOTIFY matieresChanged)
+    Q_PROPERTY(QVariantList allMatieres READ allMatieres NOTIFY allMatieresChanged)
     Q_PROPERTY(QVariantList salles READ salles NOTIFY sallesChanged)
     Q_PROPERTY(QVariantList equipements READ equipements NOTIFY equipementsChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
@@ -25,6 +26,7 @@ public:
     QVariantList classes() const { return m_classes; }
     QVariantList allClasses() const { return m_allClasses; }
     QVariantList matieres() const { return m_matieres; }
+    QVariantList allMatieres() const { return m_allMatieres; }
     QVariantList salles() const { return m_salles; }
     QVariantList equipements() const { return m_equipements; }
     bool loading() const { return m_loading; }
@@ -33,6 +35,7 @@ public:
     Q_INVOKABLE void loadNiveaux();
     Q_INVOKABLE void loadAllClasses();
     Q_INVOKABLE void loadClassesByNiveau(int niveauId);
+    Q_INVOKABLE void loadAllMatieres();
     Q_INVOKABLE void loadMatieresByNiveau(int niveauId);
     Q_INVOKABLE void loadSalles();
     Q_INVOKABLE void loadEquipements();
@@ -60,6 +63,7 @@ signals:
     void classesChanged();
     void allClassesChanged();
     void matieresChanged();
+    void allMatieresChanged();
     void sallesChanged();
     void equipementsChanged();
     void loadingChanged();
@@ -81,6 +85,7 @@ private:
     QVariantList m_classes;
     QVariantList m_allClasses;
     QVariantList m_matieres;
+    QVariantList m_allMatieres;
     QVariantList m_salles;
     QVariantList m_equipements;
     bool m_loading = false;

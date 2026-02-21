@@ -5,7 +5,7 @@
 
 #include "common/enums.h"
 
-struct Professeur {
+struct Personnel {
     int id = 0;
     QString nom;
     QString prenom;
@@ -21,7 +21,7 @@ struct Professeur {
     double prixHeureActuel = 0.0;             // Gardé pour compatibilité
 };
 
-struct TarifProfHistorique {
+struct TarifPersonnelHistorique {
     int id = 0;
     int profId = 0;
     double nouveauPrix = 0.0;

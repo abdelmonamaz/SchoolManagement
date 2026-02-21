@@ -117,7 +117,8 @@ void AppController::createControllers() {
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
     m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);
     m_attendanceController = std::make_unique<AttendanceController>(m_attendanceService.get(), w, this);
-    m_examsController = std::make_unique<ExamsController>(m_attendanceService.get(), w, this);
+    m_examsController = std::make_unique<ExamsController>(m_attendanceService.get(),
+                                                         m_schoolingService.get(), m_staffService.get(), w, this);
     m_gradesController = std::make_unique<GradesController>(m_gradesService.get(), w, this);
     m_financeController = std::make_unique<FinanceController>(m_financeService.get(), w, this);
     m_dashboardController = std::make_unique<DashboardController>(

@@ -10,7 +10,8 @@ class DatabaseWorker;
 
 class StaffController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QVariantList professeurs READ professeurs NOTIFY professeursChanged)
+    Q_PROPERTY(QVariantList personnel READ personnel NOTIFY personnelChanged)
+    Q_PROPERTY(QVariantList enseignants READ enseignants NOTIFY enseignantsChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
     Q_PROPERTY(int currentMonth READ currentMonth WRITE setCurrentMonth NOTIFY currentMonthChanged)
@@ -20,7 +21,8 @@ public:
     explicit StaffController(StaffService* service, FinanceService* financeService,
                              DatabaseWorker* worker, QObject* parent = nullptr);
 
-    QVariantList professeurs() const { return m_professeurs; }
+    QVariantList personnel() const { return m_personnel; }
+    QVariantList enseignants() const { return m_enseignants; }
     bool loading() const { return m_loading; }
     QString errorMessage() const { return m_errorMessage; }
     int currentMonth() const { return m_currentMonth; }
@@ -29,16 +31,16 @@ public:
     void setCurrentMonth(int month);
     void setCurrentYear(int year);
 
-    Q_INVOKABLE void loadProfesseurs();
-    Q_INVOKABLE void createProfesseur(const QString& nom, const QString& telephone,
+    Q_INVOKABLE void loadPersonnel();
+    Q_INVOKABLE void createPersonnel(const QString& nom, const QString& telephone,
                                       const QString& poste, const QString& specialite,
                                       const QString& modePaie, double valeurBase,
                                       const QString& statut);
-    Q_INVOKABLE void updateProfesseur(int id, const QString& nom, const QString& telephone,
+    Q_INVOKABLE void updatePersonnel(int id, const QString& nom, const QString& telephone,
                                       const QString& poste, const QString& specialite,
                                       const QString& modePaie, double valeurBase,
                                       const QString& statut);
-    Q_INVOKABLE void deleteProfesseur(int id);
+    Q_INVOKABLE void deletePersonnel(int id);
     Q_INVOKABLE void updateTarif(int profId, double nouveauPrix);
     Q_INVOKABLE double getMonthlySalary(int hours, double rate);
 
@@ -49,7 +51,8 @@ public:
     Q_INVOKABLE void recalculateSommeDue(int personnelId, int mois, int annee);
 
 signals:
-    void professeursChanged();
+    void personnelChanged();
+    void enseignantsChanged();
     void loadingChanged();
     void errorMessageChanged();
     void currentMonthChanged();
@@ -68,7 +71,8 @@ private:
     StaffService* m_service = nullptr;
     FinanceService* m_financeService = nullptr;
     DatabaseWorker* m_worker = nullptr;
-    QVariantList m_professeurs;
+    QVariantList m_personnel;
+    QVariantList m_enseignants;
     bool m_loading = false;
     QString m_errorMessage;
     int m_currentMonth = 1;

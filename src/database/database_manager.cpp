@@ -90,9 +90,9 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  niveau_id INTEGER REFERENCES niveaux(id) ON DELETE CASCADE"
             ")"),
 
-        // ── Professeurs / Personnel ──
+        // ── Personnel ──
         QStringLiteral(
-            "CREATE TABLE IF NOT EXISTS professeurs ("
+            "CREATE TABLE IF NOT EXISTS personnel ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  nom TEXT NOT NULL,"
             "  prenom TEXT,"
@@ -112,7 +112,7 @@ void DatabaseManager::createTables(QSqlDatabase& db)
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS tarifs_profs_historique ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "  prof_id INTEGER REFERENCES professeurs(id),"
+            "  prof_id INTEGER REFERENCES personnel(id),"
             "  nouveau_prix REAL NOT NULL,"
             "  date_changement TEXT DEFAULT (datetime('now'))"
             ")"),
@@ -145,14 +145,11 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  nom TEXT NOT NULL UNIQUE"
             ")"),
 
-        // ── Séances ──
+        // ── Séances (table de base, les détails sont dans cours/examens/events) ──
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS seances ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "  matiere_id INTEGER REFERENCES matieres(id),"
-            "  prof_id INTEGER REFERENCES professeurs(id),"
             "  salle_id INTEGER REFERENCES salles(id),"
-            "  classe_id INTEGER REFERENCES classes(id),"
             "  date_heure_debut TEXT NOT NULL,"
             "  duree_minutes INTEGER NOT NULL DEFAULT 60,"
             "  type_seance TEXT DEFAULT 'Cours'"
@@ -184,7 +181,7 @@ void DatabaseManager::createTables(QSqlDatabase& db)
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS paiements_personnel ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "  personnel_id INTEGER NOT NULL REFERENCES professeurs(id) ON DELETE CASCADE,"
+            "  personnel_id INTEGER NOT NULL REFERENCES personnel(id) ON DELETE CASCADE,"
             "  mois INTEGER NOT NULL CHECK(mois >= 1 AND mois <= 12),"
             "  annee INTEGER NOT NULL CHECK(annee >= 2000),"
             "  somme_due REAL NOT NULL DEFAULT 0.0,"
@@ -221,6 +218,37 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  montant REAL NOT NULL,"
             "  date_don TEXT DEFAULT (date('now'))"
             ")"),
+
+        // ── Cours (sous-table de séances) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS cours ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  seance_id INTEGER NOT NULL UNIQUE REFERENCES seances(id) ON DELETE CASCADE,"
+            "  matiere_id INTEGER NOT NULL,"
+            "  prof_id INTEGER NOT NULL,"
+            "  classe_id INTEGER NOT NULL"
+            ")"),
+
+        // ── Examens (sous-table de séances) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS examens ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  seance_id INTEGER NOT NULL UNIQUE REFERENCES seances(id) ON DELETE CASCADE,"
+            "  matiere_id INTEGER NOT NULL,"
+            "  classe_id INTEGER NOT NULL,"
+            "  titre TEXT NOT NULL,"
+            "  prof_id INTEGER"
+            ")"),
+
+        // ── Événements (sous-table de séances) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS events ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  seance_id INTEGER NOT NULL UNIQUE REFERENCES seances(id) ON DELETE CASCADE,"
+            "  titre TEXT NOT NULL,"
+            "  salle_id INTEGER,"
+            "  descriptif TEXT"
+            ")"),
     };
 
     for (const auto& sql : statements)
@@ -247,6 +275,25 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         return false;
     };
 
+    // Helper : vérifie si une table existe.
+    auto tableExists = [&](const QString& table) -> bool {
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?"));
+        q.addBindValue(table);
+        if (!q.exec() || !q.next()) return false;
+        return q.value(0).toInt() > 0;
+    };
+
+    // Migration 0 : renommer la table professeurs → personnel (pour les bases existantes)
+    if (tableExists(QStringLiteral("professeurs")) && !tableExists(QStringLiteral("personnel"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE professeurs RENAME TO personnel"));
+        qInfo() << "[DatabaseManager] Migration: renamed table professeurs → personnel";
+    }
+
+    // Déterminer le nom de la table personnel (peut être 'professeurs' si la migration a échoué)
+    QString personnelTable = tableExists(QStringLiteral("personnel"))
+        ? QStringLiteral("personnel") : QStringLiteral("professeurs");
+
     // Migration 1 : ajout de date_naissance dans eleves
     if (!columnExists(QStringLiteral("eleves"), QStringLiteral("date_naissance"))) {
         execStatement(db, QStringLiteral(
@@ -254,36 +301,79 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         qInfo() << "[DatabaseManager] Migration: added column eleves.date_naissance";
     }
 
-    // Migration 2-7 : ajout des nouvelles colonnes dans professeurs
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("poste"))) {
+    // Migration 2-7 : ajout des nouvelles colonnes dans personnel
+    if (!columnExists(personnelTable, QStringLiteral("poste"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN poste TEXT DEFAULT 'Enseignant'"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.poste";
+            "ALTER TABLE %1 ADD COLUMN poste TEXT DEFAULT 'Enseignant'").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".poste";
     }
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("specialite"))) {
+    if (!columnExists(personnelTable, QStringLiteral("specialite"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN specialite TEXT"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.specialite";
+            "ALTER TABLE %1 ADD COLUMN specialite TEXT").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".specialite";
     }
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("mode_paie"))) {
+    if (!columnExists(personnelTable, QStringLiteral("mode_paie"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN mode_paie TEXT DEFAULT 'Heure'"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.mode_paie";
+            "ALTER TABLE %1 ADD COLUMN mode_paie TEXT DEFAULT 'Heure'").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".mode_paie";
     }
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("valeur_base"))) {
+    if (!columnExists(personnelTable, QStringLiteral("valeur_base"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN valeur_base REAL DEFAULT 25.0"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.valeur_base";
+            "ALTER TABLE %1 ADD COLUMN valeur_base REAL DEFAULT 25.0").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".valeur_base";
     }
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("paye_pendant_vacances"))) {
+    if (!columnExists(personnelTable, QStringLiteral("paye_pendant_vacances"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN paye_pendant_vacances INTEGER DEFAULT 1"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.paye_pendant_vacances";
+            "ALTER TABLE %1 ADD COLUMN paye_pendant_vacances INTEGER DEFAULT 1").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".paye_pendant_vacances";
     }
-    if (!columnExists(QStringLiteral("professeurs"), QStringLiteral("heures_travalies"))) {
+    if (!columnExists(personnelTable, QStringLiteral("heures_travalies"))) {
         execStatement(db, QStringLiteral(
-            "ALTER TABLE professeurs ADD COLUMN heures_travalies INTEGER DEFAULT 0"));
-        qInfo() << "[DatabaseManager] Migration: added column professeurs.heures_travalies";
+            "ALTER TABLE %1 ADD COLUMN heures_travalies INTEGER DEFAULT 0").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration: added column" << personnelTable << ".heures_travalies";
+    }
+
+    // Migration 8 : ajout de titre dans seances
+    if (!columnExists(QStringLiteral("seances"), QStringLiteral("titre"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE seances ADD COLUMN titre TEXT"));
+        qInfo() << "[DatabaseManager] Migration: added column seances.titre";
+    }
+
+    // Migration 9 : migrer les données existantes vers les sous-tables cours/examens/events
+    // On vérifie si la migration a déjà été faite en regardant si les sous-tables contiennent des données
+    if (tableExists(QStringLiteral("cours"))) {
+        QSqlQuery checkCours(db);
+        checkCours.exec(QStringLiteral("SELECT COUNT(*) FROM cours"));
+        bool coursEmpty = (!checkCours.next() || checkCours.value(0).toInt() == 0);
+
+        if (coursEmpty) {
+            // Vérifier s'il y a des données à migrer dans seances
+            QSqlQuery checkSeances(db);
+            checkSeances.exec(QStringLiteral("SELECT COUNT(*) FROM seances"));
+            bool hasData = (checkSeances.next() && checkSeances.value(0).toInt() > 0);
+
+            if (hasData) {
+                qInfo() << "[DatabaseManager] Migration 9: migrating seances data to sub-tables...";
+
+                execStatement(db, QStringLiteral(
+                    "INSERT INTO cours (seance_id, matiere_id, prof_id, classe_id) "
+                    "SELECT id, COALESCE(matiere_id, 0), COALESCE(prof_id, 0), COALESCE(classe_id, 0) "
+                    "FROM seances WHERE type_seance = 'Cours'"));
+
+                execStatement(db, QStringLiteral(
+                    "INSERT INTO examens (seance_id, matiere_id, classe_id, titre, prof_id) "
+                    "SELECT id, COALESCE(matiere_id, 0), COALESCE(classe_id, 0), COALESCE(titre, ''), prof_id "
+                    "FROM seances WHERE type_seance = 'Examen'"));
+
+                execStatement(db, QStringLiteral(
+                    "INSERT INTO events (seance_id, titre, salle_id, descriptif) "
+                    "SELECT id, COALESCE(titre, ''), salle_id, NULL "
+                    "FROM seances WHERE type_seance = 'Événement'"));
+
+                qInfo() << "[DatabaseManager] Migration 9: data migrated to sub-tables.";
+            }
+        }
     }
 }
 
