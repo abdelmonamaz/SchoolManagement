@@ -14,8 +14,12 @@ Item {
     property var selectedItem: null
     property int selectedMonth: new Date().getMonth()
     property int selectedYear: new Date().getFullYear()
-    property int selectedWeek: weekPickerPopup.currentWeekNumber()
+    property int selectedWeek: 1
     property int selectedWeekYear: new Date().getFullYear()
+
+    // Error popup state
+    property bool showErrorPopup: false
+    property string errorPopupMessage: ""
 
     // Calendar state
     property int filterNiveauId: -1
@@ -24,11 +28,12 @@ Item {
     property int selectedDay: -1
 
     Component.onCompleted: {
+        selectedWeek = weekPickerPopup.currentWeekNumber()
         schoolingController.loadNiveaux()
         schoolingController.loadAllMatieres()
         schoolingController.loadAllClasses()
         schoolingController.loadSalles()
-        staffController.loadPersonnel()
+        staffController.loadAllPersonnel()
         examsController.loadSessionsByWeek(selectedWeek, selectedWeekYear)
     }
 
@@ -52,7 +57,8 @@ Item {
             reloadCurrentView()
         }
         function onOperationFailed(err) {
-            console.warn("ExamsPage error:", err)
+            errorPopupMessage = err
+            showErrorPopup = true
         }
     }
 
@@ -146,8 +152,6 @@ Item {
                     color: Style.bgWhite
                     border.color: courseMa.containsMouse ? Style.primary : Style.borderLight
 
-                    Behavior on border.color { ColorAnimation { duration: 150 } }
-
                     RowLayout {
                         id: courseRow
                         anchors.centerIn: parent
@@ -180,8 +184,6 @@ Item {
                     radius: 12
                     color: examMa.containsMouse ? Style.primaryDark : Style.primary
 
-                    Behavior on color { ColorAnimation { duration: 150 } }
-
                     RowLayout {
                         id: examRow
                         anchors.centerIn: parent
@@ -213,8 +215,6 @@ Item {
                     height: 40
                     radius: 12
                     color: eventMa.containsMouse ? "#D97706" : Style.warningColor
-
-                    Behavior on color { ColorAnimation { duration: 150 } }
 
                     RowLayout {
                         id: eventRow
@@ -328,5 +328,89 @@ Item {
         selectedItem: examsPage.selectedItem
         pageWidth: examsPage.width
         onClose: showDetailModal = false
+    }
+
+    // ─── Error Popup ───
+    ModalOverlay {
+        visible: showErrorPopup
+        onClose: showErrorPopup = false
+
+        Rectangle {
+            width: 520
+            anchors.centerIn: parent
+            implicitHeight: errorCol.implicitHeight + 48
+            radius: Style.radiusRound
+            color: Style.bgWhite
+            border.color: Style.borderLight
+
+            Column {
+                id: errorCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 24
+                spacing: 16
+
+                RowLayout {
+                    width: parent.width
+                    spacing: 12
+
+                    Rectangle {
+                        width: 36; height: 36; radius: 12
+                        color: "#FEE2E2"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "!"
+                            font.pixelSize: 16; font.weight: Font.Black
+                            color: Style.errorColor
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Conflit détecté"
+                        font.pixelSize: 16; font.weight: Font.Black
+                        color: Style.textPrimary
+                    }
+
+                    IconButton {
+                        iconName: "close"; iconSize: 16
+                        onClicked: showErrorPopup = false
+                    }
+                }
+
+                Separator { width: parent.width }
+
+                Text {
+                    width: parent.width
+                    text: errorPopupMessage
+                    font.pixelSize: 13; font.weight: Font.Medium
+                    color: Style.textSecondary
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.5
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 42; radius: 12
+                    color: okErrorMa.containsMouse ? Style.bgTertiary : Style.bgSecondary
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "COMPRIS"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.textPrimary; font.letterSpacing: 0.5
+                    }
+
+                    MouseArea {
+                        id: okErrorMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: showErrorPopup = false
+                    }
+                }
+            }
+        }
     }
 }

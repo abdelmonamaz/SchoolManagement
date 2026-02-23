@@ -249,6 +249,25 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  salle_id INTEGER,"
             "  descriptif TEXT"
             ")"),
+
+        // ── Contrats (données variables du personnel) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS contrats ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  personnel_id INTEGER NOT NULL REFERENCES personnel(id) ON DELETE CASCADE,"
+            "  poste TEXT DEFAULT 'Enseignant',"
+            "  specialite TEXT,"
+            "  mode_paie TEXT DEFAULT 'Heure',"
+            "  valeur_base REAL DEFAULT 25.0,"
+            "  date_debut TEXT NOT NULL,"
+            "  date_fin TEXT"
+            ")"),
+
+        QStringLiteral(
+            "CREATE INDEX IF NOT EXISTS idx_contrats_personnel ON contrats(personnel_id)"),
+
+        QStringLiteral(
+            "CREATE INDEX IF NOT EXISTS idx_contrats_dates ON contrats(date_debut, date_fin)"),
     };
 
     for (const auto& sql : statements)
@@ -374,6 +393,36 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
                 qInfo() << "[DatabaseManager] Migration 9: data migrated to sub-tables.";
             }
         }
+    }
+
+    // Migration 10 : migrer les données personnel vers contrats
+    if (tableExists(QStringLiteral("contrats")) && columnExists(personnelTable, QStringLiteral("poste"))) {
+        QSqlQuery checkContrats(db);
+        checkContrats.exec(QStringLiteral("SELECT COUNT(*) FROM contrats"));
+        bool contratsEmpty = (!checkContrats.next() || checkContrats.value(0).toInt() == 0);
+
+        if (contratsEmpty) {
+            QSqlQuery checkPersonnel(db);
+            checkPersonnel.exec(QStringLiteral("SELECT COUNT(*) FROM %1").arg(personnelTable));
+            bool hasPersonnel = (checkPersonnel.next() && checkPersonnel.value(0).toInt() > 0);
+
+            if (hasPersonnel) {
+                qInfo() << "[DatabaseManager] Migration 10: migrating personnel data to contrats...";
+                execStatement(db, QStringLiteral(
+                    "INSERT INTO contrats (personnel_id, poste, specialite, mode_paie, valeur_base, date_debut) "
+                    "SELECT id, COALESCE(poste, 'Enseignant'), specialite, "
+                    "COALESCE(mode_paie, 'Heure'), COALESCE(valeur_base, 25.0), date('now') "
+                    "FROM %1").arg(personnelTable));
+                qInfo() << "[DatabaseManager] Migration 10: personnel data migrated to contrats.";
+            }
+        }
+    }
+
+    // Migration 11 : ajout de la colonne sexe dans personnel
+    if (!columnExists(personnelTable, QStringLiteral("sexe"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE %1 ADD COLUMN sexe TEXT DEFAULT 'M'").arg(personnelTable));
+        qInfo() << "[DatabaseManager] Migration 11: added column" << personnelTable << ".sexe";
     }
 }
 

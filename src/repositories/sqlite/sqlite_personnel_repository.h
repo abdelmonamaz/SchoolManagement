@@ -14,9 +14,6 @@ public:
     Result<bool> update(const Personnel& entity) override;
     Result<bool> remove(int id) override;
 
-    Result<QList<TarifPersonnelHistorique>> getTarifHistorique(int profId) override;
-    Result<int> addTarifHistorique(const TarifPersonnelHistorique& tarif) override;
-
 private:
     QString m_connectionName;
 };

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <QList>
+#include <QDate>
 #include <QDateTime>
+#include <QStringList>
 
 #include "repositories/irepository.h"
 #include "models/seance.h"
@@ -12,6 +14,10 @@ public:
 
     virtual Result<QList<Seance>> getByDateRange(const QDateTime& from, const QDateTime& to) = 0;
     virtual Result<QList<Seance>> getByClasseId(int classeId) = 0;
+    virtual Result<int> getTotalMinutesByProf(int profId, const QDate& from, const QDate& to) = 0;
+
+    // Conflict detection: returns list of conflict descriptions, empty if no conflicts
+    virtual Result<QStringList> checkConflicts(const Seance& seance, int excludeSeanceId = 0) = 0;
 };
 
 class IParticipationRepository : public IRepository<Participation> {

@@ -349,7 +349,6 @@ RowLayout {
                         }
                         border.width: isSelected ? 2 : 1
 
-                        Behavior on color { ColorAnimation { duration: 150 } }
 
                         Column {
                             anchors.fill: parent
@@ -545,8 +544,7 @@ RowLayout {
                             border.color: cardMa.containsMouse ? Style.borderMedium : Style.borderLight
                             border.width: 1
 
-                            Behavior on color { ColorAnimation { duration: 150 } }
-
+    
                             Rectangle {
                                 width: 4
                                 height: parent.height - 16

@@ -3,23 +3,20 @@
 #include "services/finance_service.h"
 #include "database/database_worker.h"
 
-static QString statutProfToString(GS::StatutProf s) {
-    return s == GS::StatutProf::EnConge ? QStringLiteral("En congé") : QStringLiteral("Actif");
-}
+#include <QSet>
 
-static GS::StatutProf stringToStatutProf(const QString& s) {
-    return s == QStringLiteral("En congé") ? GS::StatutProf::EnConge : GS::StatutProf::Actif;
-}
-
-static QVariantMap personnelToMap(const Personnel& p) {
-    return {
-        {"id", p.id}, {"nom", p.nom}, {"prenom", p.prenom},
-        {"telephone", p.telephone}, {"adresse", p.adresse},
-        {"poste", p.poste}, {"specialite", p.specialite},
-        {"modePaie", p.modePaie}, {"valeurBase", p.valeurBase},
-        {"heuresTravailes", p.heuresTravailes},
-        {"statut", statutProfToString(p.statut)}, {"prixHeureActuel", p.prixHeureActuel}
-    };
+static QVariantMap contratToMap(const Contrat& c) {
+    QVariantMap m;
+    m["contratId"] = c.id;
+    m["poste"] = c.poste;
+    m["specialite"] = c.specialite;
+    m["modePaie"] = c.modePaie;
+    m["valeurBase"] = c.valeurBase;
+    m["dateDebut"] = c.dateDebut.toString("dd/MM/yyyy");
+    m["dateFin"] = c.dateFin.isValid() ? c.dateFin.toString("dd/MM/yyyy") : "";
+    m["dateDebutISO"] = c.dateDebut.toString(Qt::ISODate);
+    m["dateFinISO"] = c.dateFin.isValid() ? c.dateFin.toString(Qt::ISODate) : "";
+    return m;
 }
 
 StaffController::StaffController(StaffService* service, FinanceService* financeService,
@@ -53,35 +50,70 @@ void StaffController::loadPersonnel() {
     m_worker->submit("Staff.loadPersonnel",
                      [staffSvc = m_service, financeSvc = m_financeService,
                       month = m_currentMonth, year = m_currentYear]() -> QVariant {
-        auto result = staffSvc->getAllPersonnel();
+        // Use month range to find contracts overlapping any part of the month
+        auto result = staffSvc->getPersonnelForMonth(month, year);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
 
-        // Charger tous les paiements du mois actuel
+        // Load all payments for this month
         auto paymentsResult = financeSvc->getAllPersonnelPaymentsForMonth(month, year);
         QMap<int, PaiementMensuelPersonnel> paymentsMap;
-
         if (paymentsResult.isOk()) {
-            for (const auto& payment : paymentsResult.value()) {
+            for (const auto& payment : paymentsResult.value())
                 paymentsMap[payment.personnelId] = payment;
-            }
         }
 
+        // Deduplicate by personnel ID (keep the most recent contract - first in list)
+        QSet<int> seenPersonnel;
         QVariantList list;
-        for (const auto& p : result.value()) {
-            auto map = personnelToMap(p);
+        for (const auto& [person, contrat] : result.value()) {
+            if (seenPersonnel.contains(person.id))
+                continue;
+            seenPersonnel.insert(person.id);
 
-            if (paymentsMap.contains(p.id)) {
-                map["sommeDue"] = paymentsMap[p.id].sommeDue;
-                map["sommePaye"] = paymentsMap[p.id].sommePaye;
+            QVariantMap map;
+            // Personnel identity
+            map["id"] = person.id;
+            map["nom"] = person.nom;
+            map["prenom"] = person.prenom;
+            map["telephone"] = person.telephone;
+            map["adresse"] = person.adresse;
+            map["sexe"] = person.sexe;
+
+            // Active contract data (most recent)
+            map["contratId"] = contrat.id;
+            map["poste"] = contrat.poste;
+            map["specialite"] = contrat.specialite;
+            map["modePaie"] = contrat.modePaie;
+            map["valeurBase"] = contrat.valeurBase;
+            map["dateDebut"] = contrat.dateDebut.toString("dd/MM/yyyy");
+            map["dateFin"] = contrat.dateFin.isValid() ? contrat.dateFin.toString("dd/MM/yyyy") : "";
+            map["dateDebutISO"] = contrat.dateDebut.toString(Qt::ISODate);
+            map["dateFinISO"] = contrat.dateFin.isValid() ? contrat.dateFin.toString(Qt::ISODate) : "";
+
+            // Hours for hourly mode
+            if (contrat.modePaie == "Heure") {
+                auto minResult = staffSvc->getTotalMinutesForMonth(person.id, month, year);
+                int minutes = minResult.isOk() ? minResult.value() : 0;
+                map["heuresTravailes"] = minutes / 60;
+                map["minutesTravailees"] = minutes;
             } else {
-                double estimated = 0.0;
-                if (p.modePaie == "Heure") {
-                    estimated = p.heuresTravailes * p.valeurBase;
-                } else {
-                    estimated = p.valeurBase;
-                }
-                map["sommeDue"] = estimated;
+                map["heuresTravailes"] = 0;
+                map["minutesTravailees"] = 0;
+            }
+
+            // Contract count for history badge
+            auto countResult = staffSvc->countContrats(person.id);
+            map["nbContrats"] = countResult.isOk() ? countResult.value() : 1;
+
+            // Payment data
+            if (paymentsMap.contains(person.id)) {
+                map["sommeDue"] = paymentsMap[person.id].sommeDue;
+                map["sommePaye"] = paymentsMap[person.id].sommePaye;
+            } else {
+                // Calculate estimated amount
+                auto calcResult = staffSvc->calculateSommeDue(person.id, month, year);
+                map["sommeDue"] = calcResult.isOk() ? calcResult.value() : 0.0;
                 map["sommePaye"] = 0.0;
             }
 
@@ -91,49 +123,118 @@ void StaffController::loadPersonnel() {
     });
 }
 
+void StaffController::loadAllPersonnel() {
+    setLoading(true);
+    m_worker->submit("Staff.loadAllPersonnel",
+                     [staffSvc = m_service]() -> QVariant {
+        auto result = staffSvc->getAllPersonnel();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+
+        QDate today = QDate::currentDate();
+        QVariantList list;
+        for (const auto& person : result.value()) {
+            QVariantMap map;
+            map["id"] = person.id;
+            map["nom"] = person.nom;
+            map["prenom"] = person.prenom;
+            map["telephone"] = person.telephone;
+            map["adresse"] = person.adresse;
+            map["sexe"] = person.sexe;
+
+            auto countResult = staffSvc->countContrats(person.id);
+            map["nbContrats"] = countResult.isOk() ? countResult.value() : 0;
+
+            // No payment/hours calculation for "show all" mode
+            map["heuresTravailes"] = 0;
+            map["minutesTravailees"] = 0;
+            map["sommeDue"] = 0.0;
+            map["sommePaye"] = 0.0;
+            map["showAllMode"] = true;
+
+            // Load the most recent contract (first in list, ordered by date_debut DESC)
+            auto histResult = staffSvc->getContratHistorique(person.id);
+            if (histResult.isOk() && !histResult.value().isEmpty()) {
+                const auto& latestContrat = histResult.value().first();
+                map["contratId"] = latestContrat.id;
+                map["poste"] = latestContrat.poste;
+                map["specialite"] = latestContrat.specialite;
+                map["modePaie"] = latestContrat.modePaie;
+                map["valeurBase"] = latestContrat.valeurBase;
+                map["dateDebut"] = latestContrat.dateDebut.toString("dd/MM/yyyy");
+                map["dateFin"] = latestContrat.dateFin.isValid() ? latestContrat.dateFin.toString("dd/MM/yyyy") : "";
+                map["dateDebutISO"] = latestContrat.dateDebut.toString(Qt::ISODate);
+                map["dateFinISO"] = latestContrat.dateFin.isValid() ? latestContrat.dateFin.toString(Qt::ISODate) : "";
+            } else {
+                map["contratId"] = 0;
+                map["poste"] = "";
+                map["specialite"] = "";
+                map["modePaie"] = "";
+                map["valeurBase"] = 0;
+                map["dateDebut"] = "";
+                map["dateFin"] = "";
+                map["dateDebutISO"] = "";
+                map["dateFinISO"] = "";
+            }
+
+            list.append(map);
+        }
+        return list;
+    });
+}
+
 void StaffController::createPersonnel(const QString& nom, const QString& telephone,
+                                       const QString& sexe,
                                        const QString& poste, const QString& specialite,
                                        const QString& modePaie, double valeurBase,
-                                       const QString& statut) {
-    m_worker->submit("Staff.createPersonnel", [svc = m_service, nom, telephone, poste, specialite,
-                                                 modePaie, valeurBase, statut]() -> QVariant {
+                                       const QString& dateDebut, const QString& dateFin) {
+    m_worker->submit("Staff.createPersonnel",
+        [svc = m_service, nom, telephone, sexe, poste, specialite, modePaie, valeurBase, dateDebut, dateFin]() -> QVariant {
         Personnel p;
         p.nom = nom.trimmed();
-        p.prenom = "";  // Pas de prénom dans le formulaire
+        p.prenom = "";
         p.telephone = telephone.trimmed();
-        p.adresse = "";  // Pas d'adresse dans le formulaire
-        p.poste = poste.isEmpty() ? "Enseignant" : poste;
-        p.specialite = specialite.trimmed();
-        p.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
-        p.valeurBase = valeurBase;
-        p.heuresTravailes = 0;
-        p.statut = stringToStatutProf(statut);
+        p.adresse = "";
+        p.sexe = sexe.isEmpty() ? "M" : sexe;
 
         auto result = svc->createPersonnel(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
+
+        int personnelId = result.value();
+
+        // Create initial contract
+        Contrat c;
+        c.personnelId = personnelId;
+        c.poste = poste.isEmpty() ? "Enseignant" : poste;
+        c.specialite = specialite.trimmed();
+        c.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
+        c.valeurBase = valeurBase;
+        c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
+        if (!c.dateDebut.isValid())
+            c.dateDebut = QDate::currentDate();
+        if (!dateFin.isEmpty())
+            c.dateFin = QDate::fromString(dateFin, Qt::ISODate);
+
+        auto contratResult = svc->createContrat(c);
+        if (!contratResult.isOk())
+            return QVariantMap{{"error", contratResult.errorMessage()}};
+
         return QVariantMap{{"success", true}};
     });
 }
 
 void StaffController::updatePersonnel(int id, const QString& nom, const QString& telephone,
-                                       const QString& poste, const QString& specialite,
-                                       const QString& modePaie, double valeurBase,
-                                       const QString& statut) {
-    m_worker->submit("Staff.updatePersonnel", [svc = m_service, id, nom, telephone, poste, specialite,
-                                                 modePaie, valeurBase, statut]() -> QVariant {
+                                       const QString& sexe) {
+    m_worker->submit("Staff.updatePersonnel",
+        [svc = m_service, id, nom, telephone, sexe]() -> QVariant {
         Personnel p;
         p.id = id;
         p.nom = nom.trimmed();
-        p.prenom = "";  // Pas de prénom dans le formulaire
+        p.prenom = "";
         p.telephone = telephone.trimmed();
-        p.adresse = "";  // Pas d'adresse dans le formulaire
-        p.poste = poste.isEmpty() ? "Enseignant" : poste;
-        p.specialite = specialite.trimmed();
-        p.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
-        p.valeurBase = valeurBase;
-        p.heuresTravailes = 0;
-        p.statut = stringToStatutProf(statut);
+        p.adresse = "";
+        p.sexe = sexe.isEmpty() ? "M" : sexe;
 
         auto result = svc->updatePersonnel(p);
         if (!result.isOk())
@@ -151,34 +252,86 @@ void StaffController::deletePersonnel(int id) {
     });
 }
 
-void StaffController::updateTarif(int profId, double nouveauPrix) {
-    m_worker->submit("Staff.updateTarif", [svc = m_service, profId, nouveauPrix]() -> QVariant {
-        auto result = svc->updateTarif(profId, nouveauPrix);
+void StaffController::createContrat(int personnelId, const QString& poste, const QString& specialite,
+                                     const QString& modePaie, double valeurBase,
+                                     const QString& dateDebut, const QString& dateFin) {
+    m_worker->submit("Staff.createContrat",
+        [svc = m_service, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin]() -> QVariant {
+        Contrat c;
+        c.personnelId = personnelId;
+        c.poste = poste.isEmpty() ? "Enseignant" : poste;
+        c.specialite = specialite.trimmed();
+        c.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
+        c.valeurBase = valeurBase;
+        c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
+        if (!c.dateDebut.isValid())
+            c.dateDebut = QDate::currentDate();
+        if (!dateFin.isEmpty())
+            c.dateFin = QDate::fromString(dateFin, Qt::ISODate);
+
+        auto result = svc->createContrat(c);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
     });
 }
 
-double StaffController::getMonthlySalary(int hours, double rate) {
-    Personnel p;
-    p.prixHeureActuel = rate;
-    return m_service->calculateMonthlySalary(p, hours);
+void StaffController::updateContrat(int contratId, int personnelId, const QString& poste,
+                                     const QString& specialite, const QString& modePaie,
+                                     double valeurBase, const QString& dateDebut, const QString& dateFin) {
+    m_worker->submit("Staff.updateContrat",
+        [svc = m_service, contratId, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin]() -> QVariant {
+        Contrat c;
+        c.id = contratId;
+        c.personnelId = personnelId;
+        c.poste = poste;
+        c.specialite = specialite;
+        c.modePaie = modePaie;
+        c.valeurBase = valeurBase;
+        c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
+        if (!dateFin.isEmpty())
+            c.dateFin = QDate::fromString(dateFin, Qt::ISODate);
+
+        auto result = svc->updateContrat(c);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void StaffController::deleteContrat(int contratId) {
+    m_worker->submit("Staff.deleteContrat", [svc = m_service, contratId]() -> QVariant {
+        auto result = svc->deleteContrat(contratId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void StaffController::loadContratHistorique(int personnelId) {
+    m_worker->submit("Staff.loadContratHistorique",
+        [svc = m_service, personnelId]() -> QVariant {
+        auto result = svc->getContratHistorique(personnelId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+
+        QVariantList list;
+        for (const auto& c : result.value())
+            list.append(contratToMap(c));
+        return list;
+    });
 }
 
 void StaffController::loadPaymentData(int personnelId, int mois, int annee) {
     setLoading(true);
     m_worker->submit("Staff.loadPaymentData",
                      [staffSvc = m_service, financeSvc = m_financeService, personnelId, mois, annee]() -> QVariant {
-        // Try to load existing payment
         auto paymentResult = financeSvc->getPersonnelPayment(personnelId, mois, annee);
-        if (!paymentResult.isOk()) {
+        if (!paymentResult.isOk())
             return QVariantMap{{"error", paymentResult.errorMessage()}};
-        }
 
         auto paymentOpt = paymentResult.value();
         if (!paymentOpt.has_value()) {
-            // No existing payment: calculate estimated sommeDue
             auto calcResult = staffSvc->calculateSommeDue(personnelId, mois, annee);
             double estimated = calcResult.isOk() ? calcResult.value() : 0.0;
             return QVariantMap{
@@ -218,9 +371,8 @@ void StaffController::savePayment(int personnelId, int mois, int annee,
         p.dateModification = QDateTime::currentDateTime();
 
         auto result = financeSvc->savePersonnelPayment(p);
-        if (!result.isOk()) {
+        if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
-        }
         return QVariantMap{{"success", true}};
     });
 }
@@ -230,9 +382,8 @@ void StaffController::recalculateSommeDue(int personnelId, int mois, int annee) 
     m_worker->submit("Staff.recalculateSommeDue",
                      [staffSvc = m_service, personnelId, mois, annee]() -> QVariant {
         auto result = staffSvc->calculateSommeDue(personnelId, mois, annee);
-        if (!result.isOk()) {
+        if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
-        }
         return QVariantMap{{"sommeDue", result.value()}};
     });
 }
@@ -243,11 +394,10 @@ void StaffController::onQueryCompleted(const QString& queryId, const QVariant& r
     auto map = result.toMap();
     bool isError = map.contains("error");
 
-    if (queryId == "Staff.loadPersonnel") {
+    if (queryId == "Staff.loadPersonnel" || queryId == "Staff.loadAllPersonnel") {
         if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
         else {
             m_personnel = result.toList();
-            // Filter enseignants
             m_enseignants.clear();
             for (const auto& item : m_personnel) {
                 auto m = item.toMap();
@@ -261,19 +411,31 @@ void StaffController::onQueryCompleted(const QString& queryId, const QVariant& r
     }
     else if (queryId == "Staff.createPersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Personnel ajouté"); loadPersonnel(); }
+        else emit operationSucceeded("Personnel ajouté");
     }
     else if (queryId == "Staff.updatePersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Personnel mis à jour"); loadPersonnel(); }
+        else emit operationSucceeded("Personnel mis à jour");
     }
     else if (queryId == "Staff.deletePersonnel") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Personnel supprimé"); loadPersonnel(); }
+        else emit operationSucceeded("Personnel supprimé");
     }
-    else if (queryId == "Staff.updateTarif") {
+    else if (queryId == "Staff.createContrat") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { emit operationSucceeded("Tarif mis à jour"); loadPersonnel(); }
+        else emit operationSucceeded("Contrat créé");
+    }
+    else if (queryId == "Staff.updateContrat") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Contrat mis à jour");
+    }
+    else if (queryId == "Staff.deleteContrat") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Contrat supprimé");
+    }
+    else if (queryId == "Staff.loadContratHistorique") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit contratHistoriqueLoaded(result.toList());
     }
     else if (queryId == "Staff.loadPaymentData") {
         setLoading(false);

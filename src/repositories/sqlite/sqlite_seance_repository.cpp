@@ -245,7 +245,7 @@ Result<bool> SqliteSeanceRepository::remove(int id) {
 Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& from, const QDateTime& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" WHERE s.date_heure_debut BETWEEN ? AND ?"));
+    query.prepare(kSeanceSelect + QStringLiteral(" WHERE s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
     query.addBindValue(from.toString(Qt::ISODate));
     query.addBindValue(to.toString(Qt::ISODate));
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
@@ -264,6 +264,128 @@ Result<QList<Seance>> SqliteSeanceRepository::getByClasseId(int classeId) {
     QList<Seance> list;
     while (query.next()) list.append(rowToSeance(query));
     return Result<QList<Seance>>::success(list);
+}
+
+Result<int> SqliteSeanceRepository::getTotalMinutesByProf(int profId, const QDate& from, const QDate& to) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    // Include both cours (teaching) and examens (supervision) hours
+    query.prepare(QStringLiteral(
+        "SELECT COALESCE(SUM(s.duree_minutes), 0) "
+        "FROM seances s "
+        "LEFT JOIN cours c ON c.seance_id = s.id "
+        "LEFT JOIN examens e ON e.seance_id = s.id "
+        "WHERE (c.prof_id = ? OR e.prof_id = ?) "
+        "AND date(s.date_heure_debut) BETWEEN ? AND ?"));
+    query.addBindValue(profId);
+    query.addBindValue(profId);
+    query.addBindValue(from.toString(Qt::ISODate));
+    query.addBindValue(to.toString(Qt::ISODate));
+    if (!query.exec() || !query.next())
+        return Result<int>::error(query.lastError().text());
+    return Result<int>::success(query.value(0).toInt());
+}
+
+Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance, int excludeSeanceId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QStringList conflicts;
+
+    // Compute new session time range in SQLite datetime format (space separator, not T)
+    QString newStart = seance.dateHeureDebut.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    QString newEnd = seance.dateHeureDebut.addSecs(seance.dureeMinutes * 60).toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+
+    // Overlap condition: existing_start < new_end AND existing_end > new_start
+    // datetime() normalizes dates to 'YYYY-MM-DD HH:MM:SS' format (space, not T)
+    // so we must also use space format for bind values
+
+    // Check professor conflict
+    if (seance.profId > 0) {
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral(
+            "SELECT s.id, s.date_heure_debut, s.duree_minutes, p.nom "
+            "FROM seances s "
+            "LEFT JOIN cours c ON c.seance_id = s.id "
+            "LEFT JOIN examens e ON e.seance_id = s.id "
+            "LEFT JOIN personnel p ON p.id = COALESCE(c.prof_id, e.prof_id) "
+            "WHERE COALESCE(c.prof_id, e.prof_id) = ? "
+            "AND s.id != ? "
+            "AND datetime(s.date_heure_debut) < ? "
+            "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
+            "LIMIT 1"));
+        q.addBindValue(seance.profId);
+        q.addBindValue(excludeSeanceId);
+        q.addBindValue(newEnd);
+        q.addBindValue(newStart);
+        if (!q.exec()) {
+            qWarning() << "checkConflicts prof query error:" << q.lastError().text();
+            return Result<QStringList>::error(q.lastError().text());
+        }
+        if (q.next()) {
+            QString profName = q.value(3).toString();
+            QString existStart = q.value(1).toString();
+            conflicts.append(QStringLiteral("Le professeur %1 a déjà une session à cette horaire (%2).")
+                .arg(profName.isEmpty() ? QStringLiteral("sélectionné") : profName,
+                     QDateTime::fromString(existStart, Qt::ISODate).toString(QStringLiteral("dd/MM/yyyy HH:mm"))));
+        }
+    }
+
+    // Check room conflict
+    if (seance.salleId > 0) {
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral(
+            "SELECT s.id, s.date_heure_debut, sa.nom "
+            "FROM seances s "
+            "LEFT JOIN salles sa ON sa.id = s.salle_id "
+            "WHERE s.salle_id = ? "
+            "AND s.id != ? "
+            "AND datetime(s.date_heure_debut) < ? "
+            "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
+            "LIMIT 1"));
+        q.addBindValue(seance.salleId);
+        q.addBindValue(excludeSeanceId);
+        q.addBindValue(newEnd);
+        q.addBindValue(newStart);
+        if (!q.exec()) {
+            qWarning() << "checkConflicts salle query error:" << q.lastError().text();
+            return Result<QStringList>::error(q.lastError().text());
+        }
+        if (q.next()) {
+            QString salleName = q.value(2).toString();
+            conflicts.append(QStringLiteral("La salle %1 est déjà occupée à cette horaire.")
+                .arg(salleName.isEmpty() ? QStringLiteral("sélectionnée") : salleName));
+        }
+    }
+
+    // Check class conflict
+    if (seance.classeId > 0) {
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral(
+            "SELECT s.id, s.date_heure_debut, cl.nom "
+            "FROM seances s "
+            "LEFT JOIN cours c ON c.seance_id = s.id "
+            "LEFT JOIN examens e ON e.seance_id = s.id "
+            "LEFT JOIN classes cl ON cl.id = COALESCE(c.classe_id, e.classe_id) "
+            "WHERE COALESCE(c.classe_id, e.classe_id) = ? "
+            "AND s.id != ? "
+            "AND datetime(s.date_heure_debut) < ? "
+            "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
+            "LIMIT 1"));
+        q.addBindValue(seance.classeId);
+        q.addBindValue(excludeSeanceId);
+        q.addBindValue(newEnd);
+        q.addBindValue(newStart);
+        if (!q.exec()) {
+            qWarning() << "checkConflicts classe query error:" << q.lastError().text();
+            return Result<QStringList>::error(q.lastError().text());
+        }
+        if (q.next()) {
+            QString className = q.value(2).toString();
+            conflicts.append(QStringLiteral("La classe %1 a déjà une session à cette horaire.")
+                .arg(className.isEmpty() ? QStringLiteral("sélectionnée") : className));
+        }
+    }
+
+    return Result<QStringList>::success(conflicts);
 }
 
 // ═══════════════════════════════════════════════════════════════

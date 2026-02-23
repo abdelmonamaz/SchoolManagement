@@ -32,19 +32,32 @@ public:
     void setCurrentYear(int year);
 
     Q_INVOKABLE void loadPersonnel();
-    Q_INVOKABLE void createPersonnel(const QString& nom, const QString& telephone,
-                                      const QString& poste, const QString& specialite,
-                                      const QString& modePaie, double valeurBase,
-                                      const QString& statut);
-    Q_INVOKABLE void updatePersonnel(int id, const QString& nom, const QString& telephone,
-                                      const QString& poste, const QString& specialite,
-                                      const QString& modePaie, double valeurBase,
-                                      const QString& statut);
-    Q_INVOKABLE void deletePersonnel(int id);
-    Q_INVOKABLE void updateTarif(int profId, double nouveauPrix);
-    Q_INVOKABLE double getMonthlySalary(int hours, double rate);
+    Q_INVOKABLE void loadAllPersonnel();
 
-    // Paiements personnel
+    // Create personnel + initial contract
+    Q_INVOKABLE void createPersonnel(const QString& nom, const QString& telephone,
+                                      const QString& sexe,
+                                      const QString& poste, const QString& specialite,
+                                      const QString& modePaie, double valeurBase,
+                                      const QString& dateDebut, const QString& dateFin);
+
+    // Update identity only
+    Q_INVOKABLE void updatePersonnel(int id, const QString& nom, const QString& telephone,
+                                      const QString& sexe);
+
+    Q_INVOKABLE void deletePersonnel(int id);
+
+    // Contract management
+    Q_INVOKABLE void createContrat(int personnelId, const QString& poste, const QString& specialite,
+                                    const QString& modePaie, double valeurBase,
+                                    const QString& dateDebut, const QString& dateFin);
+    Q_INVOKABLE void updateContrat(int contratId, int personnelId, const QString& poste,
+                                    const QString& specialite, const QString& modePaie,
+                                    double valeurBase, const QString& dateDebut, const QString& dateFin);
+    Q_INVOKABLE void deleteContrat(int contratId);
+    Q_INVOKABLE void loadContratHistorique(int personnelId);
+
+    // Payments
     Q_INVOKABLE void loadPaymentData(int personnelId, int mois, int annee);
     Q_INVOKABLE void savePayment(int personnelId, int mois, int annee,
                                  double sommeDue, double sommePaye);
@@ -60,6 +73,7 @@ signals:
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
     void paymentDataLoaded(const QVariantMap& data);
+    void contratHistoriqueLoaded(const QVariantList& contrats);
 
 private slots:
     void onQueryCompleted(const QString& queryId, const QVariant& result);

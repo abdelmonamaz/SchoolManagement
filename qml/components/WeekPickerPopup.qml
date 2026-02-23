@@ -32,9 +32,15 @@ Popup {
     // Helpers
     function currentWeekNumber() {
         var now = new Date()
-        var onejan = new Date(now.getFullYear(), 0, 1)
-        var dayOfYear = Math.ceil((now - onejan) / 86400000) + 1
-        return Math.ceil(dayOfYear / 7)
+        var year = now.getFullYear()
+        var onejan = new Date(year, 0, 1)
+        var dayOfWeek = onejan.getDay()
+        var isoDay = dayOfWeek === 0 ? 7 : dayOfWeek
+        // Monday of week 1
+        var mondayW1 = new Date(year, 0, 1 + (1 - isoDay))
+        // Days since Monday of week 1
+        var diff = Math.floor((now - mondayW1) / 86400000)
+        return Math.floor(diff / 7) + 1
     }
 
     function maxWeeksInYear(year) {
@@ -153,7 +159,6 @@ Popup {
                         color: Style.bgPage
                         border.color: weekInput.activeFocus ? Style.primary : Style.borderLight
 
-                        Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         HoverHandler { cursorShape: Qt.IBeamCursor }
 
@@ -309,7 +314,6 @@ Popup {
                     radius: 12
                     color: cancelMa.containsMouse ? Style.bgSecondary : Style.bgPage
 
-                    Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -342,7 +346,6 @@ Popup {
                     color: !isValid ? Style.bgTertiary : confirmMa.containsMouse ? Style.primaryDark : Style.primary
                     opacity: isValid ? 1.0 : 0.6
 
-                    Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
                         anchors.centerIn: parent

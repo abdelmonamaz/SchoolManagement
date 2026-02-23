@@ -1,6 +1,7 @@
 #include "services/attendance_service.h"
 
 #include <algorithm>
+#include <QDebug>
 
 #include "repositories/iseance_repository.h"
 #include "repositories/ieleve_repository.h"
@@ -33,6 +34,22 @@ Result<int> AttendanceService::createSeance(const Seance& seance)
         return Result<int>::error("La date de la seance n'est pas valide.");
     }
 
+    // Check for conflicts
+    qDebug() << "createSeance: checking conflicts for profId=" << seance.profId
+             << "salleId=" << seance.salleId << "classeId=" << seance.classeId
+             << "date=" << seance.dateHeureDebut.toString(Qt::ISODate)
+             << "duree=" << seance.dureeMinutes;
+    auto conflictsResult = m_seanceRepo->checkConflicts(seance);
+    if (!conflictsResult.isOk()) {
+        qWarning() << "createSeance: checkConflicts error:" << conflictsResult.errorMessage();
+        return Result<int>::error(conflictsResult.errorMessage());
+    }
+    if (!conflictsResult.value().isEmpty()) {
+        qWarning() << "createSeance: conflicts found:" << conflictsResult.value();
+        return Result<int>::error(conflictsResult.value().join("\n"));
+    }
+    qDebug() << "createSeance: no conflicts, creating session";
+
     return m_seanceRepo->create(seance);
 }
 
@@ -44,6 +61,13 @@ Result<bool> AttendanceService::updateSeance(const Seance& seance)
     if (!seance.dateHeureDebut.isValid()) {
         return Result<bool>::error("La date de la seance n'est pas valide.");
     }
+
+    // Check for conflicts (excluding the session being updated)
+    auto conflictsResult = m_seanceRepo->checkConflicts(seance, seance.id);
+    if (!conflictsResult.isOk())
+        return Result<bool>::error(conflictsResult.errorMessage());
+    if (!conflictsResult.value().isEmpty())
+        return Result<bool>::error(conflictsResult.value().join("\n"));
 
     return m_seanceRepo->update(seance);
 }

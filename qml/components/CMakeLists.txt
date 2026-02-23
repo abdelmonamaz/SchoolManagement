@@ -34,6 +34,7 @@ qt_add_qml_module(GestionScolaire_Components
         PaymentPopup.qml
         StaffCard.qml
         StaffFormModal.qml
+        ContratHistoryPopup.qml
         schooling/LevelSidebar.qml
         schooling/SubjectsSection.qml
         schooling/ClassesSection.qml

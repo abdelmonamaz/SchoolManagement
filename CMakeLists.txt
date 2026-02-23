@@ -33,6 +33,7 @@ add_library(GS_Core STATIC
     src/repositories/isalle_repository.h
     src/repositories/iniveau_repository.h
     src/repositories/ipersonnel_repository.h
+    src/repositories/icontrat_repository.h
     src/repositories/ieleve_repository.h
     src/repositories/iseance_repository.h
     src/repositories/ipaiement_repository.h
@@ -48,6 +49,8 @@ add_library(GS_Core STATIC
     src/repositories/sqlite/sqlite_equipement_repository.cpp
     src/repositories/sqlite/sqlite_personnel_repository.h
     src/repositories/sqlite/sqlite_personnel_repository.cpp
+    src/repositories/sqlite/sqlite_contrat_repository.h
+    src/repositories/sqlite/sqlite_contrat_repository.cpp
     src/repositories/sqlite/sqlite_eleve_repository.h
     src/repositories/sqlite/sqlite_eleve_repository.cpp
     src/repositories/sqlite/sqlite_seance_repository.h

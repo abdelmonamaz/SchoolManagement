@@ -6,9 +6,14 @@ Rectangle {
     id: root
 
     property var staffData
-    signal editClicked()
+    property string moisLabel: ""
+    property bool isShowAllMode: staffData.showAllMode || false
+    signal editIdentityClicked()
+    signal editContratClicked()
+    signal newContratClicked()
     signal deleteClicked()
     signal payClicked()
+    signal viewHistoryClicked()
 
     Layout.fillWidth: true
     Layout.alignment: Qt.AlignTop
@@ -53,13 +58,15 @@ Rectangle {
                     width: parent.width
                 }
 
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: 6
 
                     Rectangle {
                         implicitWidth: postText.implicitWidth + 12
                         height: 20
                         radius: 8
+                        visible: staffData.poste && staffData.poste !== ""
                         color: getPostBgColor(staffData.poste || "Enseignant")
 
                         Text {
@@ -74,8 +81,34 @@ Rectangle {
                     }
 
                     Badge {
+                        visible: staffData.modePaie && staffData.modePaie !== ""
                         text: (staffData.modePaie === "Heure" || !staffData.modePaie) ? "HORAIRE" : "FIXE"
                         variant: (staffData.modePaie === "Heure" || !staffData.modePaie) ? "info" : "success"
+                    }
+
+                    // Badge historique contrats
+                    Rectangle {
+                        visible: (staffData.nbContrats || 0) > 1
+                        implicitWidth: contratCountText.implicitWidth + 12
+                        height: 20
+                        radius: 8
+                        color: Style.primary + "15"
+
+                        Text {
+                            id: contratCountText
+                            anchors.centerIn: parent
+                            text: (staffData.nbContrats || 1) + " CONTRATS"
+                            font.pixelSize: 8
+                            font.weight: Font.Black
+                            color: Style.primary
+                            font.letterSpacing: 0.5
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.viewHistoryClicked()
+                        }
                     }
                 }
             }
@@ -83,11 +116,12 @@ Rectangle {
             Row {
                 spacing: 8
 
+                // Menu d'édition avec deux options
                 IconButton {
                     iconName: "edit"
                     iconSize: 14
                     hoverColor: Style.primary
-                    onClicked: root.editClicked()
+                    onClicked: editMenu.visible = !editMenu.visible
                 }
 
                 IconButton {
@@ -95,6 +129,138 @@ Rectangle {
                     iconSize: 14
                     hoverColor: Style.errorColor
                     onClicked: root.deleteClicked()
+                }
+            }
+        }
+
+        // Menu contextuel d'édition
+        Rectangle {
+            id: editMenu
+            visible: false
+            width: parent.width
+            implicitHeight: editMenuCol.implicitHeight + 8
+            radius: 12
+            color: Style.bgPage
+            border.color: Style.borderLight
+
+            Column {
+                id: editMenuCol
+                anchors.fill: parent
+                anchors.margins: 4
+
+                Rectangle {
+                    width: parent.width
+                    height: 36
+                    radius: 8
+                    color: editIdentityMa.containsMouse ? Style.bgSecondary : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        spacing: 8
+
+                        IconLabel {
+                            iconName: "edit"
+                            iconSize: 12
+                            iconColor: Style.textSecondary
+                        }
+
+                        Text {
+                            text: "Modifier l'identité"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: Style.textPrimary
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    MouseArea {
+                        id: editIdentityMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            editMenu.visible = false
+                            root.editIdentityClicked()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 36
+                    radius: 8
+                    visible: staffData.contratId > 0
+                    color: editContratMa.containsMouse ? Style.bgSecondary : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        spacing: 8
+
+                        IconLabel {
+                            iconName: "edit"
+                            iconSize: 12
+                            iconColor: "#F59E0B"
+                        }
+
+                        Text {
+                            text: "Modifier le contrat"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: "#F59E0B"
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    MouseArea {
+                        id: editContratMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            editMenu.visible = false
+                            root.editContratClicked()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 36
+                    radius: 8
+                    color: newContratMa.containsMouse ? Style.bgSecondary : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        spacing: 8
+
+                        IconLabel {
+                            iconName: "plus"
+                            iconSize: 12
+                            iconColor: Style.primary
+                        }
+
+                        Text {
+                            text: "Nouveau contrat"
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: Style.primary
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    MouseArea {
+                        id: newContratMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            editMenu.visible = false
+                            root.newContratClicked()
+                        }
+                    }
                 }
             }
         }
@@ -142,12 +308,16 @@ Rectangle {
             }
         }
 
-        Separator { width: parent.width }
+        Separator {
+            width: parent.width
+            visible: !isShowAllMode
+        }
 
         // Informations financières
         RowLayout {
             width: parent.width
             spacing: 12
+            visible: !isShowAllMode
 
             Column {
                 Layout.fillWidth: true
@@ -162,7 +332,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: (staffData.valeurBase || staffData.prixHeureActuel || 25) + " DT"
+                    text: (staffData.valeurBase || 25) + " DT"
                     font.pixelSize: 18
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -182,7 +352,7 @@ Rectangle {
                 spacing: 2
 
                 Text {
-                    text: "Heures Février"
+                    text: "Heures " + (root.moisLabel || "")
                     font.pixelSize: 10
                     font.bold: true
                     color: Style.textTertiary
@@ -197,12 +367,37 @@ Rectangle {
             }
         }
 
-        Separator { width: parent.width }
+        // Date du contrat
+        Row {
+            width: parent.width
+            spacing: 8
+            visible: !isShowAllMode
 
-        // Paiement Estimé et Simulation
+            Text {
+                text: "Contrat depuis:"
+                font.pixelSize: 10
+                font.weight: Font.Medium
+                color: Style.textTertiary
+            }
+
+            Text {
+                text: staffData.dateDebut || "—"
+                font.pixelSize: 10
+                font.weight: Font.Bold
+                color: Style.textSecondary
+            }
+        }
+
+        Separator {
+            width: parent.width
+            visible: !isShowAllMode
+        }
+
+        // Somme due et Somme payée
         RowLayout {
             width: parent.width
             spacing: 16
+            visible: !isShowAllMode
 
             Column {
                 Layout.fillWidth: true
@@ -210,7 +405,7 @@ Rectangle {
                 spacing: 6
 
                 SectionLabel {
-                    text: "PAIEMENT RÉEL"
+                    text: "SOMME DUE"
                 }
 
                 Text {

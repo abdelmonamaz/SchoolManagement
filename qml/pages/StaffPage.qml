@@ -8,8 +8,6 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     property bool showModal: false
-    property bool isEditing: false
-    property int editingId: -1
 
     property bool showDeleteConfirm: false
     property int deleteTargetId: -1
@@ -19,23 +17,44 @@ Item {
     property int selectedPersonnelId: 0
     property string selectedPersonnelName: ""
 
+    property bool showHistoryPopup: false
+    property int historyPersonnelId: -1
+    property string historyPersonnelName: ""
+
+    property bool showErrorPopup: false
+    property string errorPopupMessage: ""
+
+    property bool showDeleteContratConfirm: false
+    property int deleteContratTargetId: -1
+
     property int displayMonth: new Date().getMonth() + 1
     property int displayYear: new Date().getFullYear()
+    property bool showAllMode: false
 
     property var monthNames: [
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
     ]
 
+    function reloadData() {
+        if (showAllMode) {
+            staffController.loadAllPersonnel()
+        } else {
+            staffController.loadPersonnel()
+        }
+    }
+
     onDisplayMonthChanged: {
         staffController.currentMonth = displayMonth
-        staffController.loadPersonnel()
+        reloadData()
     }
 
     onDisplayYearChanged: {
         staffController.currentYear = displayYear
-        staffController.loadPersonnel()
+        reloadData()
     }
+
+    onShowAllModeChanged: reloadData()
 
     Component.onCompleted: {
         staffController.currentMonth = displayMonth
@@ -49,9 +68,13 @@ Item {
             console.log("StaffPage:", msg)
             showModal = false
             showPaymentPopup = false
-            staffController.loadPersonnel()
+            reloadData()
         }
-        function onOperationFailed(err) { console.warn("StaffPage error:", err) }
+        function onOperationFailed(err) {
+            console.warn("StaffPage error:", err)
+            errorPopupMessage = err
+            showErrorPopup = true
+        }
         function onPaymentDataLoaded(data) {
             if (data.sommeDue !== undefined) {
                 paymentPopup.sommeDue = data.sommeDue
@@ -60,23 +83,9 @@ Item {
                 paymentPopup.sommePaye = data.sommePaye
             }
         }
-    }
-
-    function simulatePay(member) {
-        var total = 0
-        var desc = ""
-        if (member.modePaie === "Heure") {
-            var hours = member.heuresTravailes || 0
-            total = hours * member.valeurBase
-            desc = "Calcul Horaire: " + hours + "h x " + member.valeurBase + " DT = " + total + " DT"
-        } else {
-            total = member.valeurBase
-            desc = "Salaire Fixe: " + total + " DT / mois"
+        function onContratHistoriqueLoaded(contrats) {
+            contratHistoryPopup.contrats = contrats
         }
-        console.log("=== Simulation de paie ===")
-        console.log("Membre:", member.nom)
-        console.log(desc)
-        console.log("Total:", total, "DT")
     }
 
     ColumnLayout {
@@ -98,7 +107,6 @@ Item {
                 text: "Ajouter un membre"
                 iconName: "plus"
                 onClicked: {
-                    isEditing = false
                     staffFormModal.reset()
                     showModal = true
                 }
@@ -115,13 +123,51 @@ Item {
                 placeholder: "Rechercher par nom ou poste..."
             }
 
+            // Show All toggle
+            Rectangle {
+                implicitWidth: showAllRow.implicitWidth + 20
+                height: 42
+                radius: 16
+                color: showAllMode ? Style.primary : Style.bgWhite
+                border.color: showAllMode ? Style.primary : Style.borderLight
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+
+                RowLayout {
+                    id: showAllRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    IconLabel {
+                        iconName: "users"
+                        iconSize: 14
+                        iconColor: showAllMode ? "#FFFFFF" : Style.textSecondary
+                    }
+
+                    Text {
+                        text: "AFFICHER TOUT"
+                        font.pixelSize: 10
+                        font.weight: Font.Black
+                        color: showAllMode ? "#FFFFFF" : Style.textSecondary
+                        font.letterSpacing: 0.5
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: showAllMode = !showAllMode
+                }
+            }
+
             Rectangle {
                 id: monthButton
                 implicitWidth: monthRow.implicitWidth + 24
                 height: 42
                 radius: 16
-                color: Style.bgWhite
+                color: showAllMode ? Style.bgPage : Style.bgWhite
                 border.color: Style.borderLight
+                opacity: showAllMode ? 0.5 : 1.0
 
                 RowLayout {
                     id: monthRow
@@ -152,7 +198,10 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: monthYearSelector.show = !monthYearSelector.show
+                    onClicked: {
+                        showAllMode = false
+                        monthYearSelector.show = !monthYearSelector.show
+                    }
                 }
             }
         }
@@ -168,10 +217,17 @@ Item {
                 model: staffController.personnel
                 delegate: StaffCard {
                     staffData: modelData
-                    onEditClicked: {
-                        isEditing = true
-                        editingId = modelData.id
-                        staffFormModal.populate(modelData)
+                    moisLabel: monthNames[displayMonth - 1]
+                    onEditIdentityClicked: {
+                        staffFormModal.populateIdentity(modelData)
+                        showModal = true
+                    }
+                    onEditContratClicked: {
+                        staffFormModal.populateEditContrat(modelData)
+                        showModal = true
+                    }
+                    onNewContratClicked: {
+                        staffFormModal.populateNewContrat(modelData)
                         showModal = true
                     }
                     onDeleteClicked: {
@@ -184,6 +240,12 @@ Item {
                         selectedPersonnelName = modelData.nom
                         staffController.loadPaymentData(modelData.id, displayMonth, displayYear)
                         showPaymentPopup = true
+                    }
+                    onViewHistoryClicked: {
+                        historyPersonnelId = modelData.id
+                        historyPersonnelName = modelData.nom
+                        staffController.loadContratHistorique(modelData.id)
+                        showHistoryPopup = true
                     }
                 }
             }
@@ -198,32 +260,51 @@ Item {
     StaffFormModal {
         id: staffFormModal
         show: showModal
-        isEditing: staffPage.isEditing
         onCancelled: {
             showModal = false
             staffFormModal.reset()
         }
         onConfirmed: function(formData) {
-            if (isEditing) {
+            if (formData.mode === "identity") {
                 staffController.updatePersonnel(
-                    editingId,
+                    formData.personnelId,
                     formData.nom,
                     formData.telephone,
+                    formData.sexe
+                )
+            } else if (formData.mode === "contract") {
+                staffController.createContrat(
+                    formData.personnelId,
                     formData.poste,
                     formData.specialite,
                     formData.modePaie,
                     formData.valeurBase,
-                    formData.statut
+                    formData.dateDebut,
+                    formData.dateFin || ""
+                )
+            } else if (formData.mode === "editContract") {
+                staffController.updateContrat(
+                    formData.contratId,
+                    formData.personnelId,
+                    formData.poste,
+                    formData.specialite,
+                    formData.modePaie,
+                    formData.valeurBase,
+                    formData.dateDebut,
+                    formData.dateFin || ""
                 )
             } else {
+                // mode "full" - new member + contract
                 staffController.createPersonnel(
                     formData.nom,
                     formData.telephone,
+                    formData.sexe,
                     formData.poste,
                     formData.specialite,
                     formData.modePaie,
                     formData.valeurBase,
-                    formData.statut
+                    formData.dateDebut,
+                    formData.dateFin || ""
                 )
             }
         }
@@ -293,7 +374,7 @@ Item {
                     id: warningText
                     anchors.fill: parent
                     anchors.margins: 16
-                    text: "Êtes-vous sûr de vouloir supprimer <b>" + deleteTargetName + "</b> du personnel ? Cette action ne peut pas être annulée."
+                    text: "Êtes-vous sûr de vouloir supprimer <b>" + deleteTargetName + "</b> du personnel ? Cette action supprimera aussi tous ses contrats et ne peut pas être annulée."
                     font.pixelSize: 13
                     font.weight: Font.Medium
                     color: Style.errorColor
@@ -347,6 +428,212 @@ Item {
         }
 
         onClose: showPaymentPopup = false
+    }
+
+    // Contrat History Popup
+    ContratHistoryPopup {
+        id: contratHistoryPopup
+        show: showHistoryPopup
+        personnelId: historyPersonnelId
+        personnelName: historyPersonnelName
+        onClose: showHistoryPopup = false
+        onEditContratRequested: function(contratData) {
+            // Build a data object compatible with populateEditContrat
+            var data = {
+                id: historyPersonnelId,
+                contratId: contratData.contratId,
+                poste: contratData.poste,
+                specialite: contratData.specialite,
+                modePaie: contratData.modePaie,
+                valeurBase: contratData.valeurBase,
+                dateDebutISO: contratData.dateDebutISO || "",
+                dateFinISO: contratData.dateFinISO || ""
+            }
+            staffFormModal.populateEditContrat(data)
+            showHistoryPopup = false
+            showModal = true
+        }
+        onDeleteContratRequested: function(contratId) {
+            deleteContratTargetId = contratId
+            showDeleteContratConfirm = true
+        }
+    }
+
+    // Delete Contrat Confirmation Popup
+    ModalOverlay {
+        show: showDeleteContratConfirm
+        modalWidth: 480
+        modalRadius: 32
+        onClose: showDeleteContratConfirm = false
+
+        Column {
+            width: parent.width
+            spacing: 24
+            padding: 40
+
+            RowLayout {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 16
+
+                Rectangle {
+                    width: 56
+                    height: 56
+                    radius: 20
+                    color: Style.errorBg
+
+                    IconLabel {
+                        anchors.centerIn: parent
+                        iconName: "alert"
+                        iconSize: 28
+                        iconColor: Style.errorColor
+                    }
+                }
+
+                Column {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Text {
+                        text: "Supprimer le contrat"
+                        font.pixelSize: 22
+                        font.weight: Font.Black
+                        color: Style.textPrimary
+                    }
+
+                    Text {
+                        text: "CETTE ACTION EST IRRÉVERSIBLE"
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        color: Style.errorColor
+                        font.letterSpacing: 1
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                implicitHeight: deleteContratWarning.implicitHeight + 32
+                radius: 20
+                color: Style.errorBg
+                border.color: Style.errorBorder
+
+                Text {
+                    id: deleteContratWarning
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    text: "Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action ne peut pas être annulée."
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: Style.errorColor
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.5
+                }
+            }
+
+            ModalButtons {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                cancelText: "Annuler"
+                confirmText: "SUPPRIMER"
+                confirmColor: Style.errorColor
+                onCancel: {
+                    showDeleteContratConfirm = false
+                    deleteContratTargetId = -1
+                }
+                onConfirm: {
+                    staffController.deleteContrat(deleteContratTargetId)
+                    showDeleteContratConfirm = false
+                    showHistoryPopup = false
+                    deleteContratTargetId = -1
+                }
+            }
+        }
+    }
+
+    // Error Popup
+    ModalOverlay {
+        show: showErrorPopup
+        modalWidth: 480
+        modalRadius: 32
+        onClose: showErrorPopup = false
+
+        Column {
+            width: parent.width
+            spacing: 24
+            padding: 40
+
+            RowLayout {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 16
+
+                Rectangle {
+                    width: 56
+                    height: 56
+                    radius: 20
+                    color: Style.errorBg
+
+                    IconLabel {
+                        anchors.centerIn: parent
+                        iconName: "alert"
+                        iconSize: 28
+                        iconColor: Style.errorColor
+                    }
+                }
+
+                Column {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Text {
+                        text: "Erreur"
+                        font.pixelSize: 22
+                        font.weight: Font.Black
+                        color: Style.textPrimary
+                    }
+
+                    Text {
+                        text: "UNE ERREUR EST SURVENUE"
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        color: Style.errorColor
+                        font.letterSpacing: 1
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                implicitHeight: errorMsgText.implicitHeight + 32
+                radius: 20
+                color: Style.errorBg
+                border.color: Style.errorBorder
+
+                Text {
+                    id: errorMsgText
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    text: errorPopupMessage
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: Style.errorColor
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.5
+                }
+            }
+
+            ModalButtons {
+                width: parent.width - 80
+                anchors.horizontalCenter: parent.horizontalCenter
+                cancelText: ""
+                confirmText: "COMPRIS"
+                onConfirm: showErrorPopup = false
+                onCancel: showErrorPopup = false
+            }
+        }
     }
 
     // MonthYearSelector avec z-index élevé pour être au-dessus de tout

@@ -28,6 +28,7 @@ RowLayout {
         height: 48
         radius: 16
         color: Style.bgPage
+        visible: root.cancelText !== ""
 
         Text {
             anchors.centerIn: parent

@@ -198,7 +198,7 @@ void ExamsController::loadSessionsByWeek(int week, int year) {
 }
 
 void ExamsController::createExam(const QVariantMap& data) {
-    m_worker->submit("Exams.createExam", [svc = m_service, data]() -> QVariant {
+    m_worker->submit("Exams.createExam", [svc = m_service, staffSvc = m_staffService, data]() -> QVariant {
         Seance s;
         s.matiereId = data.value("matiereId").toInt();
         s.profId = data.value("profId").toInt();
@@ -209,6 +209,14 @@ void ExamsController::createExam(const QVariantMap& data) {
         s.typeSeance = stringToCategorieSeance(data.value("typeSeance", "Examen").toString());
         s.titre = data.value("titre").toString();
         s.descriptif = data.value("descriptif").toString();
+
+        // Check professor has an active contract at this date
+        if (s.profId > 0) {
+            auto contratCheck = staffSvc->hasActiveContrat(s.profId, s.dateHeureDebut.date());
+            if (contratCheck.isOk() && !contratCheck.value())
+                return QVariantMap{{"error", QStringLiteral("Le professeur sélectionné n'a pas de contrat valide à cette date.")}};
+        }
+
         auto result = svc->createSeance(s);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -217,7 +225,7 @@ void ExamsController::createExam(const QVariantMap& data) {
 }
 
 void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const QString& recurrence) {
-    m_worker->submit("Exams.createCourseWithRecurrence", [svc = m_service, data, recurrence]() -> QVariant {
+    m_worker->submit("Exams.createCourseWithRecurrence", [svc = m_service, staffSvc = m_staffService, data, recurrence]() -> QVariant {
         Seance base;
         base.matiereId = data.value("matiereId").toInt();
         base.profId = data.value("profId").toInt();
@@ -226,6 +234,13 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
         base.dateHeureDebut = QDateTime::fromString(data.value("dateHeureDebut").toString(), Qt::ISODate);
         base.dureeMinutes = data.value("dureeMinutes", 120).toInt();
         base.typeSeance = GS::CategorieSeance::Cours;
+
+        // Check professor has an active contract at this date
+        if (base.profId > 0) {
+            auto contratCheck = staffSvc->hasActiveContrat(base.profId, base.dateHeureDebut.date());
+            if (contratCheck.isOk() && !contratCheck.value())
+                return QVariantMap{{"error", QStringLiteral("Le professeur sélectionné n'a pas de contrat valide à cette date.")}};
+        }
 
         if (recurrence == QStringLiteral("none")) {
             auto result = svc->createSeance(base);

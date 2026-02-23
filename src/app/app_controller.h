@@ -29,6 +29,7 @@ class IClasseRepository;
 class IMatiereRepository;
 class IEquipementRepository;
 class IPersonnelRepository;
+class IContratRepository;
 class IEleveRepository;
 class ISeanceRepository;
 class IParticipationRepository;
@@ -62,6 +63,7 @@ private:
     std::unique_ptr<IMatiereRepository> m_matiereRepo;
     std::unique_ptr<IEquipementRepository> m_equipementRepo;
     std::unique_ptr<IPersonnelRepository> m_profRepo;
+    std::unique_ptr<IContratRepository> m_contratRepo;
     std::unique_ptr<IEleveRepository> m_eleveRepo;
     std::unique_ptr<ISeanceRepository> m_seanceRepo;
     std::unique_ptr<IParticipationRepository> m_participationRepo;

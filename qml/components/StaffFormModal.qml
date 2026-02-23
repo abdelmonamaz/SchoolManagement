@@ -6,16 +6,28 @@ import UI.Components
 ModalOverlay {
     id: root
 
-    property bool isEditing: false
+    // "full" = new member + first contract
+    // "identity" = edit name/tel/sexe only
+    // "contract" = new contract for existing member
+    // "editContract" = edit existing contract
+    property string editMode: "full"
 
-    // Form data properties
+    // Identity data
     property string nomText: ""
     property string telephoneText: ""
+    property string selectedSexe: "M"
+
+    // Contract data
     property string specialtyText: ""
     property string baseValueText: "25"
     property string selectedPost: "Enseignant"
     property string selectedPaymentMode: "Heure"
-    property string selectedStatus: "active"
+    property string dateDebutText: ""
+    property string dateFinText: ""
+
+    // Context
+    property int personnelId: -1
+    property int contratId: -1
 
     signal confirmed(var formData)
     signal cancelled()
@@ -26,21 +38,67 @@ ModalOverlay {
     function reset() {
         nomText = ""
         telephoneText = ""
+        selectedSexe = "M"
         specialtyText = ""
         baseValueText = "25"
         selectedPost = "Enseignant"
         selectedPaymentMode = "Heure"
-        selectedStatus = "active"
+        dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
+        dateFinText = ""
+        personnelId = -1
+        contratId = -1
+        editMode = "full"
     }
 
-    function populate(data) {
-        nomText = data.nom
-        telephoneText = data.telephone
-        specialtyText = data.specialite || ""
-        baseValueText = String(data.valeurBase || data.prixHeureActuel || 25)
+    function populateIdentity(data) {
+        nomText = data.nom || ""
+        telephoneText = data.telephone || ""
+        selectedSexe = data.sexe || "M"
+        personnelId = data.id || -1
+        editMode = "identity"
+    }
+
+    function populateNewContrat(data) {
+        personnelId = data.id || -1
         selectedPost = data.poste || "Enseignant"
+        specialtyText = ""
         selectedPaymentMode = data.modePaie || "Heure"
-        selectedStatus = data.statut === "Actif" ? "active" : "on_leave"
+        baseValueText = String(data.valeurBase || 25)
+        dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
+        dateFinText = ""
+        editMode = "contract"
+    }
+
+    function populateEditContrat(data) {
+        personnelId = data.id || -1
+        contratId = data.contratId || -1
+        selectedPost = data.poste || "Enseignant"
+        specialtyText = data.specialite || ""
+        selectedPaymentMode = data.modePaie || "Heure"
+        baseValueText = String(data.valeurBase || 25)
+        dateDebutText = data.dateDebutISO || ""
+        dateFinText = data.dateFinISO || ""
+        editMode = "editContract"
+    }
+
+    // Helper: convert dd/MM/yyyy to yyyy-MM-dd
+    function ddmmyyyyToIso(str) {
+        if (!str || str.length < 10) return ""
+        var parts = str.split("/")
+        if (parts.length !== 3) return ""
+        return parts[2] + "-" + parts[1] + "-" + parts[0]
+    }
+
+    // Helper: format ISO date for display
+    function isoToDisplay(isoStr) {
+        if (!isoStr) return "Choisir..."
+        var d = new Date(isoStr)
+        if (isNaN(d.getTime())) return "Choisir..."
+        var dd = d.getDate().toString()
+        if (dd.length < 2) dd = "0" + dd
+        var mm = (d.getMonth() + 1).toString()
+        if (mm.length < 2) mm = "0" + mm
+        return dd + "/" + mm + "/" + d.getFullYear()
     }
 
     Column {
@@ -49,7 +107,12 @@ ModalOverlay {
         padding: 40
 
         Text {
-            text: isEditing ? "Modifier le contrat" : "Nouveau membre du personnel"
+            text: {
+                if (editMode === "identity") return "Modifier l'identité"
+                if (editMode === "contract") return "Nouveau contrat"
+                if (editMode === "editContract") return "Modifier le contrat"
+                return "Nouveau membre du personnel"
+            }
             font.pixelSize: 24
             font.weight: Font.Black
             color: Style.textPrimary
@@ -62,11 +125,14 @@ ModalOverlay {
             columnSpacing: 16
             rowSpacing: 18
 
+            // === IDENTITY SECTION ===
+
             // Nom Complet
             Column {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
                 spacing: 6
+                visible: editMode === "full" || editMode === "identity"
 
                 SectionLabel {
                     text: "NOM COMPLET"
@@ -82,11 +148,118 @@ ModalOverlay {
                 }
             }
 
+            // Téléphone
+            Column {
+                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width / 2 - 8
+                spacing: 6
+                visible: editMode === "full" || editMode === "identity"
+
+                SectionLabel {
+                    text: "TÉLÉPHONE"
+                }
+
+                FormField {
+                    id: fieldTelephone
+                    width: parent.width
+                    placeholder: "XX XXX XXX"
+                    text: root.telephoneText
+                    onTextChanged: root.telephoneText = text
+                    prevTabItem: fieldNom.inputItem
+
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
+                    }
+                }
+            }
+
+            // Sexe
+            Column {
+                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width / 2 - 8
+                spacing: 6
+                visible: editMode === "full" || editMode === "identity"
+
+                SectionLabel {
+                    text: "SEXE"
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 44
+                    radius: 12
+                    color: Style.bgPage
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        Rectangle {
+                            width: (parent.parent.width - 8) / 2
+                            height: 36
+                            radius: 8
+                            color: root.selectedSexe === "M" ? Style.bgWhite : "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "HOMME"
+                                font.pixelSize: 10
+                                font.weight: Font.Black
+                                color: root.selectedSexe === "M" ? Style.textPrimary : Style.textTertiary
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.selectedSexe = "M"
+                            }
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+
+                        Rectangle {
+                            width: (parent.parent.width - 8) / 2
+                            height: 36
+                            radius: 8
+                            color: root.selectedSexe === "F" ? Style.bgWhite : "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "FEMME"
+                                font.pixelSize: 10
+                                font.weight: Font.Black
+                                color: root.selectedSexe === "F" ? Style.textPrimary : Style.textTertiary
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.selectedSexe = "F"
+                            }
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+                    }
+                }
+            }
+
+            // Separator between identity and contract sections
+            Separator {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                Layout.topMargin: 12
+                Layout.bottomMargin: 12
+                visible: editMode === "full"
+            }
+
+            // === CONTRACT SECTION ===
+
             // Type de Poste
             Column {
                 Layout.fillWidth: true
                 Layout.preferredWidth: parent.width / 2 - 8
                 spacing: 6
+                visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
                     text: "TYPE DE POSTE"
@@ -126,37 +299,12 @@ ModalOverlay {
                 }
             }
 
-            // Téléphone
+            // Spécialité (si Enseignant)
             Column {
                 Layout.fillWidth: true
                 Layout.preferredWidth: parent.width / 2 - 8
                 spacing: 6
-
-                SectionLabel {
-                    text: "TÉLÉPHONE"
-                }
-
-                FormField {
-                    id: fieldTelephone
-                    width: parent.width
-                    placeholder: "XX XXX XXX"
-                    text: root.telephoneText
-                    onTextChanged: root.telephoneText = text
-                    prevTabItem: fieldNom.inputItem
-                    nextTabItem: fieldSpecialty.visible ? fieldSpecialty.inputItem : fieldBaseValue.inputItem
-
-                    validator: RegularExpressionValidator {
-                        regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
-                    }
-                }
-            }
-
-            // Spécialité (si Enseignant)
-            Column {
-                Layout.fillWidth: true
-                Layout.columnSpan: 2
-                spacing: 6
-                visible: root.selectedPost === "Enseignant"
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
 
                 SectionLabel {
                     text: "SPÉCIALITÉ"
@@ -168,8 +316,148 @@ ModalOverlay {
                     placeholder: "ex: Fiqh & Hadith"
                     text: root.specialtyText
                     onTextChanged: root.specialtyText = text
-                    prevTabItem: fieldTelephone.inputItem
-                    nextTabItem: fieldBaseValue.inputItem
+                }
+            }
+
+            // Date de début (DatePickerPopup)
+            Column {
+                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width / 2 - 8
+                spacing: 6
+                visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
+
+                SectionLabel {
+                    text: "DATE DE DÉBUT"
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 44
+                    radius: 12
+                    color: Style.bgPage
+                    border.color: dateDebutMa.containsMouse ? Style.primary : Style.borderLight
+
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
+
+                        IconLabel {
+                            iconName: "calendar"
+                            iconSize: 14
+                            iconColor: Style.primary
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: root.isoToDisplay(root.dateDebutText)
+                            font.pixelSize: 13
+                            font.weight: Font.Medium
+                            color: root.dateDebutText ? Style.textPrimary : Style.textTertiary
+                        }
+                    }
+
+                    MouseArea {
+                        id: dateDebutMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (root.dateDebutText) {
+                                dateDebutPicker.selectedDate = new Date(root.dateDebutText)
+                            } else {
+                                dateDebutPicker.selectedDate = new Date()
+                            }
+                            dateDebutPicker.open()
+                        }
+                    }
+                }
+            }
+
+            // Date de fin (DatePickerPopup)
+            Column {
+                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width / 2 - 8
+                spacing: 6
+                visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
+
+                SectionLabel {
+                    text: "DATE DE FIN (OPTIONNEL)"
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 44
+                    radius: 12
+                    color: Style.bgPage
+                    border.color: dateFinMa.containsMouse ? Style.primary : Style.borderLight
+
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
+
+                        IconLabel {
+                            iconName: "calendar"
+                            iconSize: 14
+                            iconColor: root.dateFinText ? Style.primary : Style.textTertiary
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: root.dateFinText ? root.isoToDisplay(root.dateFinText) : "Indéterminée"
+                            font.pixelSize: 13
+                            font.weight: Font.Medium
+                            color: root.dateFinText ? Style.textPrimary : Style.textTertiary
+                        }
+
+                        // Clear button
+                        Rectangle {
+                            visible: root.dateFinText !== ""
+                            width: 24
+                            height: 24
+                            radius: 8
+                            color: clearFinMa.containsMouse ? Style.errorBg : "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "x"
+                                font.pixelSize: 10
+                                font.weight: Font.Bold
+                                color: Style.textTertiary
+                            }
+
+                            MouseArea {
+                                id: clearFinMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.dateFinText = ""
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: dateFinMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (root.dateFinText) {
+                                dateFinPicker.selectedDate = new Date(root.dateFinText)
+                            } else {
+                                dateFinPicker.selectedDate = new Date()
+                            }
+                            dateFinPicker.open()
+                        }
+                        z: -1
+                    }
                 }
             }
 
@@ -179,6 +467,7 @@ ModalOverlay {
                 Layout.columnSpan: 2
                 Layout.topMargin: 12
                 Layout.bottomMargin: 12
+                visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
             }
 
             // Section Paramètres de Rémunération
@@ -186,6 +475,7 @@ ModalOverlay {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
                 spacing: 20
+                visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 RowLayout {
                     width: parent.width
@@ -300,7 +590,6 @@ ModalOverlay {
                             width: parent.width
                             text: root.baseValueText
                             onTextChanged: root.baseValueText = text
-                            prevTabItem: fieldSpecialty.visible ? fieldSpecialty.inputItem : fieldTelephone.inputItem
 
                             validator: RegularExpressionValidator {
                                 regularExpression: /^\d*\.?\d{0,2}$/
@@ -308,82 +597,6 @@ ModalOverlay {
                         }
                     }
 
-                }
-            }
-
-            // Separator
-            Separator {
-                Layout.fillWidth: true
-                Layout.columnSpan: 2
-                Layout.topMargin: 12
-                Layout.bottomMargin: 12
-            }
-
-            // Statut Actuel
-            Column {
-                Layout.fillWidth: true
-                Layout.columnSpan: 2
-                spacing: 6
-
-                SectionLabel {
-                    text: "STATUT ACTUEL"
-                }
-
-                Row {
-                    width: parent.width
-                    spacing: 16
-
-                    Rectangle {
-                        width: (parent.width - 16) / 2
-                        height: 48
-                        radius: 12
-                        color: root.selectedStatus === "active" ? Style.primary : Style.bgPage
-                        border.color: root.selectedStatus === "active" ? Style.primary : Style.borderLight
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "ACTIF"
-                            font.pixelSize: 12
-                            font.weight: Font.Black
-                            color: root.selectedStatus === "active" ? Style.bgWhite : Style.textTertiary
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.selectedStatus = "active"
-                        }
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-                    }
-
-                    Rectangle {
-                        width: (parent.width - 16) / 2
-                        height: 48
-                        radius: 12
-                        color: root.selectedStatus === "on_leave" ? Style.warningColor : Style.bgPage
-                        border.color: root.selectedStatus === "on_leave" ? Style.warningColor : Style.borderLight
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "EN CONGÉ"
-                            font.pixelSize: 12
-                            font.weight: Font.Black
-                            color: root.selectedStatus === "on_leave" ? Style.bgWhite : Style.textTertiary
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.selectedStatus = "on_leave"
-                        }
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-                    }
                 }
             }
         }
@@ -395,19 +608,75 @@ ModalOverlay {
 
         ModalButtons {
             width: parent.width - 80
-            confirmText: "ENREGISTRER LE CONTRAT"
+            confirmText: {
+                if (editMode === "identity") return "ENREGISTRER"
+                if (editMode === "contract") return "CRÉER LE CONTRAT"
+                if (editMode === "editContract") return "ENREGISTRER LE CONTRAT"
+                return "ENREGISTRER LE CONTRAT"
+            }
             onCancel: root.cancelled()
             onConfirm: {
-                root.confirmed({
-                    nom: root.nomText,
-                    telephone: root.telephoneText,
-                    poste: root.selectedPost,
-                    specialite: root.specialtyText,
-                    modePaie: root.selectedPaymentMode,
-                    valeurBase: parseFloat(root.baseValueText) || 25.0,
-                    statut: root.selectedStatus === "active" ? "Actif" : "En congé"
-                })
+                if (editMode === "identity") {
+                    root.confirmed({
+                        mode: "identity",
+                        personnelId: root.personnelId,
+                        nom: root.nomText,
+                        telephone: root.telephoneText,
+                        sexe: root.selectedSexe
+                    })
+                } else if (editMode === "contract") {
+                    root.confirmed({
+                        mode: "contract",
+                        personnelId: root.personnelId,
+                        poste: root.selectedPost,
+                        specialite: root.specialtyText,
+                        modePaie: root.selectedPaymentMode,
+                        valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        dateDebut: root.dateDebutText,
+                        dateFin: root.dateFinText
+                    })
+                } else if (editMode === "editContract") {
+                    root.confirmed({
+                        mode: "editContract",
+                        contratId: root.contratId,
+                        personnelId: root.personnelId,
+                        poste: root.selectedPost,
+                        specialite: root.specialtyText,
+                        modePaie: root.selectedPaymentMode,
+                        valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        dateDebut: root.dateDebutText,
+                        dateFin: root.dateFinText
+                    })
+                } else {
+                    root.confirmed({
+                        mode: "full",
+                        nom: root.nomText,
+                        telephone: root.telephoneText,
+                        sexe: root.selectedSexe,
+                        poste: root.selectedPost,
+                        specialite: root.specialtyText,
+                        modePaie: root.selectedPaymentMode,
+                        valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        dateDebut: root.dateDebutText,
+                        dateFin: root.dateFinText
+                    })
+                }
             }
+        }
+    }
+
+    // Date Pickers
+    DatePickerPopup {
+        id: dateDebutPicker
+        onConfirmed: function(isoDate) {
+            root.dateDebutText = root.ddmmyyyyToIso(isoDate)
+        }
+    }
+
+    DatePickerPopup {
+        id: dateFinPicker
+        onConfirmed: function(isoDate) {
+            root.dateFinText = root.ddmmyyyyToIso(isoDate)
         }
     }
 }

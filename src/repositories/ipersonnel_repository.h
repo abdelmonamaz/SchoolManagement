@@ -8,7 +8,4 @@
 class IPersonnelRepository : public IRepository<Personnel> {
 public:
     ~IPersonnelRepository() override = default;
-
-    virtual Result<QList<TarifPersonnelHistorique>> getTarifHistorique(int profId) = 0;
-    virtual Result<int> addTarifHistorique(const TarifPersonnelHistorique& tarif) = 0;
 };

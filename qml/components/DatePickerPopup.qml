@@ -121,7 +121,6 @@ Popup {
                 Rectangle {
                     width: 32; height: 32; radius: 10
                     color: prevMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                    Behavior on color { ColorAnimation { duration: 120 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -158,7 +157,6 @@ Popup {
                 Rectangle {
                     width: 32; height: 32; radius: 10
                     color: nextMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                    Behavior on color { ColorAnimation { duration: 120 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -213,10 +211,11 @@ Popup {
             }
         }
 
-        // Day grid
+        // Day grid - fixed 6 rows height
         Item {
             width: parent.width
-            implicitHeight: dayGrid.implicitHeight + 16
+            // Fixed height: 6 rows * 38px + 5 gaps * 2px + 16px padding = 254
+            implicitHeight: 254
 
             GridLayout {
                 id: dayGrid
@@ -229,14 +228,16 @@ Popup {
 
                 property int offset: root.firstDayOffset(root.viewMonth, root.viewYear)
                 property int days: root.daysInMonth(root.viewMonth, root.viewYear)
+                // Always render 42 cells (6 rows * 7 columns) for fixed height
+                property int totalCells: 42
 
                 Repeater {
-                    model: dayGrid.offset + dayGrid.days
+                    model: dayGrid.totalCells
 
                     Item {
                         width: 42; height: 38
 
-                        property bool isDay: index >= dayGrid.offset
+                        property bool isDay: index >= dayGrid.offset && index < dayGrid.offset + dayGrid.days
                         property int dayNum: isDay ? index - dayGrid.offset + 1 : 1
                         property date cellDate: new Date(root.viewYear, root.viewMonth, dayNum)
                         property bool isSelected: isDay && root.isSameDay(cellDate, root.selectedDate)
@@ -251,8 +252,7 @@ Popup {
                                  : dayCellMa.containsMouse ? Style.bgSecondary
                                  : "transparent"
 
-                            Behavior on color { ColorAnimation { duration: 120 } }
-
+        
                             Text {
                                 anchors.centerIn: parent
                                 text: parent.parent.dayNum.toString()
@@ -330,7 +330,6 @@ Popup {
                     Layout.fillWidth: true
                     height: 42; radius: 12
                     color: cancelDpMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                    Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -351,7 +350,6 @@ Popup {
                     Layout.fillWidth: true
                     height: 42; radius: 12
                     color: confirmDpMa.containsMouse ? Style.primaryDark : Style.primary
-                    Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
                         anchors.centerIn: parent

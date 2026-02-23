@@ -12,12 +12,6 @@ enum class TypePublic {
 };
 Q_ENUM_NS(TypePublic)
 
-enum class StatutProf {
-    Actif,
-    EnConge
-};
-Q_ENUM_NS(StatutProf)
-
 enum class TypePresence {
     Present,
     Absent,

@@ -13,6 +13,7 @@
 #include "repositories/sqlite/sqlite_niveau_repository.h"
 #include "repositories/sqlite/sqlite_equipement_repository.h"
 #include "repositories/sqlite/sqlite_personnel_repository.h"
+#include "repositories/sqlite/sqlite_contrat_repository.h"
 #include "repositories/sqlite/sqlite_eleve_repository.h"
 #include "repositories/sqlite/sqlite_seance_repository.h"
 #include "repositories/sqlite/sqlite_paiement_repository.h"
@@ -77,6 +78,7 @@ void AppController::createRepositories() {
     m_matiereRepo = std::make_unique<SqliteMatiereRepository>(conn);
     m_equipementRepo = std::make_unique<SqliteEquipementRepository>(conn);
     m_profRepo = std::make_unique<SqlitePersonnelRepository>(conn);
+    m_contratRepo = std::make_unique<SqliteContratRepository>(conn);
     m_eleveRepo = std::make_unique<SqliteEleveRepository>(conn);
     m_seanceRepo = std::make_unique<SqliteSeanceRepository>(conn);
     m_participationRepo = std::make_unique<SqliteParticipationRepository>(conn);
@@ -95,7 +97,7 @@ void AppController::createServices() {
         m_eleveRepo.get(), m_classeRepo.get());
 
     m_staffService = std::make_unique<StaffService>(
-        m_profRepo.get());
+        m_profRepo.get(), m_contratRepo.get(), m_seanceRepo.get());
 
     m_attendanceService = std::make_unique<AttendanceService>(
         m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get());
