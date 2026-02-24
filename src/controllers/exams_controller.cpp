@@ -225,7 +225,8 @@ void ExamsController::createExam(const QVariantMap& data) {
 }
 
 void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const QString& recurrence) {
-    m_worker->submit("Exams.createCourseWithRecurrence", [svc = m_service, staffSvc = m_staffService, data, recurrence]() -> QVariant {
+    m_worker->submit("Exams.createCourseWithRecurrence",
+        [svc = m_service, staffSvc = m_staffService, schoolingSvc = m_schoolingService, data, recurrence]() -> QVariant {
         Seance base;
         base.matiereId = data.value("matiereId").toInt();
         base.profId = data.value("profId").toInt();
@@ -242,11 +243,48 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
                 return QVariantMap{{"error", QStringLiteral("Le professeur sélectionné n'a pas de contrat valide à cette date.")}};
         }
 
+        // ── Retrieve the annual session limit for this matière ──
+        int nbreSeancesLimit = 0;
+        auto allMatieres = schoolingSvc->getAllMatieres();
+        if (allMatieres.isOk()) {
+            for (const auto& m : allMatieres.value()) {
+                if (m.id == base.matiereId) { nbreSeancesLimit = m.nombreSeances; break; }
+            }
+        }
+
+        // ── Count existing Cours for this matière+classe in the current school year ──
+        int sessionMonth = base.dateHeureDebut.date().month();
+        int sessionYear  = base.dateHeureDebut.date().year();
+        QDate schoolYearStart = (sessionMonth >= 9) ? QDate(sessionYear, 9, 1)     : QDate(sessionYear - 1, 9, 1);
+        QDate schoolYearEnd   = (sessionMonth >= 9) ? QDate(sessionYear + 1, 6, 30) : QDate(sessionYear, 6, 30);
+
+        int existingCount = 0;
+        auto classSeances = svc->getSeancesByClasse(base.classeId);
+        if (classSeances.isOk()) {
+            for (const auto& s : classSeances.value()) {
+                if (s.matiereId == base.matiereId &&
+                    s.typeSeance == GS::CategorieSeance::Cours &&
+                    s.dateHeureDebut.date() >= schoolYearStart &&
+                    s.dateHeureDebut.date() <= schoolYearEnd)
+                    existingCount++;
+            }
+        }
+
+        // Remaining capacity (0 limit = unlimited)
+        int maxToCreate = (nbreSeancesLimit > 0) ? qMax(0, nbreSeancesLimit - existingCount) : INT_MAX;
+
         if (recurrence == QStringLiteral("none")) {
             auto result = svc->createSeance(base);
             if (!result.isOk())
                 return QVariantMap{{"error", result.errorMessage()}};
-            return QVariantMap{{"success", true}, {"count", 1}};
+            return QVariantMap{{"success", true}, {"count", 1},
+                               {"totalAfter", existingCount + 1}, {"limit", nbreSeancesLimit}};
+        }
+
+        if (nbreSeancesLimit > 0 && maxToCreate == 0) {
+            return QVariantMap{{"success", true}, {"count", 0},
+                               {"capped", true}, {"limit", nbreSeancesLimit},
+                               {"existingCount", existingCount}};
         }
 
         // Determine date range for recurrence
@@ -255,7 +293,6 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
         QDate startDate = base.dateHeureDebut.date();
 
         if (recurrence == QStringLiteral("full")) {
-            // Full school year: September to June
             if (startDate.month() >= 9) {
                 startDate = QDate(year, 9, 1);
                 endDate = QDate(year + 1, 6, 30);
@@ -263,26 +300,21 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
                 startDate = QDate(year - 1, 9, 1);
                 endDate = QDate(year, 6, 30);
             }
-            // Find the first occurrence of the same day-of-week on or after startDate
             int targetDow = base.dateHeureDebut.date().dayOfWeek();
-            int startDow = startDate.dayOfWeek();
+            int startDow  = startDate.dayOfWeek();
             int diff = targetDow - startDow;
             if (diff < 0) diff += 7;
             startDate = startDate.addDays(diff);
         } else {
-            // "remaining": from current date to end of school year (June)
-            if (startDate.month() >= 9) {
-                endDate = QDate(year + 1, 6, 30);
-            } else {
-                endDate = QDate(year, 6, 30);
-            }
+            // "remaining"
+            endDate = (startDate.month() >= 9) ? QDate(year + 1, 6, 30) : QDate(year, 6, 30);
         }
 
         int count = 0;
         QDate current = startDate;
         QTime baseTime = base.dateHeureDebut.time();
 
-        while (current <= endDate) {
+        while (current <= endDate && count < maxToCreate) {
             Seance s = base;
             s.dateHeureDebut = QDateTime(current, baseTime);
             auto result = svc->createSeance(s);
@@ -292,7 +324,81 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
             current = current.addDays(7);
         }
 
-        return QVariantMap{{"success", true}, {"count", count}};
+        bool capped = (nbreSeancesLimit > 0 && (existingCount + count) >= nbreSeancesLimit);
+        return QVariantMap{{"success", true}, {"count", count}, {"capped", capped},
+                           {"limit", nbreSeancesLimit}, {"existingCount", existingCount}};
+    });
+}
+
+void ExamsController::loadCourseCountForMatiereClasse(int matiereId, int classeId) {
+    m_worker->submit("Exams.loadCourseCount",
+        [svc = m_service, schoolingSvc = m_schoolingService, matiereId, classeId]() -> QVariant {
+        // Limit from matière
+        int limit = 0;
+        auto allMatieres = schoolingSvc->getAllMatieres();
+        if (allMatieres.isOk()) {
+            for (const auto& m : allMatieres.value()) {
+                if (m.id == matiereId) { limit = m.nombreSeances; break; }
+            }
+        }
+        // Count existing cours in current school year
+        QDate today = QDate::currentDate();
+        int sy = (today.month() >= 9) ? today.year() : today.year() - 1;
+        QDate schoolYearStart(sy, 9, 1), schoolYearEnd(sy + 1, 6, 30);
+
+        int count = 0;
+        auto seances = svc->getSeancesByClasse(classeId);
+        if (seances.isOk()) {
+            for (const auto& s : seances.value()) {
+                if (s.matiereId == matiereId &&
+                    s.typeSeance == GS::CategorieSeance::Cours &&
+                    s.dateHeureDebut.date() >= schoolYearStart &&
+                    s.dateHeureDebut.date() <= schoolYearEnd)
+                    count++;
+            }
+        }
+        return QVariantMap{{"count", count}, {"limit", limit}};
+    });
+}
+
+void ExamsController::loadScheduledExamTitles(int matiereId, int classeId) {
+    m_worker->submit("Exams.loadScheduledExamTitles",
+        [svc = m_service, matiereId, classeId]() -> QVariant {
+        auto seances = svc->getSeancesByClasse(classeId);
+        QVariantList titles;
+        if (seances.isOk()) {
+            for (const auto& s : seances.value()) {
+                if (s.matiereId == matiereId && s.typeSeance == GS::CategorieSeance::Examen)
+                    titles.append(s.titre);
+            }
+        }
+        return titles;
+    });
+}
+
+void ExamsController::loadExamSeancesByClasseMatiere(int classeId, int matiereId) {
+    m_examSeances.clear();
+    emit examSeancesChanged();
+    m_worker->submit("Exams.loadExamSeancesForGrades",
+        [svc = m_service, classeId, matiereId]() -> QVariant {
+        auto result = svc->getSeancesByClasse(classeId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& s : result.value()) {
+            if (s.matiereId != matiereId) continue;
+            if (s.typeSeance != GS::CategorieSeance::Examen) continue;
+            QString dateStr = s.dateHeureDebut.toString("dd/MM/yyyy");
+            QString label   = s.titre.isEmpty() ? dateStr
+                            : s.titre + " (" + dateStr + ")";
+            list.append(QVariantMap{
+                {"id",    s.id},
+                {"titre", s.titre},
+                {"date",  dateStr},
+                {"label", label}
+            });
+        }
+        return list;
     });
 }
 
@@ -341,15 +447,38 @@ void ExamsController::onQueryCompleted(const QString& queryId, const QVariant& r
         else { m_weekSessions = result.toList(); emit weekSessionsChanged(); }
         setLoading(false);
     }
-    else if (queryId == "Exams.createExam" || queryId == "Exams.createCourseWithRecurrence") {
+    else if (queryId == "Exams.createExam") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Session créée");
+    }
+    else if (queryId == "Exams.createCourseWithRecurrence") {
         if (isError) emit operationFailed(map["error"].toString());
         else {
             int count = map.value("count", 1).toInt();
-            if (count > 1)
-                emit operationSucceeded(QString("%1 sessions créées").arg(count));
-            else
-                emit operationSucceeded("Session créée");
+            bool capped = map.value("capped", false).toBool();
+            int limit   = map.value("limit", 0).toInt();
+            QString msg;
+            if (count == 0) {
+                msg = QString("Limite déjà atteinte (%1 séances/an)").arg(limit);
+            } else if (count > 1) {
+                msg = QString("%1 séances créées").arg(count);
+                if (capped && limit > 0)
+                    msg += QString(" (limite annuelle de %1 atteinte)").arg(limit);
+            } else {
+                msg = "Séance créée";
+            }
+            emit operationSucceeded(msg);
         }
+    }
+    else if (queryId == "Exams.loadCourseCount") {
+        if (!isError) { m_courseCountInfo = map; emit courseCountInfoChanged(); }
+    }
+    else if (queryId == "Exams.loadScheduledExamTitles") {
+        if (!isError) { m_scheduledExamTitles = result.toList(); emit scheduledExamTitlesChanged(); }
+    }
+    else if (queryId == "Exams.loadExamSeancesForGrades") {
+        if (isError) { m_errorMessage = map["error"].toString(); emit errorMessageChanged(); }
+        else { m_examSeances = result.toList(); emit examSeancesChanged(); }
     }
     else if (queryId == "Exams.updateExam") {
         if (isError) emit operationFailed(map["error"].toString());

@@ -10,14 +10,15 @@
 class INiveauRepository;
 class IClasseRepository;
 class IMatiereRepository;
+class IMatiereExamenRepository;
 class ISalleRepository;
 class IEquipementRepository;
 
 class SchoolingService {
 public:
     SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
-                     IMatiereRepository* matiereRepo, ISalleRepository* salleRepo,
-                     IEquipementRepository* equipementRepo);
+                     IMatiereRepository* matiereRepo, IMatiereExamenRepository* matiereExamenRepo,
+                     ISalleRepository* salleRepo, IEquipementRepository* equipementRepo);
 
     // Niveaux
     Result<QList<Niveau>> getAllNiveaux();
@@ -35,8 +36,15 @@ public:
     // Matieres
     Result<QList<Matiere>> getAllMatieres();
     Result<QList<Matiere>> getMatieresByNiveau(int niveauId);
-    Result<int> createMatiere(const QString& nom, int niveauId);
+    Result<int>  createMatiere(const QString& nom, int niveauId);
+    Result<bool> updateMatiere(int id, const QString& nom, int niveauId, int nombreSeances, int dureeSeanceMinutes);
     Result<bool> deleteMatiere(int id);
+
+    // MatiereExamens
+    Result<QList<MatiereExamen>> getExamensByMatiere(int matiereId);
+    Result<int>  createMatiereExamen(int matiereId, const QString& titre);
+    Result<bool> updateMatiereExamen(int id, const QString& titre);
+    Result<bool> deleteMatiereExamen(int id);
 
     // Salles
     Result<QList<Salle>> getAllSalles();
@@ -53,6 +61,7 @@ private:
     INiveauRepository* m_niveauRepo;
     IClasseRepository* m_classeRepo;
     IMatiereRepository* m_matiereRepo;
+    IMatiereExamenRepository* m_matiereExamenRepo;
     ISalleRepository* m_salleRepo;
     IEquipementRepository* m_equipementRepo;
 };

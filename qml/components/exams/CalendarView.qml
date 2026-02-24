@@ -80,6 +80,15 @@ RowLayout {
         return "#374151"
     }
 
+    function navigateMonth(delta) {
+        var m = root.selectedMonth + delta
+        var y = root.selectedYear
+        if (m < 0)  { y -= 1; m = 11 }
+        if (m > 11) { y += 1; m = 0  }
+        if (y !== root.selectedYear) root.yearChanged(y)
+        root.monthChanged(m)
+    }
+
     function formatEndTime(startTime, durationMin) {
         var parts = startTime.split(":")
         if (parts.length < 2) return ""
@@ -121,6 +130,19 @@ RowLayout {
                     color: Style.textPrimary
                 }
 
+                // ◀ Mois précédent
+                Rectangle {
+                    width: 28; implicitHeight: 32; radius: 8
+                    color: calPrevMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    MouseArea {
+                        id: calPrevMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(-1)
+                    }
+                }
+
                 ComboBox {
                     implicitWidth: 140; implicitHeight: 32
                     currentIndex: root.selectedMonth
@@ -144,6 +166,19 @@ RowLayout {
                         leftPadding: 12; rightPadding: 12; text: parent.displayText
                         font.pixelSize: 9; font.weight: Font.Black; color: Style.textPrimary
                         font.letterSpacing: 0.5; verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                // ▶ Mois suivant
+                Rectangle {
+                    width: 28; implicitHeight: 32; radius: 8
+                    color: calNextMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    MouseArea {
+                        id: calNextMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(1)
                     }
                 }
 
@@ -574,9 +609,16 @@ RowLayout {
                                     color: sessionTypeColor(modelData.typeSeance)
                                 }
 
-                                // Titre principal : titre pour événements, subject pour cours/examens
+                                // Titre principal
                                 Text {
-                                    text: cardCol.isEvent ? (modelData.titre || "Événement") : (modelData.subject || "")
+                                    text: {
+                                        if (cardCol.isEvent)
+                                            return modelData.titre || "Événement"
+                                        // Pour un examen : "Matière — Épreuve" si épreuve définie
+                                        if (modelData.typeSeance === "Examen" && modelData.titre)
+                                            return (modelData.subject || "") + " — " + modelData.titre
+                                        return modelData.subject || ""
+                                    }
                                     font.pixelSize: 14; font.weight: Font.Black
                                     color: Style.textPrimary
                                     elide: Text.ElideRight

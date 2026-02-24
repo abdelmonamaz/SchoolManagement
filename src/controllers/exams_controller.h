@@ -13,6 +13,9 @@ class ExamsController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList exams READ exams NOTIFY examsChanged)
     Q_PROPERTY(QVariantList weekSessions READ weekSessions NOTIFY weekSessionsChanged)
+    Q_PROPERTY(QVariantMap  courseCountInfo READ courseCountInfo NOTIFY courseCountInfoChanged)
+    Q_PROPERTY(QVariantList scheduledExamTitles READ scheduledExamTitles NOTIFY scheduledExamTitlesChanged)
+    Q_PROPERTY(QVariantList examSeances READ examSeances NOTIFY examSeancesChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
@@ -24,6 +27,9 @@ public:
 
     QVariantList exams() const { return m_exams; }
     QVariantList weekSessions() const { return m_weekSessions; }
+    QVariantMap  courseCountInfo() const { return m_courseCountInfo; }
+    QVariantList scheduledExamTitles() const { return m_scheduledExamTitles; }
+    QVariantList examSeances() const { return m_examSeances; }
     bool loading() const { return m_loading; }
     QString errorMessage() const { return m_errorMessage; }
 
@@ -39,9 +45,19 @@ public:
     Q_INVOKABLE void updateExam(int id, const QVariantMap& data);
     Q_INVOKABLE void deleteExam(int id);
 
+    // Helpers for planning intelligence
+    Q_INVOKABLE void loadCourseCountForMatiereClasse(int matiereId, int classeId);
+    Q_INVOKABLE void loadScheduledExamTitles(int matiereId, int classeId);
+
+    // Grades page: all exam seances for a given classe+matière (current school year)
+    Q_INVOKABLE void loadExamSeancesByClasseMatiere(int classeId, int matiereId);
+
 signals:
     void examsChanged();
     void weekSessionsChanged();
+    void courseCountInfoChanged();
+    void scheduledExamTitlesChanged();
+    void examSeancesChanged();
     void loadingChanged();
     void errorMessageChanged();
     void operationSucceeded(const QString& message);
@@ -60,6 +76,9 @@ private:
     DatabaseWorker* m_worker = nullptr;
     QVariantList m_exams;
     QVariantList m_weekSessions;
+    QVariantMap  m_courseCountInfo;
+    QVariantList m_scheduledExamTitles;
+    QVariantList m_examSeances;
     bool m_loading = false;
     QString m_errorMessage;
 };

@@ -25,6 +25,10 @@ public:
     Result<QList<Participation>> getParticipationsBySeance(int seanceId);
     Result<int> recordParticipation(const Participation& p);
     Result<bool> updateParticipation(const Participation& p);
+    Result<bool> deleteParticipation(int id);
+
+    // Attendance validation flag
+    Result<bool> setPresenceValide(int seanceId, bool valide);
 
     // Stats
     Result<double> getAttendanceRate(int classeId, const QDateTime& from, const QDateTime& to);

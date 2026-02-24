@@ -10,6 +10,8 @@ RowLayout {
     required property int selectedWeek
     required property int selectedWeekYear
     signal openWeekPicker
+    signal prevWeek
+    signal nextWeek
     signal openDetail(var item)
 
     // Filter sessions by type
@@ -30,52 +32,70 @@ RowLayout {
 
         headerAction: Component {
             Row {
-                spacing: 10
+                spacing: 4
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "S" + root.selectedWeek + " / " + root.selectedWeekYear
-                    font.pixelSize: 11
-                    font.weight: Font.Black
-                    color: Style.textSecondary
-                    font.letterSpacing: 0.5
+                // ◀ Semaine précédente
+                Rectangle {
+                    width: 32; height: 36; radius: 10
+                    color: prevWeekMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "‹"; font.pixelSize: 18; font.bold: true
+                        color: Style.textSecondary
+                    }
+                    MouseArea {
+                        id: prevWeekMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.prevWeek()
+                    }
                 }
 
+                // Semaine courante — clic pour ouvrir le picker
                 Rectangle {
-                    implicitWidth: weekBtnRow.implicitWidth + 20
-                    height: 36
-                    radius: 12
-                    color: weekBtnMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    implicitWidth: weekLabelRow.implicitWidth + 20
+                    height: 36; radius: 10
+                    color: weekLabelMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
-
-                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on color { ColorAnimation { duration: 120 } }
 
                     RowLayout {
-                        id: weekBtnRow
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        IconLabel {
-                            iconName: "calendar"
-                            iconSize: 14
-                            iconColor: Style.primary
-                        }
-
+                        id: weekLabelRow
+                        anchors.centerIn: parent; spacing: 6
+                        IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
                         Text {
-                            text: "CHOISIR SEMAINE"
-                            font.pixelSize: 9
-                            font.weight: Font.Black
-                            color: Style.textPrimary
-                            font.letterSpacing: 0.5
+                            text: "S" + root.selectedWeek + " / " + root.selectedWeekYear
+                            font.pixelSize: 10; font.weight: Font.Black
+                            color: Style.textPrimary; font.letterSpacing: 0.5
                         }
                     }
 
                     MouseArea {
-                        id: weekBtnMa
-                        anchors.fill: parent
-                        hoverEnabled: true
+                        id: weekLabelMa
+                        anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.openWeekPicker()
+                    }
+                }
+
+                // ▶ Semaine suivante
+                Rectangle {
+                    width: 32; height: 36; radius: 10
+                    color: nextWeekMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "›"; font.pixelSize: 18; font.bold: true
+                        color: Style.textSecondary
+                    }
+                    MouseArea {
+                        id: nextWeekMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.nextWeek()
                     }
                 }
             }

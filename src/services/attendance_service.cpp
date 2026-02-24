@@ -92,6 +92,16 @@ Result<bool> AttendanceService::updateParticipation(const Participation& p)
     return m_participationRepo->update(p);
 }
 
+Result<bool> AttendanceService::deleteParticipation(int id)
+{
+    return m_participationRepo->remove(id);
+}
+
+Result<bool> AttendanceService::setPresenceValide(int seanceId, bool valide)
+{
+    return m_seanceRepo->setPresenceValide(seanceId, valide);
+}
+
 Result<double> AttendanceService::getAttendanceRate(int classeId, const QDateTime& from,
                                                      const QDateTime& to)
 {

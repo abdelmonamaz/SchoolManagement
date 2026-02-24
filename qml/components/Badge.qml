@@ -5,12 +5,20 @@ Rectangle {
 
     property string text: ""
     property string variant: "neutral" // success, warning, error, info, neutral
+    property var customTextColor: undefined
+    property var customBgColor: undefined
+    property var customBorderColor: undefined
 
-    implicitWidth: label.implicitWidth + 16
-    implicitHeight: label.implicitHeight + 8
-    radius: height / 2
-
-    color: {
+    property color defaultTextColor: {
+        switch (variant) {
+            case "success": return Style.successColor;
+            case "warning": return Style.warningColor;
+            case "error":   return Style.errorColor;
+            case "info":    return Style.infoColor;
+            default:        return Style.textSecondary;
+        }
+    }
+    property color defaultBgColor: {
         switch (variant) {
             case "success": return Style.successBg;
             case "warning": return Style.warningBg;
@@ -19,8 +27,7 @@ Rectangle {
             default:        return Style.bgSecondary;
         }
     }
-
-    border.color: {
+    property color defaultBorderColor: {
         switch (variant) {
             case "success": return Style.successBorder;
             case "warning": return Style.warningBorder;
@@ -29,6 +36,14 @@ Rectangle {
             default:        return Style.borderMedium;
         }
     }
+
+    implicitWidth: label.implicitWidth + 16
+    implicitHeight: label.implicitHeight + 8
+    radius: height / 2
+
+    color: customBgColor !== undefined ? customBgColor : defaultBgColor
+
+    border.color: customBorderColor !== undefined ? customBorderColor : defaultBorderColor
     border.width: 1
 
     Text {
@@ -37,14 +52,6 @@ Rectangle {
         text: control.text
         font.pixelSize: 11
         font.weight: Font.DemiBold
-        color: {
-            switch (control.variant) {
-                case "success": return Style.successColor;
-                case "warning": return Style.warningColor;
-                case "error":   return Style.errorColor;
-                case "info":    return Style.infoColor;
-                default:        return Style.textSecondary;
-            }
-        }
+        color: control.customTextColor !== undefined ? control.customTextColor : control.defaultTextColor
     }
 }

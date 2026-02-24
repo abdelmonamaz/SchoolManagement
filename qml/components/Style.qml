@@ -8,6 +8,11 @@ QtObject {
     readonly property color primaryLight: "#86A38E"
     readonly property color primaryBg: "#3D5A4510"    // 10% opacity
 
+    // ─── Sand Theme Colors ───
+    readonly property color sand: "#D4B483"
+    readonly property color sandLight: "#E1CEB1"
+    readonly property color sandBg: "#F5F1E9"
+
     // ─── Background Colors ───
     readonly property color bgPage: "#F9FAFB"
     readonly property color bgWhite: "#FFFFFF"

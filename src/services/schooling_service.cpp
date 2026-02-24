@@ -4,11 +4,12 @@
 #include "repositories/isalle_repository.h"
 
 SchoolingService::SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
-                                   IMatiereRepository* matiereRepo, ISalleRepository* salleRepo,
-                                   IEquipementRepository* equipementRepo)
+                                   IMatiereRepository* matiereRepo, IMatiereExamenRepository* matiereExamenRepo,
+                                   ISalleRepository* salleRepo, IEquipementRepository* equipementRepo)
     : m_niveauRepo(niveauRepo)
     , m_classeRepo(classeRepo)
     , m_matiereRepo(matiereRepo)
+    , m_matiereExamenRepo(matiereExamenRepo)
     , m_salleRepo(salleRepo)
     , m_equipementRepo(equipementRepo)
 {
@@ -115,9 +116,55 @@ Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId)
     return m_matiereRepo->create(m);
 }
 
+Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niveauId,
+                                              int nombreSeances, int dureeSeanceMinutes)
+{
+    if (nom.trimmed().isEmpty())
+        return Result<bool>::error("Le nom de la matiere ne peut pas etre vide.");
+    Matiere m;
+    m.id = id;
+    m.nom = nom.trimmed();
+    m.niveauId = niveauId;
+    m.nombreSeances = nombreSeances;
+    m.dureeSeanceMinutes = dureeSeanceMinutes > 0 ? dureeSeanceMinutes : 60;
+    return m_matiereRepo->update(m);
+}
+
 Result<bool> SchoolingService::deleteMatiere(int id)
 {
     return m_matiereRepo->remove(id);
+}
+
+// --- MatiereExamens ---
+
+Result<QList<MatiereExamen>> SchoolingService::getExamensByMatiere(int matiereId)
+{
+    return m_matiereExamenRepo->getByMatiereId(matiereId);
+}
+
+Result<int> SchoolingService::createMatiereExamen(int matiereId, const QString& titre)
+{
+    if (titre.trimmed().isEmpty())
+        return Result<int>::error("Le titre de l'évaluation ne peut pas être vide.");
+    MatiereExamen e;
+    e.matiereId = matiereId;
+    e.titre = titre.trimmed();
+    return m_matiereExamenRepo->create(e);
+}
+
+Result<bool> SchoolingService::updateMatiereExamen(int id, const QString& titre)
+{
+    if (titre.trimmed().isEmpty())
+        return Result<bool>::error("Le titre de l'évaluation ne peut pas être vide.");
+    MatiereExamen e;
+    e.id = id;
+    e.titre = titre.trimmed();
+    return m_matiereExamenRepo->update(e);
+}
+
+Result<bool> SchoolingService::deleteMatiereExamen(int id)
+{
+    return m_matiereExamenRepo->remove(id);
 }
 
 // --- Salles ---

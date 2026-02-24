@@ -7,7 +7,7 @@ Popup {
     id: root
     parent: Overlay.overlay
     anchors.centerIn: parent
-    width: 800
+    width: 650
     modal: true
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -15,15 +15,37 @@ Popup {
     required property var niveaux
     required property var classes
 
+    property int currentStep: 1
+    property string selectedSexe: "M"
     property int selectedNiveauId: 0
-    property int selectedClasseId: 0
+    property string selectedAnneeScolaire: ""
+    property var anneeScolaireOptions: []
+    property double inscriptionFee: 50.0
+    property bool isPaid: false
 
     signal createRequested(var data)
     signal closeRequested()
-    signal niveauSelected(int niveauId)
 
-    onClosed: root.closeRequested()
-    onOpened: nameField.inputItem.forceActiveFocus()
+    onOpened: {
+        var date = new Date()
+        var year = date.getFullYear()
+        // If we are before September, consider the current school year to be (year-1)-(year). Otherwise, year-(year+1)
+        var baseYear = date.getMonth() < 8 ? year - 1 : year
+        anneeScolaireOptions = [
+            (baseYear - 2) + "-" + (baseYear - 1),
+            (baseYear - 1) + "-" + baseYear,
+            baseYear + "-" + (baseYear + 1),
+            (baseYear + 1) + "-" + (baseYear + 2),
+            (baseYear + 2) + "-" + (baseYear + 3)
+        ]
+        selectedAnneeScolaire = anneeScolaireOptions[2]
+        nameField.inputItem.forceActiveFocus()
+    }
+
+    onClosed: {
+        root.closeRequested()
+        currentStep = 1
+    }
 
     background: Rectangle {
         radius: 32
@@ -38,18 +60,18 @@ Popup {
         width: root.width
         spacing: 0
 
-        // Modal Header
+        // ─── Modal Header ───
         Rectangle {
             width: parent.width
-            height: 80
-            color: "#FAFBFC"
+            height: 100
+            color: Style.sandBg
             radius: 32
 
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
-                height: 40
-                color: "#FAFBFC"
+                height: 50
+                color: Style.sandBg
             }
 
             Separator {
@@ -67,18 +89,31 @@ Popup {
                     spacing: 4
 
                     Text {
-                        text: "Nouvelle Inscription"
+                        text: currentStep === 1 ? "Inscription : Étape 1" : "Inscription : Étape 2"
                         font.pixelSize: 20
                         font.weight: Font.Black
-                        color: Style.textPrimary
+                        color: Style.primary
                     }
 
                     Text {
-                        text: "REMPLISSEZ LES INFORMATIONS DE L'ÉLÈVE"
+                        text: currentStep === 1 ? "IDENTITÉ DE L'ÉLÈVE (DONNÉES PERMANENTES)" : "NOUVELLE INSCRIPTION (CONTRAT ANNUEL)"
                         font.pixelSize: 9
                         font.weight: Font.Bold
                         color: Style.textTertiary
                         font.letterSpacing: 1
+                    }
+                }
+
+                // Step indicators
+                Row {
+                    spacing: 8
+                    Rectangle {
+                        width: 32; height: 8; radius: 4
+                        color: currentStep >= 1 ? Style.primary : Style.bgTertiary
+                    }
+                    Rectangle {
+                        width: 32; height: 8; radius: 4
+                        color: currentStep >= 2 ? Style.primary : Style.bgTertiary
                     }
                 }
 
@@ -90,43 +125,23 @@ Popup {
             }
         }
 
-        // Modal Body
+        // ─── Modal Body ───
         Item {
             width: parent.width
-            implicitHeight: bodyCol.implicitHeight + 48
+            implicitHeight: Math.max(500, bodyStack.implicitHeight + 48)
 
-            Column {
-                id: bodyCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
+            StackLayout {
+                id: bodyStack
+                anchors.fill: parent
                 anchors.margins: 24
-                spacing: 32
+                currentIndex: root.currentStep - 1
 
-                // Section 1: Identité
-                Column {
-                    width: parent.width
-                    spacing: 16
-
-                    RowLayout {
-                        spacing: 8
-
-                        Rectangle {
-                            width: 24; height: 24; radius: 12
-                            color: Style.primary
-                            Text { anchors.centerIn: parent; text: "1"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
-                        }
-
-                        Text {
-                            text: "IDENTITÉ DE L'ÉLÈVE"
-                            font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary; font.letterSpacing: 1
-                        }
-                    }
+                // Step 1: Student Identity
+                ColumnLayout {
+                    spacing: 24
 
                     RowLayout {
-                        width: parent.width
                         spacing: 16
-
                         FormField {
                             id: nameField
                             Layout.fillWidth: true
@@ -134,296 +149,264 @@ Popup {
                             label: "NOM"
                             placeholder: "ex: Ben Moussa"
                             nextTabItem: prenomField.inputItem
-                            prevTabItem: addressField.inputItem
                         }
-
                         FormField {
                             id: prenomField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
                             label: "PRÉNOM"
                             placeholder: "ex: Ahmed"
-                            nextTabItem: phoneField.inputItem
+                            nextTabItem: birthDateField.inputItem
                             prevTabItem: nameField.inputItem
                         }
                     }
-                }
-
-                // Section 2: Scolarité
-                Column {
-                    width: parent.width
-                    spacing: 16
 
                     RowLayout {
-                        spacing: 8
-
-                        Rectangle {
-                            width: 24; height: 24; radius: 12
-                            color: Style.primary
-                            Text { anchors.centerIn: parent; text: "2"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
-                        }
-
-                        Text {
-                            text: "INFORMATIONS ACADÉMIQUES"
-                            font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary; font.letterSpacing: 1
-                        }
-                    }
-
-                    // Date de naissance : catégorie calculée automatiquement
-                    DateField {
-                        id: birthDateField
-                        width: parent.width
-                        label: "DATE DE NAISSANCE"
-                    }
-
-                    RowLayout {
-                        width: parent.width
                         spacing: 16
-
-                        // ── Sélecteur NIVEAU ──
                         Column {
-                            Layout.preferredWidth: 220
-                            spacing: 6
-
-                            SectionLabel { text: "NIVEAU" }
-
-                            Rectangle {
-                                id: niveauTrigger
-                                width: parent.width; height: 44; radius: 12
-                                color: Style.bgPage; border.color: Style.borderLight
-
-                                RowLayout {
-                                    anchors.fill: parent; anchors.margins: 12
-                                    spacing: 6
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: {
-                                            for (var i = 0; i < root.niveaux.length; i++) {
-                                                if (root.niveaux[i].id === root.selectedNiveauId) return root.niveaux[i].nom
-                                            }
-                                            return "Sélectionner..."
-                                        }
-                                        font.pixelSize: 13; font.bold: true
-                                        color: root.selectedNiveauId !== 0 ? Style.textPrimary : Style.textTertiary
-                                        elide: Text.ElideRight
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            spacing: 8
+                            SectionLabel { text: "SEXE" }
+                            Row {
+                                spacing: 16
+                                Row {
+                                    spacing: 8
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 10
+                                        border.color: root.selectedSexe === "M" ? Style.primary : Style.borderMedium
+                                        border.width: root.selectedSexe === "M" ? 6 : 2
+                                        Behavior on border.width { NumberAnimation { duration: 100 } }
+                                        MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "M" }
                                     }
-                                    Text { text: "▾"; font.pixelSize: 11; color: Style.textTertiary }
+                                    Text { text: "Masculin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: niveauPopup.open()
-                                }
-
-                                Popup {
-                                    id: niveauPopup
-                                    y: parent.height + 4
-                                    width: parent.width
-                                    padding: 0
-                                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-                                    background: Rectangle {
-                                        radius: 12
-                                        color: "#FFFFFF"
-                                        border.color: Style.borderLight
-                                        border.width: 1
+                                Row {
+                                    spacing: 8
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 10
+                                        border.color: root.selectedSexe === "F" ? Style.primary : Style.borderMedium
+                                        border.width: root.selectedSexe === "F" ? 6 : 2
+                                        Behavior on border.width { NumberAnimation { duration: 100 } }
+                                        MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "F" }
                                     }
-
-                                    Column {
-                                        width: parent.width
-
-                                        Repeater {
-                                            model: root.niveaux
-                                            delegate: Rectangle {
-                                                width: niveauPopup.width
-                                                height: 40
-                                                color: nvHover.containsMouse ? Style.bgPage : "transparent"
-                                                radius: 8
-
-                                                Text {
-                                                    anchors.left: parent.left; anchors.leftMargin: 14
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    text: modelData.nom
-                                                    font.pixelSize: 13; font.bold: true
-                                                    color: root.selectedNiveauId === modelData.id ? Style.primary : Style.textPrimary
-                                                }
-
-                                                MouseArea {
-                                                    id: nvHover
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        root.selectedNiveauId = modelData.id
-                                                        root.selectedClasseId = 0
-                                                        root.niveauSelected(modelData.id)
-                                                        niveauPopup.close()
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                    Text { text: "Féminin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
                             }
                         }
 
-                        // ── Sélecteur CLASSE (filtré par niveau) ──
-                        Column {
-                            Layout.preferredWidth: 220
-                            spacing: 6
-                            opacity: root.selectedNiveauId !== 0 ? 1.0 : 0.4
-
-                            Behavior on opacity { NumberAnimation { duration: 150 } }
-
-                            SectionLabel { text: "CLASSE" }
-
-                            Rectangle {
-                                id: classeTrigger
-                                width: parent.width; height: 44; radius: 12
-                                color: Style.bgPage; border.color: Style.borderLight
-
-                                RowLayout {
-                                    anchors.fill: parent; anchors.margins: 12
-                                    spacing: 6
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: {
-                                            for (var i = 0; i < root.classes.length; i++) {
-                                                if (root.classes[i].id === root.selectedClasseId) return root.classes[i].nom
-                                            }
-                                            return "Sélectionner..."
-                                        }
-                                        font.pixelSize: 13; font.bold: true
-                                        color: root.selectedClasseId !== 0 ? Style.textPrimary : Style.textTertiary
-                                        elide: Text.ElideRight
-                                    }
-                                    Text { text: "▾"; font.pixelSize: 11; color: Style.textTertiary }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: root.selectedNiveauId !== 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: { if (root.selectedNiveauId !== 0) classePopup.open() }
-                                }
-
-                                Popup {
-                                    id: classePopup
-                                    y: parent.height + 4
-                                    width: parent.width
-                                    padding: 0
-                                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-                                    background: Rectangle {
-                                        radius: 12
-                                        color: "#FFFFFF"
-                                        border.color: Style.borderLight
-                                        border.width: 1
-                                    }
-
-                                    Column {
-                                        width: parent.width
-
-                                        Repeater {
-                                            model: {
-                                                var result = []
-                                                for (var i = 0; i < root.classes.length; i++) {
-                                                    if (root.classes[i].niveauId === root.selectedNiveauId)
-                                                        result.push(root.classes[i])
-                                                }
-                                                return result
-                                            }
-                                            delegate: Rectangle {
-                                                width: classePopup.width
-                                                height: 40
-                                                color: clHover.containsMouse ? Style.bgPage : "transparent"
-                                                radius: 8
-
-                                                Text {
-                                                    anchors.left: parent.left; anchors.leftMargin: 14
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    text: modelData.nom
-                                                    font.pixelSize: 13; font.bold: true
-                                                    color: root.selectedClasseId === modelData.id ? Style.primary : Style.textPrimary
-                                                }
-
-                                                MouseArea {
-                                                    id: clHover
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        root.selectedClasseId = modelData.id
-                                                        classePopup.close()
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            implicitHeight: birthDateField.implicitHeight
+                            DateField {
+                                id: birthDateField
+                                width: 240
+                                label: "DATE DE NAISSANCE"
+                                nextTabItem: phoneField.inputItem
+                                prevTabItem: prenomField.inputItem
                             }
                         }
-
-                        Item { Layout.fillWidth: true }
                     }
-                }
-
-                // Section 3: Contacts
-                Column {
-                    width: parent.width
-                    spacing: 16
 
                     RowLayout {
-                        spacing: 8
-
-                        Rectangle {
-                            width: 24; height: 24; radius: 12
-                            color: Style.primary
-                            Text { anchors.centerIn: parent; text: "3"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
-                        }
-
-                        Text {
-                            text: "CONTACTS"
-                            font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary; font.letterSpacing: 1
-                        }
-                    }
-
-                    GridLayout {
-                        width: parent.width
-                        columns: 2
-                        columnSpacing: 16
-                        rowSpacing: 16
-
+                        spacing: 16
                         FormField {
                             id: phoneField
                             Layout.fillWidth: true
-                            label: "TÉLÉPHONE DE CONTACT"
-                            placeholder: "06 12 34 56 78"
+                            Layout.preferredWidth: 1
+                            label: "TÉLÉPHONE"
+                            placeholder: "06 00 00 00 00"
                             nextTabItem: addressField.inputItem
-                            prevTabItem: prenomField.inputItem
-                            validator: RegularExpressionValidator {
-                                regularExpression: /^\+?[0-9]*$/
-                            }
+                            prevTabItem: birthDateField.inputItem
                         }
-
                         FormField {
                             id: addressField
                             Layout.fillWidth: true
-                            label: "ADRESSE DE RÉSIDENCE"
+                            Layout.preferredWidth: 1
+                            label: "ADRESSE"
                             placeholder: "Adresse complète"
-                            nextTabItem: nameField.inputItem
+                            nextTabItem: parentNameField.inputItem
                             prevTabItem: phoneField.inputItem
                         }
                     }
+
+                    RowLayout {
+                        spacing: 16
+                        FormField {
+                            id: parentNameField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            label: "NOM DU PARENT / TUTEUR"
+                            placeholder: "ex: Mohamed Ben Moussa"
+                            nextTabItem: parentPhoneField.inputItem
+                            prevTabItem: addressField.inputItem
+                        }
+                        FormField {
+                            id: parentPhoneField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            label: "TÉLÉPHONE PARENT"
+                            placeholder: "06 00 00 00 00"
+                            prevTabItem: parentNameField.inputItem
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SectionLabel { text: "COMMENTAIRE / NOTES" }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 80
+                            radius: 12
+                            color: Style.bgPage; border.color: Style.borderLight
+                            TextArea {
+                                id: commentField
+                                anchors.fill: parent; anchors.margins: 12
+                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                wrapMode: TextEdit.Wrap
+                                placeholderText: "Informations complémentaires..."
+                                background: null
+                            }
+                        }
+                    }
+                    Item { Layout.fillHeight: true }
+                }
+
+                // Step 2: Academic Enrollment
+                ColumnLayout {
+                    spacing: 32
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 60; radius: 16
+                        color: Style.primaryBg
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
+                            IconLabel { iconName: "info"; iconColor: Style.primary }
+                            Text {
+                                text: "Nouvelle Inscription pour l'année scolaire " + root.selectedAnneeScolaire
+                                font.pixelSize: 14; font.weight: Font.Bold; color: Style.primary
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 24
+                        Column {
+                            Layout.fillWidth: true; spacing: 8
+                            SectionLabel { text: "ANNÉE SCOLAIRE" }
+                            Rectangle {
+                                width: parent.width; height: 44; radius: 12
+                                color: Style.bgPage; border.color: Style.borderLight
+                                ComboBox {
+                                    id: anneeCombo
+                                    anchors.fill: parent; anchors.margins: 2
+                                    model: root.anneeScolaireOptions
+                                    currentIndex: 2 // Defaults to current base year
+                                    
+                                    background: Rectangle { color: "transparent" }
+                                    contentItem: Text {
+                                        text: anneeCombo.displayText
+                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                    }
+
+                                    onActivated: root.selectedAnneeScolaire = currentText
+                                }
+                            }
+                        }
+
+                        Column {
+                            Layout.fillWidth: true; spacing: 8
+                            SectionLabel { text: "NIVEAU" }
+                            Rectangle {
+                                width: parent.width; height: 44; radius: 12
+                                color: Style.bgPage; border.color: Style.borderLight
+                                ComboBox {
+                                    id: niveauCombo
+                                    anchors.fill: parent; anchors.margins: 2
+                                    model: root.niveaux; textRole: "nom"
+                                    
+                                    background: Rectangle { color: "transparent" }
+                                    contentItem: Text {
+                                        text: niveauCombo.displayText
+                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                    }
+
+                                    onCurrentIndexChanged: {
+                                        if (currentIndex >= 0 && currentIndex < root.niveaux.length) {
+                                            root.selectedNiveauId = root.niveaux[currentIndex].id
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Financial Section
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Text { text: "SECTION FINANCIÈRE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+                        
+                        Rectangle {
+                            Layout.fillWidth: true; height: 100; radius: 20
+                            color: Style.bgPage; border.color: Style.borderLight
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 20; spacing: 20
+                                Column {
+                                    Layout.fillWidth: true; spacing: 4
+                                    SectionLabel { text: "FRAIS D'INSCRIPTION" }
+                                    Row {
+                                        spacing: 8
+                                        TextInput {
+                                            id: feeInput
+                                            text: root.inscriptionFee.toString()
+                                            font.pixelSize: 24; font.weight: Font.Black; color: Style.textPrimary
+                                            onTextChanged: root.inscriptionFee = parseFloat(text) || 0
+                                        }
+                                        Text { text: "DT"; font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
+                                    }
+                                }
+                                
+                                Column {
+                                    spacing: 8
+                                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                                    Row {
+                                        spacing: 12
+                                        Rectangle {
+                                            width: 50; height: 26; radius: 13
+                                            color: root.isPaid ? Style.successColor : Style.bgTertiary
+                                            Rectangle {
+                                                x: root.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
+                                                color: "#FFFFFF"
+                                                Behavior on x { NumberAnimation { duration: 150 } }
+                                            }
+                                            MouseArea { anchors.fill: parent; onClicked: root.isPaid = !root.isPaid }
+                                        }
+                                        Text { 
+                                            text: root.isPaid ? "PAYÉ" : "NON PAYÉ"
+                                            font.pixelSize: 12; font.weight: Font.Black
+                                            color: root.isPaid ? Style.successColor : Style.textTertiary
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Item { Layout.fillHeight: true }
                 }
             }
         }
 
-        // Modal Footer
+        // ─── Modal Footer ───
         Rectangle {
             width: parent.width
-            height: 80
-            color: "#FAFBFC"
+            height: 100
+            color: Style.bgPage
 
             Separator {
                 anchors.top: parent.top
@@ -432,76 +415,81 @@ Popup {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 20
+                anchors.margins: 24
                 spacing: 16
 
+                // Cancel / Back button
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 48; radius: 16
-                    color: Style.bgPage; border.color: Style.borderLight
-
+                    height: 52; radius: 16
+                    color: Style.bgWhite; border.color: Style.borderMedium
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary
+                        text: root.currentStep === 1 ? "ANNULER" : "RETOUR"
+                        font.pixelSize: 12; font.weight: Font.Black; color: Style.textSecondary
+                        font.letterSpacing: 1
                     }
-
                     MouseArea {
                         anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.closeRequested()
+                        onClicked: {
+                            if (root.currentStep === 1) root.closeRequested()
+                            else root.currentStep = 1
+                        }
                     }
                 }
 
+                // Next / Confirm button
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 48; radius: 16
-
-                    readonly property bool canConfirm:
-                        nameField.text.trim().length > 0 &&
-                        prenomField.text.trim().length > 0 &&
-                        addressField.text.trim().length > 0 &&
-                        root.selectedClasseId !== 0 &&
-                        birthDateField.isValid
-
-                    color: canConfirm ? Style.primary : Style.bgSecondary
-
-                    Behavior on color {
-                        ColorAnimation { duration: 150 }
-                    }
-
+                    height: 52; radius: 16
+                    readonly property bool canNext: nameField.text.trim() !== "" && prenomField.text.trim() !== "" && birthDateField.isValid
+                    readonly property bool canConfirm: canNext && root.selectedNiveauId !== 0
+                    
+                    color: (root.currentStep === 1 ? canNext : canConfirm) ? Style.primary : Style.bgTertiary
+                    
                     Text {
                         anchors.centerIn: parent
-                        text: "CONFIRMER L'INSCRIPTION"
-                        font.pixelSize: 10; font.weight: Font.Black
-                        color: parent.canConfirm ? "#FFFFFF" : Style.textTertiary
+                        text: root.currentStep === 1 ? "CONTINUER" : "CONFIRMER L'INSCRIPTION"
+                        font.pixelSize: 12; font.weight: Font.Black; color: "#FFFFFF"
                         font.letterSpacing: 1
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
                     }
-
                     MouseArea {
                         anchors.fill: parent
-                        enabled: parent.canConfirm
-                        cursorShape: parent.canConfirm ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        enabled: root.currentStep === 1 ? parent.canNext : parent.canConfirm
                         onClicked: {
-                            root.createRequested({
-                                nom: nameField.text,
-                                prenom: prenomField.text,
-                                telephone: phoneField.text,
-                                adresse: addressField.text,
-                                dateNaissance: birthDateField.dateString,
-                                categorie: birthDateField.categorie,
-                                classeId: root.selectedClasseId
-                            })
-                            nameField.text = ""
-                            prenomField.text = ""
-                            phoneField.text = ""
-                            addressField.text = ""
-                            birthDateField.clear()
-                            root.selectedNiveauId = 0
-                            root.selectedClasseId = 0
+                            if (root.currentStep === 1) {
+                                root.currentStep = 2
+                            } else {
+                                root.createRequested({
+                                    // Identity
+                                    nom: nameField.text,
+                                    prenom: prenomField.text,
+                                    sexe: root.selectedSexe,
+                                    telephone: phoneField.text,
+                                    adresse: addressField.text,
+                                    dateNaissance: birthDateField.dateString,
+                                    nomParent: parentNameField.text,
+                                    telParent: parentPhoneField.text,
+                                    commentaire: commentField.text,
+                                    categorie: birthDateField.categorie,
+                                    
+                                    // Enrollment
+                                    anneeScolaire: root.selectedAnneeScolaire,
+                                    niveauId: root.selectedNiveauId,
+                                    fraisInscriptionPaye: root.isPaid,
+                                    montantInscription: root.inscriptionFee
+                                })
+                                // Reset
+                                nameField.text = ""
+                                prenomField.text = ""
+                                phoneField.text = ""
+                                addressField.text = ""
+                                parentNameField.text = ""
+                                parentPhoneField.text = ""
+                                commentField.text = ""
+                                birthDateField.clear()
+                                root.currentStep = 1
+                            }
                         }
                     }
                 }

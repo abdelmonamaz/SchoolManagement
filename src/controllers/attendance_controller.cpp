@@ -38,7 +38,9 @@ static QVariantMap seanceToMap(const Seance& s) {
         {"salleId", s.salleId}, {"classeId", s.classeId},
         {"dateHeureDebut", s.dateHeureDebut.toString(Qt::ISODate)},
         {"dureeMinutes", s.dureeMinutes},
-        {"typeSeance", categorieSeanceToString(s.typeSeance)}
+        {"typeSeance", categorieSeanceToString(s.typeSeance)},
+        {"presenceValide", s.presenceValide},
+        {"titre", s.titre}
     };
 }
 
@@ -159,6 +161,24 @@ void AttendanceController::recordParticipation(const QVariantMap& data) {
     });
 }
 
+void AttendanceController::deleteParticipation(int id) {
+    m_worker->submit("Attendance.deleteParticipation", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deleteParticipation(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void AttendanceController::setPresenceValide(int seanceId, bool valide) {
+    m_worker->submit("Attendance.setPresenceValide", [svc = m_service, seanceId, valide]() -> QVariant {
+        auto result = svc->setPresenceValide(seanceId, valide);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
 void AttendanceController::updateParticipation(int id, const QVariantMap& data) {
     m_worker->submit("Attendance.updateParticipation", [svc = m_service, id, data]() -> QVariant {
         Participation p;
@@ -212,6 +232,14 @@ void AttendanceController::onQueryCompleted(const QString& queryId, const QVaria
     else if (queryId == "Attendance.updateParticipation") {
         if (isError) emit operationFailed(map["error"].toString());
         else emit operationSucceeded("Présence mise à jour");
+    }
+    else if (queryId == "Attendance.deleteParticipation") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Invité retiré");
+    }
+    else if (queryId == "Attendance.setPresenceValide") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Présence validée");
     }
 }
 

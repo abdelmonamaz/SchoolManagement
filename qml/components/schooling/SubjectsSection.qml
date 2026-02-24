@@ -13,6 +13,7 @@ AppCard {
 
     signal matiereCreateRequested(string nom)
     signal matiereDeleteRequested(int id)
+    signal matiereEditRequested(int id)
 
     Column {
         width: parent.width
@@ -39,13 +40,20 @@ AppCard {
                     RowLayout {
                         id: subjectRow
                         anchors.centerIn: parent
-                        spacing: 8
+                        spacing: 6
 
                         Text {
                             text: modelData.nom
                             font.pixelSize: 13
                             font.bold: true
                             color: Style.textPrimary
+                        }
+
+                        IconButton {
+                            iconName: "edit"
+                            iconSize: 12
+                            hoverColor: Style.primary
+                            onClicked: root.matiereEditRequested(modelData.id)
                         }
 
                         IconButton {

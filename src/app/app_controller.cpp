@@ -76,6 +76,7 @@ void AppController::createRepositories() {
     m_niveauRepo = std::make_unique<SqliteNiveauRepository>(conn);
     m_classeRepo = std::make_unique<SqliteClasseRepository>(conn);
     m_matiereRepo = std::make_unique<SqliteMatiereRepository>(conn);
+    m_matiereExamenRepo = std::make_unique<SqliteMatiereExamenRepository>(conn);
     m_equipementRepo = std::make_unique<SqliteEquipementRepository>(conn);
     m_profRepo = std::make_unique<SqlitePersonnelRepository>(conn);
     m_contratRepo = std::make_unique<SqliteContratRepository>(conn);
@@ -91,7 +92,8 @@ void AppController::createRepositories() {
 
 void AppController::createServices() {
     m_schoolingService = std::make_unique<SchoolingService>(
-        m_niveauRepo.get(), m_classeRepo.get(), m_matiereRepo.get(), m_salleRepo.get(), m_equipementRepo.get());
+        m_niveauRepo.get(), m_classeRepo.get(), m_matiereRepo.get(), m_matiereExamenRepo.get(),
+        m_salleRepo.get(), m_equipementRepo.get());
 
     m_studentService = std::make_unique<StudentService>(
         m_eleveRepo.get(), m_classeRepo.get());

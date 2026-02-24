@@ -41,11 +41,14 @@ qt_add_qml_module(GestionScolaire_Components
         schooling/RoomsSection.qml
         schooling/NiveauModals.qml
         schooling/MatiereDeleteModal.qml
+        schooling/MatiereEditModal.qml
         schooling/ClassModals.qml
         schooling/ClassStudentsPopup.qml
         schooling/RoomModals.qml
         schooling/ManageEquipmentsModal.qml
         students/StudentListView.qml
+        students/StudentListFilters.qml
+        students/StudentTableHeader.qml
         students/StudentDetailView.qml
         students/StudentRegistrationModal.qml
         students/StudentEditModal.qml

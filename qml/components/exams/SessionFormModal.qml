@@ -12,45 +12,72 @@ ModalOverlay {
 
     modalWidth: Math.min(pageWidth - 64, 720)
 
-    property bool isEvent: modalType === "event"
-    property bool isExam: modalType === "exam"
+    property bool isEvent:  modalType === "event"
+    property bool isExam:   modalType === "exam"
     property bool isCourse: modalType === "course"
 
-    // Form state
-    property string formTitre: ""
-    property int formNiveauId: -1
-    property int formMatiereId: -1
-    property int formProfId: -1
-    property int formClasseId: -1
-    property int formSalleId: -1
-    property string formDate: ""
-    property string formTime: "08:00"
-    property int formDuree: 120
-    property string formRecurrence: "none"
-    property string formDescriptif: ""
+    // ── Form state ──
+    property string formTitre:       ""
+    property int    formNiveauId:    -1
+    property int    formMatiereId:   -1
+    property int    formProfId:      -1
+    property int    formClasseId:    -1
+    property int    formSalleId:     -1
+    property string formDate:        ""
+    property string formTime:        "08:00"
+    property int    formDuree:       120
+    property string formRecurrence:  "none"
+    property string formDescriptif:  ""
 
-    function resetForm() {
-        formTitre = ""
-        formDescriptif = ""
-        formNiveauId = -1
-        formMatiereId = -1
-        formProfId = -1
-        formClasseId = -1
-        formSalleId = -1
-        formDate = ""
-        formTime = "08:00"
-        formDuree = 120
-        formRecurrence = "none"
-        if (titreField) titreField.text = ""
-        if (descriptifField) descriptifField.text = ""
-        if (modalNiveauCombo) modalNiveauCombo.currentIndex = -1
-        if (modalMatiereCombo) modalMatiereCombo.currentIndex = -1
-        if (modalClasseCombo) modalClasseCombo.currentIndex = -1
-        if (modalProfCombo) modalProfCombo.currentIndex = -1
-        if (modalSalleCombo) modalSalleCombo.currentIndex = -1
+    // ── UI state ──
+    property bool   showConfirmSubmit:    false
+    property bool   showOverLimitWarning: false
+    property bool   showAllEpreuves:      false   // exam: montrer aussi les épreuves déjà planifiées
+
+    // ── Helpers ──
+    // Returns the selected matière object (or null)
+    function selectedMatiere() {
+        var list = schoolingController.matieres
+        for (var i = 0; i < list.length; i++)
+            if (list[i].id === formMatiereId) return list[i]
+        return null
     }
 
-    // Header
+    // Returns true if épreuve titre is already scheduled
+    function isTitreScheduled(titre) {
+        var titles = examsController.scheduledExamTitles
+        for (var i = 0; i < titles.length; i++)
+            if (titles[i] === titre) return true
+        return false
+    }
+
+    function resetForm() {
+        formTitre        = ""
+        formDescriptif   = ""
+        formNiveauId     = -1
+        formMatiereId    = -1
+        formProfId       = -1
+        formClasseId     = -1
+        formSalleId      = -1
+        formDate         = ""
+        formTime         = "08:00"
+        formDuree        = 120
+        formRecurrence   = "none"
+        showConfirmSubmit    = false
+        showOverLimitWarning = false
+        showAllEpreuves      = false
+        if (titreField)       titreField.text = ""
+        if (descriptifField)  descriptifField.text = ""
+        if (dureeFormField)   dureeFormField.text = "120"
+        if (modalNiveauCombo)    modalNiveauCombo.currentIndex    = -1
+        if (modalMatiereCombo)   modalMatiereCombo.currentIndex   = -1
+        if (modalClasseCombo)    modalClasseCombo.currentIndex    = -1
+        if (modalClasseComboExam) modalClasseComboExam.currentIndex = -1
+        if (modalProfCombo)      modalProfCombo.currentIndex      = -1
+        if (modalSalleCombo)     modalSalleCombo.currentIndex     = -1
+    }
+
+    // ─── Header ───
     Rectangle {
         width: parent.width
         height: 90
@@ -59,17 +86,14 @@ ModalOverlay {
 
         Rectangle {
             anchors.bottom: parent.bottom
-            width: parent.width
-            height: 45
+            width: parent.width; height: 45
             color: "#FAFBFC"
         }
 
         Separator { anchors.bottom: parent.bottom; width: parent.width }
 
         RowLayout {
-            anchors.fill: parent
-            anchors.margins: 24
-            spacing: 14
+            anchors.fill: parent; anchors.margins: 24; spacing: 14
 
             Rectangle {
                 width: 48; height: 48; radius: 16
@@ -83,28 +107,22 @@ ModalOverlay {
             }
 
             Column {
-                Layout.fillWidth: true
-                spacing: 2
-
+                Layout.fillWidth: true; spacing: 2
                 Text {
                     text: root.isExam ? "Programmer un Examen" : root.isEvent ? "Organiser un Évènement" : "Planifier un Cours"
                     font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary
                 }
-
                 Text {
                     text: "CONFIGURATION DE LA SESSION"
                     font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 1
                 }
             }
 
-            IconButton {
-                iconName: "close"; iconSize: 18
-                onClicked: root.close()
-            }
+            IconButton { iconName: "close"; iconSize: 18; onClicked: root.close() }
         }
     }
 
-    // Body
+    // ─── Body ───
     Item {
         width: parent.width
         implicitHeight: bodyGrid.implicitHeight + 60
@@ -117,19 +135,18 @@ ModalOverlay {
             columns: 2
             columnSpacing: 24; rowSpacing: 20
 
-            // ── Titre (Examen & Événement) ──
+            // ── Titre (Événement uniquement — pour l'examen le titre vient de l'épreuve choisie) ──
             Column {
                 Layout.fillWidth: true
-                Layout.columnSpan: root.isEvent ? 2 : 1
-                Layout.preferredWidth: 1
+                Layout.columnSpan: 2
                 spacing: 6
-                visible: root.isExam || root.isEvent
+                visible: root.isEvent
 
-                SectionLabel { text: root.isExam ? "TITRE DE L'ÉPREUVE" : "NOM DE L'ÉVÈNEMENT" }
+                SectionLabel { text: "NOM DE L'ÉVÈNEMENT" }
                 FormField {
                     id: titreField
                     width: parent.width
-                    placeholder: root.isExam ? "Ex: Contrôle de Mathématiques..." : "Ex: Journée portes ouvertes..."
+                    placeholder: "Ex: Journée portes ouvertes..."
                     onTextChanged: root.formTitre = text
                 }
             }
@@ -162,19 +179,63 @@ ModalOverlay {
                                 root.formNiveauId = currentValue
                                 schoolingController.loadMatieresByNiveau(currentValue)
                                 schoolingController.loadClassesByNiveau(currentValue)
-                                modalMatiereCombo.currentIndex = -1
-                                modalClasseCombo.currentIndex = -1
+                                modalMatiereCombo.currentIndex      = -1
+                                modalClasseCombo.currentIndex       = -1
+                                modalClasseComboExam.currentIndex   = -1
                                 root.formMatiereId = -1
-                                root.formClasseId = -1
+                                root.formClasseId  = -1
+                                root.formTitre     = ""
+                                if (titreField) titreField.text = ""
                             }
                         }
                     }
                 }
             }
 
-            // ── Matière (Cours & Examen) ──
+            // ── Classe (Exam : 2e colonne de la ligne Niveau ; Cours : voir après Matière) ──
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
+                visible: root.isExam   // For exam: Niveau | Classe on same row
+
+                SectionLabel { text: "CLASSE" }
+                Rectangle {
+                    width: parent.width; height: 44; radius: 12
+                    color: Style.bgPage
+                    border.color: root.formNiveauId < 0 ? Style.bgTertiary : Style.borderLight
+                    opacity: root.formNiveauId < 0 ? 0.6 : 1.0
+
+                    ComboBox {
+                        id: modalClasseComboExam
+                        anchors.fill: parent; anchors.margins: 4
+                        enabled: root.formNiveauId >= 0
+                        model: schoolingController.classes
+                        textRole: "nom"; valueRole: "id"
+                        currentIndex: -1
+                        background: Rectangle { color: "transparent" }
+                        contentItem: Text {
+                            text: modalClasseComboExam.currentIndex >= 0 ? modalClasseComboExam.currentText
+                                : root.formNiveauId < 0 ? "Choisir un niveau d'abord..." : "Sélectionner..."
+                            font.pixelSize: 13; font.bold: true
+                            color: modalClasseComboExam.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
+                            verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                        }
+                        onCurrentValueChanged: {
+                            if (currentIndex >= 0) {
+                                root.formClasseId = currentValue
+                                if (root.formMatiereId >= 0)
+                                    examsController.loadScheduledExamTitles(root.formMatiereId, currentValue)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Matière (Cours & Examen) — pleine largeur pour exam, demi pour cours ──
+            Column {
+                Layout.fillWidth: true
+                Layout.columnSpan: root.isExam ? 2 : 1
+                Layout.preferredWidth: 1
+                spacing: 6
                 visible: !root.isEvent
 
                 SectionLabel { text: "MATIÈRE" }
@@ -199,15 +260,182 @@ ModalOverlay {
                             color: modalMatiereCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
                             verticalAlignment: Text.AlignVCenter; leftPadding: 8
                         }
-                        onCurrentValueChanged: if (currentIndex >= 0) root.formMatiereId = currentValue
+                        onCurrentValueChanged: {
+                            if (currentIndex < 0) return
+                            root.formMatiereId = currentValue
+
+                            // Auto-fill duration from matière config (cours only)
+                            if (root.isCourse) {
+                                var mats = schoolingController.matieres
+                                for (var i = 0; i < mats.length; i++) {
+                                    if (mats[i].id === currentValue && mats[i].dureeSeanceMinutes > 0) {
+                                        dureeFormField.text = String(mats[i].dureeSeanceMinutes)
+                                        break
+                                    }
+                                }
+                                if (root.formClasseId >= 0)
+                                    examsController.loadCourseCountForMatiereClasse(currentValue, root.formClasseId)
+                            }
+
+                            // For exam: load épreuves + already-scheduled titles
+                            if (root.isExam) {
+                                schoolingController.loadMatiereExamens(currentValue)
+                                if (root.formClasseId >= 0)
+                                    examsController.loadScheduledExamTitles(currentValue, root.formClasseId)
+                            }
+
+                            // Reset dependent fields
+                            root.formTitre = ""
+                            if (titreField) titreField.text = ""
+                        }
                     }
                 }
             }
 
-            // ── Classe (Cours & Examen) ──
+            // ── Épreuve picker (Examen uniquement) ──
+            Column {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                spacing: 8
+                visible: root.isExam
+
+                // Section header: label always + checkbox when matière+classe sont sélectionnés
+                RowLayout {
+                    width: parent.width
+
+                    SectionLabel {
+                        Layout.fillWidth: true
+                        text: "ÉPREUVE À PLANIFIER"
+                    }
+
+                    // Checkbox "afficher aussi les déjà planifiées" (visible seulement quand on a les données)
+                    RowLayout {
+                        spacing: 6
+                        visible: root.formMatiereId >= 0 && root.formClasseId >= 0
+
+                        Rectangle {
+                            width: 16; height: 16; radius: 4
+                            color: root.showAllEpreuves ? Style.primary : "transparent"
+                            border.color: root.showAllEpreuves ? Style.primary : Style.borderMedium
+                            border.width: 1.5
+                            Text {
+                                anchors.centerIn: parent; text: "✓"
+                                font.pixelSize: 9; font.bold: true; color: "#FFFFFF"
+                                visible: root.showAllEpreuves
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: root.showAllEpreuves = !root.showAllEpreuves
+                            }
+                        }
+                        Text {
+                            text: "Inclure les épreuves déjà planifiées"
+                            font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
+                        }
+                    }
+                }
+
+                // Placeholder: matière ou classe pas encore sélectionnée
+                Rectangle {
+                    width: parent.width; height: 44; radius: 12
+                    color: Style.bgPage; border.color: Style.borderLight
+                    visible: root.formMatiereId < 0 || root.formClasseId < 0
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.formMatiereId < 0 && root.formClasseId < 0
+                              ? "Sélectionnez une classe et une matière pour voir les épreuves"
+                              : root.formClasseId < 0
+                              ? "Sélectionnez une classe pour voir les épreuves"
+                              : "Sélectionnez une matière pour voir les épreuves"
+                        font.pixelSize: 11; font.italic: true; color: Style.textTertiary
+                        width: parent.width - 24
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                // Contenu épreuves (matière + classe sélectionnées)
+                Column {
+                    width: parent.width
+                    spacing: 8
+                    visible: root.formMatiereId >= 0 && root.formClasseId >= 0
+
+                    // No épreuves defined
+                    Rectangle {
+                        width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+                        visible: schoolingController.matiereExamens.length === 0
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Aucune épreuve définie pour cette matière"
+                            font.pixelSize: 11; font.italic: true; color: Style.textTertiary
+                            wrapMode: Text.WordWrap
+                            width: parent.width - 24
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
+
+                    // List of épreuves
+                    Flow {
+                        width: parent.width; spacing: 8
+                        visible: schoolingController.matiereExamens.length > 0
+
+                        Repeater {
+                            model: schoolingController.matiereExamens
+
+                            delegate: Item {
+                                property bool isDone: root.isTitreScheduled(modelData.titre)
+                                property bool isSelected: root.formTitre === modelData.titre
+                                // Skip already-scheduled unless showAllEpreuves
+                                visible: root.showAllEpreuves || !isDone
+                                width: visible ? epreuveRow.implicitWidth + 24 : 0
+                                height: visible ? 40 : 0
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 12
+                                    color: isSelected ? Style.primary
+                                         : isDone     ? "#F1F5F9"
+                                         : epreuveMa.containsMouse ? Style.primaryBg : Style.bgPage
+                                    border.color: isSelected ? Style.primary
+                                                : isDone     ? Style.borderLight
+                                                : epreuveMa.containsMouse ? Style.primary : Style.borderLight
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                    Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                                    RowLayout {
+                                        id: epreuveRow
+                                        anchors.centerIn: parent; spacing: 6
+
+                                        Text {
+                                            text: isDone ? "✓ " + modelData.titre : modelData.titre
+                                            font.pixelSize: 12; font.bold: true
+                                            color: isSelected ? "#FFFFFF"
+                                                 : isDone     ? Style.textTertiary
+                                                 : epreuveMa.containsMouse ? Style.primary : Style.textPrimary
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: epreuveMa
+                                        anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: isDone && !root.showAllEpreuves ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.formTitre = modelData.titre
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Classe (Cours uniquement — garde sa position d'origine) ──
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                visible: !root.isEvent
+                visible: root.isCourse
 
                 SectionLabel { text: "CLASSE" }
                 Rectangle {
@@ -231,7 +459,13 @@ ModalOverlay {
                             color: modalClasseCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
                             verticalAlignment: Text.AlignVCenter; leftPadding: 8
                         }
-                        onCurrentValueChanged: if (currentIndex >= 0) root.formClasseId = currentValue
+                        onCurrentValueChanged: {
+                            if (currentIndex >= 0) {
+                                root.formClasseId = currentValue
+                                if (root.isCourse && root.formMatiereId >= 0)
+                                    examsController.loadCourseCountForMatiereClasse(root.formMatiereId, currentValue)
+                            }
+                        }
                     }
                 }
             }
@@ -276,7 +510,6 @@ ModalOverlay {
                                     id: profPopupCol
                                     width: parent.width
 
-                                    // Option de réinitialisation "Sélectionner..."
                                     Rectangle {
                                         width: parent.width; height: 36
                                         color: profResetMa.containsMouse ? Style.bgSecondary : "transparent"
@@ -461,10 +694,7 @@ ModalOverlay {
                     Behavior on border.color { ColorAnimation { duration: 150 } }
 
                     RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 12; anchors.rightMargin: 12
-                        spacing: 8
-
+                        anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 8
                         IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
                         Text {
                             Layout.fillWidth: true
@@ -500,6 +730,7 @@ ModalOverlay {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                 SectionLabel { text: "DURÉE (MINUTES)" }
                 FormField {
+                    id: dureeFormField
                     width: parent.width
                     text: "120"
                     validator: IntValidator { bottom: 15; top: 480 }
@@ -510,7 +741,7 @@ ModalOverlay {
                 }
             }
 
-            // ── Recurrence (course only) ──
+            // ── Récurrence (cours uniquement) ──
             Column {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
@@ -520,8 +751,7 @@ ModalOverlay {
                 SectionLabel { text: "RÉCURRENCE (OPTIONNEL)" }
 
                 RowLayout {
-                    width: parent.width
-                    spacing: 12
+                    width: parent.width; spacing: 12
 
                     Rectangle {
                         Layout.fillWidth: true; height: 44; radius: 12
@@ -530,35 +760,19 @@ ModalOverlay {
                         Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12; anchors.rightMargin: 12
-                            spacing: 10
-
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 10
                             Rectangle {
                                 width: 18; height: 18; radius: 4
                                 color: root.formRecurrence === "remaining" ? Style.primary : "transparent"
                                 border.color: root.formRecurrence === "remaining" ? Style.primary : Style.borderMedium
                                 border.width: 1.5
-                                Text {
-                                    anchors.centerIn: parent; text: "✓"
-                                    font.pixelSize: 10; font.bold: true; color: "#FFFFFF"
-                                    visible: root.formRecurrence === "remaining"
-                                }
+                                Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 10; font.bold: true; color: "#FFFFFF"; visible: root.formRecurrence === "remaining" }
                             }
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: "SEMAINES RESTANTES"
-                                font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary
-                            }
+                            Text { Layout.fillWidth: true; text: "SEMAINES RESTANTES"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary }
                         }
 
-                        MouseArea {
-                            id: remainingMa
-                            anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.formRecurrence = root.formRecurrence === "remaining" ? "none" : "remaining"
-                        }
+                        MouseArea { id: remainingMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: root.formRecurrence = root.formRecurrence === "remaining" ? "none" : "remaining" }
                     }
 
                     Rectangle {
@@ -568,117 +782,265 @@ ModalOverlay {
                         Behavior on border.color { ColorAnimation { duration: 150 } }
 
                         RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12; anchors.rightMargin: 12
-                            spacing: 10
-
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 10
                             Rectangle {
                                 width: 18; height: 18; radius: 4
                                 color: root.formRecurrence === "full" ? Style.primary : "transparent"
                                 border.color: root.formRecurrence === "full" ? Style.primary : Style.borderMedium
                                 border.width: 1.5
-                                Text {
-                                    anchors.centerIn: parent; text: "✓"
-                                    font.pixelSize: 10; font.bold: true; color: "#FFFFFF"
-                                    visible: root.formRecurrence === "full"
-                                }
+                                Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 10; font.bold: true; color: "#FFFFFF"; visible: root.formRecurrence === "full" }
                             }
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: "TOUTE L'ANNÉE SCOLAIRE"
-                                font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary
-                            }
+                            Text { Layout.fillWidth: true; text: "TOUTE L'ANNÉE SCOLAIRE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary }
                         }
 
-                        MouseArea {
-                            id: fullMa
-                            anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.formRecurrence = root.formRecurrence === "full" ? "none" : "full"
-                        }
+                        MouseArea { id: fullMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: root.formRecurrence = root.formRecurrence === "full" ? "none" : "full" }
                     }
                 }
             }
 
-            // ── Submit ──
+            // ── Compteur séances cours (visible quand matière + classe choisis) ──
             Rectangle {
+                id: courseCountBadge
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
-                height: 52; radius: 16
+                height: 40; radius: 12
+                visible: root.isCourse && root.formMatiereId >= 0 && root.formClasseId >= 0
 
-                property bool formValid: {
+                readonly property int  courseCount: examsController.courseCountInfo["count"]  !== undefined ? examsController.courseCountInfo["count"]  : 0
+                readonly property int  courseLimit: examsController.courseCountInfo["limit"]  !== undefined ? examsController.courseCountInfo["limit"]  : 0
+                readonly property bool isAtLimit:   courseLimit > 0 && courseCount >= courseLimit
+                readonly property bool isNearLimit: courseLimit > 0 && courseCount >= courseLimit - 2 && courseCount < courseLimit
+
+                color: isAtLimit   ? "#FEE2E2"
+                     : isNearLimit ? "#FFF7ED"
+                     : "#F0FDF4"
+                border.color: isAtLimit   ? "#FECACA"
+                            : isNearLimit ? "#FED7AA"
+                            : "#BBF7D0"
+
+                RowLayout {
+                    anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14; spacing: 8
+                    Text {
+                        text: courseCountBadge.isAtLimit ? "⚠" : courseCountBadge.isNearLimit ? "⚠" : "✓"
+                        font.pixelSize: 14
+                        color: courseCountBadge.isAtLimit ? "#DC2626" : courseCountBadge.isNearLimit ? "#D97706" : "#16A34A"
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: {
+                            if (courseCountBadge.courseLimit <= 0)
+                                return courseCountBadge.courseCount + " séance(s) planifiée(s) cette année scolaire"
+                            return courseCountBadge.courseCount + " / " + courseCountBadge.courseLimit + " séances planifiées"
+                                 + (courseCountBadge.isAtLimit ? "  — Limite annuelle atteinte" : "")
+                        }
+                        font.pixelSize: 11; font.weight: Font.Bold
+                        color: courseCountBadge.isAtLimit   ? "#DC2626"
+                             : courseCountBadge.isNearLimit ? "#92400E"
+                             : "#166534"
+                    }
+                }
+            }
+
+            // ── Zone Submit / Avertissement / Confirmation ──
+            Column {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                spacing: 12
+
+                readonly property bool formValid: {
                     if (!root.formDate) return false
                     if (root.isCourse)
                         return root.formMatiereId >= 0 && root.formProfId >= 0 && root.formClasseId >= 0 && root.formSalleId >= 0
                     if (root.isExam)
                         return root.formTitre.length > 0 && root.formMatiereId >= 0 && root.formClasseId >= 0 && root.formSalleId >= 0
-                    // Événement
                     return root.formTitre.length > 0
                 }
 
-                opacity: formValid ? 1.0 : 0.5
-                color: !formValid ? Style.bgTertiary
-                    : submitMa.containsMouse
-                        ? (root.isExam ? Style.primaryDark : root.isEvent ? "#D97706" : "#1D4ED8")
-                        : (root.isExam ? Style.primary : root.isEvent ? Style.warningColor : Style.infoColor)
-                Behavior on color { ColorAnimation { duration: 150 } }
+                // ── Avertissement dépassement limite (cours, session unique) ──
+                Rectangle {
+                    width: parent.width
+                    height: overLimitVisible ? 104 : 0
+                    visible: overLimitVisible
+                    radius: 14
+                    color: "#FEF3C7"; border.color: "#FCD34D"
+                    clip: true
 
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 8
-                    Text {
-                        text: "Confirmer l'Organisation"
-                        font.pixelSize: 12; font.weight: Font.Black
-                        color: "#FFFFFF"; font.letterSpacing: 0.5
+                    readonly property bool overLimitVisible:
+                        root.showOverLimitWarning &&
+                        root.isCourse && root.formRecurrence === "none"
+
+                    Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
+                    Column {
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width; spacing: 8
+                            Text { text: "⚠"; font.pixelSize: 16; color: "#D97706" }
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Le nombre de séances prévu (" + (examsController.courseCountInfo["limit"] || 0) + "/an) est déjà atteint. Continuer quand même ?"
+                                font.pixelSize: 12; font.weight: Font.Bold; color: "#78350F"
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+
+                        RowLayout {
+                            width: parent.width; spacing: 10
+
+                            Rectangle {
+                                Layout.fillWidth: true; height: 36; radius: 10
+                                color: cancelWarnMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                border.color: Style.borderLight
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
+                                MouseArea { id: cancelWarnMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showOverLimitWarning = false }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true; height: 36; radius: 10
+                                color: forceCreateMa.containsMouse ? "#D97706" : "#F59E0B"
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Text { anchors.centerIn: parent; text: "CRÉER QUAND MÊME"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
+                                MouseArea {
+                                    id: forceCreateMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.showOverLimitWarning = false
+                                        root.showConfirmSubmit    = true
+                                    }
+                                }
+                            }
+                        }
                     }
-                    Text { text: "→"; font.pixelSize: 16; color: "#FFFFFF" }
                 }
 
-                MouseArea {
-                    id: submitMa
-                    anchors.fill: parent; hoverEnabled: true
-                    cursorShape: parent.formValid ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    enabled: parent.formValid
-                    onClicked: {
-                        var parts = root.formDate.split("/")
-                        var isoDate = ""
-                        if (parts.length === 3)
-                            isoDate = parts[2] + "-" + parts[1] + "-" + parts[0] + "T" + root.formTime + ":00"
+                // ── Confirmation avant création ──
+                Rectangle {
+                    width: parent.width
+                    height: root.showConfirmSubmit ? 96 : 0
+                    visible: root.showConfirmSubmit
+                    radius: 14
+                    color: "#F0FDF4"; border.color: "#BBF7D0"
+                    clip: true
 
-                        if (!isoDate) {
-                            console.warn("Date invalide:", root.formDate)
-                            return
+                    Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
+                    Column {
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
+                        spacing: 10
+
+                        Text {
+                            width: parent.width
+                            text: root.isCourse
+                                  ? "Confirmer la planification du cours ?"
+                                  : root.isExam
+                                  ? "Confirmer la planification de l'épreuve \"" + root.formTitre + "\" ?"
+                                  : "Confirmer l'organisation de l'événement ?"
+                            font.pixelSize: 12; font.weight: Font.Bold; color: "#14532D"
+                            wrapMode: Text.WordWrap
                         }
 
-                        var data = {
-                            "dateHeureDebut": isoDate,
-                            "dureeMinutes": root.formDuree,
-                            "titre": root.formTitre
-                        }
+                        RowLayout {
+                            width: parent.width; spacing: 10
 
-                        if (root.isCourse) {
-                            data["matiereId"] = root.formMatiereId
-                            data["profId"] = root.formProfId
-                            data["salleId"] = root.formSalleId
-                            data["classeId"] = root.formClasseId
-                            data["typeSeance"] = "Cours"
-                            examsController.createCourseWithRecurrence(data, root.formRecurrence)
-                        } else if (root.isExam) {
-                            data["matiereId"] = root.formMatiereId
-                            data["profId"] = root.formProfId
-                            data["salleId"] = root.formSalleId
-                            data["classeId"] = root.formClasseId
-                            data["typeSeance"] = "Examen"
-                            examsController.createExam(data)
-                        } else {
-                            // Événement: salle optionnel, pas de matière/classe/prof
-                            if (root.formSalleId >= 0)
-                                data["salleId"] = root.formSalleId
-                            if (root.formDescriptif)
-                                data["descriptif"] = root.formDescriptif
-                            data["typeSeance"] = "Événement"
-                            examsController.createExam(data)
+                            Rectangle {
+                                Layout.fillWidth: true; height: 36; radius: 10
+                                color: cancelConfirmMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                border.color: Style.borderLight
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Text { anchors.centerIn: parent; text: "NON"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
+                                MouseArea { id: cancelConfirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showConfirmSubmit = false }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true; height: 36; radius: 10
+                                color: okConfirmMa.containsMouse ? "#16A34A" : Style.successColor
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Text { anchors.centerIn: parent; text: "OUI, CONFIRMER"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
+                                MouseArea {
+                                    id: okConfirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.showConfirmSubmit = false
+                                        var parts  = root.formDate.split("/")
+                                        var isoDate = ""
+                                        if (parts.length === 3)
+                                            isoDate = parts[2] + "-" + parts[1] + "-" + parts[0] + "T" + root.formTime + ":00"
+                                        if (!isoDate) return
+
+                                        var data = {
+                                            "dateHeureDebut": isoDate,
+                                            "dureeMinutes":   root.formDuree,
+                                            "titre":          root.formTitre
+                                        }
+
+                                        if (root.isCourse) {
+                                            data["matiereId"] = root.formMatiereId
+                                            data["profId"]    = root.formProfId
+                                            data["salleId"]   = root.formSalleId
+                                            data["classeId"]  = root.formClasseId
+                                            data["typeSeance"] = "Cours"
+                                            examsController.createCourseWithRecurrence(data, root.formRecurrence)
+                                        } else if (root.isExam) {
+                                            data["matiereId"] = root.formMatiereId
+                                            data["profId"]    = root.formProfId
+                                            data["salleId"]   = root.formSalleId
+                                            data["classeId"]  = root.formClasseId
+                                            data["typeSeance"] = "Examen"
+                                            examsController.createExam(data)
+                                        } else {
+                                            if (root.formSalleId >= 0) data["salleId"] = root.formSalleId
+                                            if (root.formDescriptif)   data["descriptif"] = root.formDescriptif
+                                            data["typeSeance"] = "Événement"
+                                            examsController.createExam(data)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Bouton submit principal (caché en mode avertissement/confirm) ──
+                Rectangle {
+                    width: parent.width; height: 52; radius: 16
+                    visible: !root.showConfirmSubmit && !root.showOverLimitWarning
+
+                    readonly property bool formValid: parent.formValid
+
+                    opacity: formValid ? 1.0 : 0.5
+                    color: !formValid ? Style.bgTertiary
+                         : submitMa.containsMouse
+                             ? (root.isExam ? Style.primaryDark : root.isEvent ? "#D97706" : "#1D4ED8")
+                             : (root.isExam ? Style.primary : root.isEvent ? Style.warningColor : Style.infoColor)
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    RowLayout {
+                        anchors.centerIn: parent; spacing: 8
+                        Text { text: "Confirmer l'Organisation"; font.pixelSize: 12; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 0.5 }
+                        Text { text: "→"; font.pixelSize: 16; color: "#FFFFFF" }
+                    }
+
+                    MouseArea {
+                        id: submitMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: parent.formValid ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        enabled: parent.formValid
+
+                        onClicked: {
+                            // Cours: check over-limit before confirming
+                            if (root.isCourse && root.formRecurrence === "none") {
+                                var cnt = examsController.courseCountInfo["count"]  !== undefined ? examsController.courseCountInfo["count"]  : 0
+                                var lim = examsController.courseCountInfo["limit"]  !== undefined ? examsController.courseCountInfo["limit"]  : 0
+                                if (lim > 0 && cnt >= lim) {
+                                    root.showOverLimitWarning = true
+                                    return
+                                }
+                            }
+                            root.showConfirmSubmit = true
                         }
                     }
                 }

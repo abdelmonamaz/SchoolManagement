@@ -293,43 +293,61 @@ ApplicationWindow {
 
             // ─── Page Content ───
             Flickable {
+                id: pageFlickable
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 contentWidth: width
-                contentHeight: pageLoader.item ? pageLoader.item.implicitHeight + 64 : height
+                contentHeight: pageContainer.currentPageItem
+                               ? pageContainer.currentPageItem.implicitHeight + 64
+                               : height
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
+
+                // Reset scroll position on each page change
+                Connections {
+                    target: root
+                    function onCurrentPageChanged() { pageFlickable.contentY = 0 }
+                }
 
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AsNeeded
                 }
 
-                Loader {
-                    id: pageLoader
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 32
+                // All pages are kept alive; only opacity/visibility toggles on navigation.
+                // Component.onCompleted fires once at startup → data pre-loaded.
+                Item {
+                    id: pageContainer
+                    anchors.left:        parent.left
+                    anchors.right:       parent.right
+                    anchors.leftMargin:  32
                     anchors.rightMargin: 32
-                    anchors.topMargin: 32
+                    anchors.topMargin:   32
+                    implicitHeight: currentPageItem ? currentPageItem.implicitHeight : 0
 
-                    sourceComponent: {
+                    readonly property var currentPageItem: {
                         switch (root.currentPage) {
-                                    case "dashboard":  return compDashboard;
-                                    case "schooling":  return compSchooling;
-                                    case "attendance": return compAttendance;
-                                    case "students":   return compStudents;
-                                    case "staff":      return compStaff;
-                                    case "exams":      return compExams;
-                                    case "grades":     return compGrades;
-                                    case "finance":    return compFinance;
-                                    case "settings":   return compSettings;
-                                    default:           return compDashboard;
-                                }
+                            case "dashboard":  return dashboardPage
+                            case "schooling":  return schoolingPage
+                            case "attendance": return attendancePage
+                            case "students":   return studentsPage
+                            case "staff":      return staffPage
+                            case "exams":      return examsPage
+                            case "grades":     return gradesPage
+                            case "finance":    return financePage
+                            case "settings":   return settingsPage
+                            default:           return dashboardPage
+                        }
                     }
 
-                    // Fade transition
-                    opacity: status === Loader.Ready ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    DashboardPage  { id: dashboardPage;  width: parent.width; opacity: root.currentPage === "dashboard"  ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    SchoolingPage  { id: schoolingPage;  width: parent.width; opacity: root.currentPage === "schooling"  ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    AttendancePage { id: attendancePageInst; width: parent.width; opacity: root.currentPage === "attendance" ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    StudentsPage   { id: studentsPage;   width: parent.width; opacity: root.currentPage === "students"   ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    StaffPage      { id: staffPage;      width: parent.width; opacity: root.currentPage === "staff"      ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    ExamsPage      { id: examsPage;      width: parent.width; opacity: root.currentPage === "exams"      ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    GradesPage     { id: gradesPage;     width: parent.width; opacity: root.currentPage === "grades"     ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    FinancePage    { id: financePage;    width: parent.width; opacity: root.currentPage === "finance"    ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    SettingsPage   { id: settingsPage;   width: parent.width; opacity: root.currentPage === "settings"   ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                 }
             }
         }
@@ -533,13 +551,4 @@ ApplicationWindow {
         }
     }
 
-    Component { id: compDashboard;  DashboardPage {} }
-    Component { id: compSchooling;  SchoolingPage {} }
-    Component { id: compAttendance; AttendancePage {} }
-    Component { id: compStudents;   StudentsPage {} }
-    Component { id: compStaff;      StaffPage {} }
-    Component { id: compExams;      ExamsPage {} }
-    Component { id: compGrades;     GradesPage {} }
-    Component { id: compFinance;    FinancePage {} }
-    Component { id: compSettings;   SettingsPage {} }
 }

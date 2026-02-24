@@ -7,149 +7,162 @@ Item {
     id: attendancePage
     implicitHeight: mainLayout.implicitHeight
 
-    property string viewMode: "current"
-    property bool showCallModal: false
+    property bool showCallModal:  false
     property bool showGuestModal: false
-    property bool showIncidentModal: false
-    property bool showCreateSeanceModal: false
 
-    // Selected seance info for call modal
-    property int selectedSeanceId: -1
+    property int    selectedSeanceId:       -1
     property string selectedSessionSubject: ""
-    property string selectedSessionClass: ""
-    property string selectedSessionProf: ""
-    property string selectedSessionTime: ""
+    property string selectedSessionClass:   ""
+    property string selectedSessionProf:    ""
+    property string selectedSessionTime:    ""
 
-    property int selectedWeek: 6
-    property string selectedMonth: "Février"
-    property int selectedYear: 2026
+    property int selectedWeek:     1
+    property int selectedWeekYear: new Date().getFullYear()
+    property int selectedClasseId: 0
+    property var validatedSeances:  ({})   // seanceId → true, marks confirmed seances this session
+    property var stagedStatuts:     ({})   // studentId → "Présent"/"Absent", local changes before confirm
+    property bool stagedInitialized: false
 
-    // Helper: month name to number
-    function monthNameToNumber(name) {
-        var months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                      "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-        return months.indexOf(name) + 1
+    // Shared column widths for header + data rows
+    readonly property int colClasse: 120
+    readonly property int colType:   100
+    readonly property int colAction: 150
+
+    readonly property var classStudents: {
+        var result = [], all = studentController.students
+        for (var i = 0; i < all.length; i++)
+            if (all[i].classeId === selectedClasseId) result.push(all[i])
+        return result
     }
 
-    // Helper: compute ISO date range for a given week/month/year
-    function computeDateRange() {
-        var m = monthNameToNumber(selectedMonth)
-        var dayStart = (selectedWeek - 1) * 7 + 1
-        var dayEnd = dayStart + 6
-        var daysInMonth = new Date(selectedYear, m, 0).getDate()
-        if (dayEnd > daysInMonth) dayEnd = daysInMonth
-        if (dayStart > daysInMonth) dayStart = daysInMonth
-
-        var mm = m < 10 ? "0" + m : "" + m
-        var ds = dayStart < 10 ? "0" + dayStart : "" + dayStart
-        var de = dayEnd < 10 ? "0" + dayEnd : "" + dayEnd
-        return {
-            from: selectedYear + "-" + mm + "-" + ds + "T00:00:00",
-            to: selectedYear + "-" + mm + "-" + de + "T23:59:59"
+    // Call modal model: class students + any already-recorded guests (estInvite=true)
+    readonly property var callModalStudents: {
+        var regularIds = {}, result = []
+        var students = classStudents
+        for (var i = 0; i < students.length; i++) {
+            regularIds[students[i].id] = true
+            result.push(students[i])
         }
+        var parts = attendanceController.participations
+        var all = studentController.students
+        for (var j = 0; j < parts.length; j++) {
+            if (parts[j].estInvite && !regularIds[parts[j].eleveId]) {
+                for (var k = 0; k < all.length; k++) {
+                    if (all[k].id === parts[j].eleveId) { result.push(all[k]); break }
+                }
+            }
+        }
+        return result
+    }
+
+    // Students eligible as guests: same niveau, different class
+    readonly property var guestCandidates: {
+        if (selectedClasseId <= 0) return []
+        var classes = schoolingController.allClasses
+        var currentNiveauId = -1
+        for (var i = 0; i < classes.length; i++) {
+            if (classes[i].id === selectedClasseId) { currentNiveauId = classes[i].niveauId; break }
+        }
+        if (currentNiveauId === -1) return []
+        var sameNiveauClassIds = []
+        for (var j = 0; j < classes.length; j++) {
+            if (classes[j].niveauId === currentNiveauId && classes[j].id !== selectedClasseId)
+                sameNiveauClassIds.push(classes[j].id)
+        }
+        var all = studentController.students, result = []
+        for (var k = 0; k < all.length; k++) {
+            if (sameNiveauClassIds.indexOf(all[k].classeId) !== -1) result.push(all[k])
+        }
+        return result
+    }
+
+    function setStagedStatut(sid, s) {
+        var u = Object.assign({}, stagedStatuts); u[sid] = s; stagedStatuts = u
+    }
+    function initStagedFromDB() {
+        var s = {}, p = attendanceController.participations
+        for (var i = 0; i < p.length; i++) s[p[i].eleveId] = p[i].statut
+        stagedStatuts = s; stagedInitialized = true
+    }
+
+    // ─── ISO week → date range ───
+    function weekDateRange(week, year) {
+        var onejan   = new Date(year, 0, 1)
+        var isoDay   = onejan.getDay() === 0 ? 7 : onejan.getDay()
+        var mondayW1 = new Date(year, 0, 1 + (1 - isoDay))
+        var start    = new Date(mondayW1)
+        start.setDate(mondayW1.getDate() + (week - 1) * 7)
+        var end = new Date(start)
+        end.setDate(start.getDate() + 6)
+        return { start: start, end: end }
+    }
+
+    function pad2(n) { return n < 10 ? "0" + n : "" + n }
+
+    function navigateWeek(delta) {
+        var maxW    = weekPickerPopup.maxWeeksInYear(selectedWeekYear)
+        var newWeek = selectedWeek + delta
+        var newYear = selectedWeekYear
+        if (newWeek < 1) {
+            newYear -= 1
+            newWeek  = weekPickerPopup.maxWeeksInYear(newYear)
+        } else if (newWeek > maxW) {
+            newYear += 1
+            newWeek  = 1
+        }
+        selectedWeek     = newWeek
+        selectedWeekYear = newYear
+        loadSeances()
     }
 
     function loadSeances() {
-        var range = computeDateRange()
-        attendanceController.loadSeancesByDateRange(range.from, range.to)
+        var r    = weekDateRange(selectedWeek, selectedWeekYear)
+        var from = r.start.getFullYear() + "-" + pad2(r.start.getMonth() + 1) + "-" + pad2(r.start.getDate()) + "T00:00:00"
+        var to   = r.end.getFullYear()   + "-" + pad2(r.end.getMonth()   + 1) + "-" + pad2(r.end.getDate())   + "T23:59:59"
+        attendanceController.loadSeancesByDateRange(from, to)
     }
 
-    // Helper: day name from ISO date string
     function dayName(isoDate) {
-        var d = new Date(isoDate)
-        var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"]
-        return days[d.getDay()]
+        return ["DIM","LUN","MAR","MER","JEU","VEN","SAM"][new Date(isoDate).getDay()]
     }
-
-    // Helper: format time from ISO date
     function formatTime(isoDate, durationMin) {
-        var d = new Date(isoDate)
-        var hh = d.getHours()
-        var mm = d.getMinutes()
-        var startStr = (hh < 10 ? "0" + hh : hh) + ":" + (mm < 10 ? "0" + mm : mm)
-        var endDate = new Date(d.getTime() + durationMin * 60000)
-        var eh = endDate.getHours()
-        var em = endDate.getMinutes()
-        var endStr = (eh < 10 ? "0" + eh : eh) + ":" + (em < 10 ? "0" + em : em)
-        return startStr + " - " + endStr
+        var d = new Date(isoDate), e = new Date(d.getTime() + durationMin * 60000)
+        return pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + " - " + pad2(e.getHours()) + ":" + pad2(e.getMinutes())
     }
-
-    // Helper: format date dd/MM
     function formatDateShort(isoDate) {
         var d = new Date(isoDate)
-        var dd = d.getDate()
-        var mm = d.getMonth() + 1
-        return (dd < 10 ? "0" + dd : dd) + "/" + (mm < 10 ? "0" + mm : mm)
+        return pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1)
     }
-
-    // Lookup helpers using schoolingController data
     function findMatiereName(id) {
-        var list = schoolingController.matieres
-        for (var i = 0; i < list.length; i++)
-            if (list[i].id === id) return list[i].nom
-        return "Matière #" + id
+        var m = schoolingController.allMatieres; for (var i = 0; i < m.length; i++) if (m[i].id === id) return m[i].nom; return "Matière #" + id
     }
-
     function findClassName(id) {
-        var list = schoolingController.classes
-        for (var i = 0; i < list.length; i++)
-            if (list[i].id === id) return list[i].nom
-        return "Classe #" + id
+        var m = schoolingController.allClasses; for (var i = 0; i < m.length; i++) if (m[i].id === id) return m[i].nom; return "Classe #" + id
     }
-
     function findProfName(id) {
-        var list = staffController.personnel
-        for (var i = 0; i < list.length; i++)
-            if (list[i].id === id) return list[i].prenom + " " + list[i].nom
-        return "Prof #" + id
+        var m = staffController.personnel; for (var i = 0; i < m.length; i++) if (m[i].id === id) return m[i].prenom + " " + m[i].nom; return "Prof #" + id
     }
-
     function findStudentName(id) {
-        var list = studentController.students
-        for (var i = 0; i < list.length; i++)
-            if (list[i].id === id) return list[i].prenom + " " + list[i].nom
-        return "Élève #" + id
+        var m = studentController.students; for (var i = 0; i < m.length; i++) if (m[i].id === id) return m[i].prenom + " " + m[i].nom; return "Élève #" + id
     }
 
     Component.onCompleted: {
         schoolingController.loadNiveaux()
         schoolingController.loadSalles()
-        staffController.loadPersonnel()
+        schoolingController.loadAllClasses()
+        schoolingController.loadAllMatieres()
+        staffController.loadAllPersonnel()
         studentController.loadStudents()
+        selectedWeek     = weekPickerPopup.currentWeekNumber()
+        selectedWeekYear = new Date().getFullYear()
         loadSeances()
     }
 
     Connections {
         target: attendanceController
-        function onOperationSucceeded(msg) {
-            console.log("AttendancePage:", msg)
-            loadSeances()
-        }
-        function onOperationFailed(err) {
-            console.warn("AttendancePage error:", err)
-        }
-    }
-
-    // Reload when selectors change
-    onSelectedWeekChanged: loadSeances()
-    onSelectedMonthChanged: loadSeances()
-    onSelectedYearChanged: loadSeances()
-
-    // Group seances by day name
-    function groupSeancesByDay() {
-        var groups = {}
-        var dayOrder = []
-        var seances = attendanceController.seances
-        for (var i = 0; i < seances.length; i++) {
-            var s = seances[i]
-            var day = dayName(s.dateHeureDebut)
-            if (!(day in groups)) {
-                groups[day] = []
-                dayOrder.push(day)
-            }
-            groups[day].push(s)
-        }
-        return { groups: groups, order: dayOrder }
+        function onOperationSucceeded(msg) { console.log("AttendancePage:", msg); loadSeances() }
+        function onOperationFailed(err)    { console.warn("AttendancePage error:", err) }
+        function onParticipationsChanged() { if (showCallModal && !stagedInitialized) initStagedFromDB() }
     }
 
     ColumnLayout {
@@ -165,506 +178,220 @@ Item {
             PageHeader {
                 Layout.fillWidth: true
                 title: "Gestion des Présences"
-                subtitle: "Pilotage hebdomadaire de l'appel et suivi des sessions."
+                subtitle: "Pilotage hebdomadaire de l'appel et suivi des séances."
             }
 
+            // Navigation semaine : ◀ [Sem. X · Année] ▶
             Row {
-                spacing: 8
+                spacing: 4
 
-                // Week selector
-                ComboBox {
-                    id: weekCombo
-                    model: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-                    currentIndex: selectedWeek - 1
-                    onCurrentValueChanged: selectedWeek = currentValue
-                    width: 110
-
-                    background: Rectangle {
-                        implicitWidth: 110
-                        implicitHeight: 36
-                        radius: 12
-                        color: Style.bgPage
-                        border.color: weekCombo.pressed ? Style.primary : Style.borderLight
-                    }
-
-                    contentItem: Text {
-                        leftPadding: 12
-                        rightPadding: 12
-                        text: "Sem. " + weekCombo.currentValue
-                        font.pixelSize: 10
-                        font.weight: Font.Black
-                        color: Style.textSecondary
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-
-                // Month selector
-                ComboBox {
-                    id: monthCombo
-                    model: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-                    currentIndex: 1
-                    onCurrentTextChanged: selectedMonth = currentText
-                    width: 120
-
-                    background: Rectangle {
-                        implicitWidth: 120
-                        implicitHeight: 36
-                        radius: 12
-                        color: Style.bgPage
-                        border.color: monthCombo.pressed ? Style.primary : Style.borderLight
-                    }
-
-                    contentItem: Text {
-                        leftPadding: 12
-                        rightPadding: 12
-                        text: monthCombo.displayText
-                        font.pixelSize: 10
-                        font.weight: Font.Black
-                        color: Style.textSecondary
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-
-                // Year selector
-                ComboBox {
-                    id: yearCombo
-                    model: [2024, 2025, 2026]
-                    currentIndex: 2
-                    onCurrentValueChanged: selectedYear = currentValue
-                    width: 90
-
-                    background: Rectangle {
-                        implicitWidth: 90
-                        implicitHeight: 36
-                        radius: 12
-                        color: Style.bgPage
-                        border.color: yearCombo.pressed ? Style.primary : Style.borderLight
-                    }
-
-                    contentItem: Text {
-                        leftPadding: 12
-                        rightPadding: 12
-                        text: yearCombo.currentValue
-                        font.pixelSize: 10
-                        font.weight: Font.Black
-                        color: Style.textSecondary
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-
-                // View toggle
+                // ◀ Semaine précédente
                 Rectangle {
-                    width: viewToggleRow.implicitWidth + 16
-                    height: 42
-                    radius: 16
-                    color: Style.bgSecondary
-
-                    Row {
-                        id: viewToggleRow
+                    width: 32; height: 36; radius: 10
+                    color: attPrevWeekMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text {
                         anchors.centerIn: parent
-                        spacing: 4
+                        text: "‹"; font.pixelSize: 18; font.bold: true
+                        color: Style.textSecondary
+                    }
+                    MouseArea {
+                        id: attPrevWeekMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: attendancePage.navigateWeek(-1)
+                    }
+                }
 
-                        Rectangle {
-                            width: currentLabel.implicitWidth + 32
-                            height: 34
-                            radius: 12
-                            color: viewMode === "current" ? Style.primary : "transparent"
+                // Semaine courante — clic pour ouvrir le picker
+                Rectangle {
+                    implicitWidth: attWeekBtnRow.implicitWidth + 20
+                    height: 36; radius: 10
+                    color: attWeekBtnMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
 
-                            Text {
-                                id: currentLabel
-                                anchors.centerIn: parent
-                                text: "Semaine Actuelle"
-                                font.pixelSize: 10
-                                font.weight: Font.Black
-                                color: viewMode === "current" ? "#FFFFFF" : Style.textTertiary
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: viewMode = "current"
-                            }
+                    RowLayout {
+                        id: attWeekBtnRow
+                        anchors.centerIn: parent; spacing: 6
+                        IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
+                        Text {
+                            text: "Sem. " + selectedWeek + "  ·  " + selectedWeekYear
+                            font.pixelSize: 9; font.weight: Font.Black
+                            color: Style.textPrimary; font.letterSpacing: 0.5
                         }
+                    }
 
-                        Rectangle {
-                            width: historyLabel.implicitWidth + 32
-                            height: 34
-                            radius: 12
-                            color: viewMode === "history" ? Style.primary : "transparent"
+                    MouseArea {
+                        id: attWeekBtnMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: weekPickerPopup.open()
+                    }
+                }
 
-                            Text {
-                                id: historyLabel
-                                anchors.centerIn: parent
-                                text: "Archives"
-                                font.pixelSize: 10
-                                font.weight: Font.Black
-                                color: viewMode === "history" ? "#FFFFFF" : Style.textTertiary
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: viewMode = "history"
-                            }
-                        }
+                // ▶ Semaine suivante
+                Rectangle {
+                    width: 32; height: 36; radius: 10
+                    color: attNextWeekMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "›"; font.pixelSize: 18; font.bold: true
+                        color: Style.textSecondary
+                    }
+                    MouseArea {
+                        id: attNextWeekMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: attendancePage.navigateWeek(1)
                     }
                 }
             }
         }
 
-        // ─── Current Week View ───
-        Loader {
+        // ─── Seances Table Card ───
+        AppCard {
             Layout.fillWidth: true
-            active: viewMode === "current"
-            visible: active
 
-            sourceComponent: Component {
-                RowLayout {
-                    spacing: 24
+            Column {
+                width: parent.width
+                spacing: 0
 
-                    // Left: Planning
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 2
-                        spacing: 24
+                // Table header
+                Row {
+                    width: parent.width; height: 40
 
-                        // Session Planning Card
-                        AppCard {
-                            Layout.fillWidth: true
-                            title: "Planning des Présences - Semaine " + selectedWeek
-                            subtitle: attendanceController.seances.length + " séance(s) cette semaine"
-
-                            Column {
-                                width: parent.width
-                                spacing: 16
-
-                                // Empty state
-                                Text {
-                                    visible: attendanceController.seances.length === 0
-                                    text: attendanceController.loading ? "Chargement..." : "Aucune séance cette semaine"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                    color: Style.textTertiary
-                                    width: parent.width
-                                    horizontalAlignment: Text.AlignHCenter
-                                    topPadding: 32
-                                    bottomPadding: 32
-                                }
-
-                                // Dynamic seances grouped by day
-                                Repeater {
-                                    model: {
-                                        var grouped = groupSeancesByDay()
-                                        var items = []
-                                        for (var d = 0; d < grouped.order.length; d++) {
-                                            var day = grouped.order[d]
-                                            items.push({ isHeader: true, dayName: day })
-                                            var sessions = grouped.groups[day]
-                                            for (var s = 0; s < sessions.length; s++) {
-                                                items.push({ isHeader: false, seance: sessions[s] })
-                                            }
-                                        }
-                                        return items
-                                    }
-
-                                    delegate: Loader {
-                                        width: parent.width
-                                        sourceComponent: modelData.isHeader ? dayHeaderComp : seanceCardComp
-                                        property var itemData: modelData
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add Seance button
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 48
-                            radius: 16
-                            color: Style.bgWhite
-                            border.color: Style.borderLight
-                            border.width: 2
-
-                            RowLayout {
-                                anchors.centerIn: parent
-                                spacing: 8
-
-                                Text {
-                                    text: "+"
-                                    font.pixelSize: 16
-                                    font.bold: true
-                                    color: Style.primary
-                                }
-
-                                Text {
-                                    text: "NOUVELLE SÉANCE"
-                                    font.pixelSize: 11
-                                    font.weight: Font.Black
-                                    color: Style.primary
-                                    font.letterSpacing: 1
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: showCreateSeanceModal = true
-                            }
-                        }
+                    Item {
+                        width: parent.width - attendancePage.colClasse - attendancePage.colType - attendancePage.colAction
+                        height: parent.height
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "DATE / SÉANCE"; font.pixelSize: 10 }
                     }
-
-                    // Right sidebar
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
-                        Layout.alignment: Qt.AlignTop
-                        spacing: 24
-
-                        AppCard {
-                            Layout.fillWidth: true
-                            title: "Résumé de la Semaine"
-
-                            Column {
-                                width: parent.width
-                                spacing: 16
-
-                                RowLayout {
-                                    width: parent.width
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: "Séances planifiées"
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                        color: Style.textSecondary
-                                    }
-
-                                    Text {
-                                        text: attendanceController.seances.length
-                                        font.pixelSize: 18
-                                        font.weight: Font.Black
-                                        color: Style.primary
-                                    }
-                                }
-
-                                Separator { width: parent.width }
-
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
-
-                                    Rectangle {
-                                        width: 40; height: 40; radius: 12
-                                        color: Style.successBg
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "C"; font.pixelSize: 14; font.bold: true
-                                            color: Style.successColor
-                                        }
-                                    }
-
-                                    Column {
-                                        Layout.fillWidth: true; spacing: 2
-                                        Text {
-                                            text: "Cours"; font.pixelSize: 12; font.bold: true
-                                            color: Style.textPrimary
-                                        }
-                                        Text {
-                                            text: {
-                                                var c = 0; var sl = attendanceController.seances
-                                                for (var i = 0; i < sl.length; i++)
-                                                    if (sl[i].typeSeance === "Cours") c++
-                                                return c + " séance(s)"
-                                            }
-                                            font.pixelSize: 9; font.weight: Font.Bold
-                                            color: Style.textTertiary
-                                        }
-                                    }
-                                }
-
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
-
-                                    Rectangle {
-                                        width: 40; height: 40; radius: 12
-                                        color: Style.warningBg
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "E"; font.pixelSize: 14; font.bold: true
-                                            color: Style.warningColor
-                                        }
-                                    }
-
-                                    Column {
-                                        Layout.fillWidth: true; spacing: 2
-                                        Text {
-                                            text: "Examens"; font.pixelSize: 12; font.bold: true
-                                            color: Style.textPrimary
-                                        }
-                                        Text {
-                                            text: {
-                                                var c = 0; var sl = attendanceController.seances
-                                                for (var i = 0; i < sl.length; i++)
-                                                    if (sl[i].typeSeance === "Examen") c++
-                                                return c + " séance(s)"
-                                            }
-                                            font.pixelSize: 9; font.weight: Font.Bold
-                                            color: Style.textTertiary
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Quick Stats
-                        AppCard {
-                            Layout.fillWidth: true
-                            title: "Statistiques Rapides"
-
-                            Column {
-                                width: parent.width
-                                spacing: 14
-
-                                RowLayout {
-                                    width: parent.width; spacing: 12
-
-                                    Rectangle {
-                                        width: 40; height: 40; radius: 12
-                                        color: Style.successBg
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "P"; font.pixelSize: 14; font.bold: true
-                                            color: Style.successColor
-                                        }
-                                    }
-
-                                    Column {
-                                        Layout.fillWidth: true; spacing: 2
-                                        Text {
-                                            text: "Participations chargées"
-                                            font.pixelSize: 12; font.bold: true
-                                            color: Style.textPrimary
-                                        }
-                                        Text {
-                                            text: attendanceController.participations.length + " ENREGISTREMENT(S)"
-                                            font.pixelSize: 9; font.weight: Font.Bold
-                                            color: Style.textTertiary
-                                        }
-                                    }
-                                }
-
-                                Separator { width: parent.width }
-
-                                Text {
-                                    visible: attendanceController.errorMessage.length > 0
-                                    text: attendanceController.errorMessage
-                                    font.pixelSize: 11; font.bold: true
-                                    color: Style.errorColor
-                                    wrapMode: Text.Wrap; width: parent.width
-                                }
-                            }
-                        }
+                    Item {
+                        width: attendancePage.colClasse; height: parent.height
+                        SectionLabel { anchors.centerIn: parent; text: "CLASSE"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
+                    }
+                    Item {
+                        width: attendancePage.colType; height: parent.height
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "TYPE"; font.pixelSize: 10 }
+                    }
+                    Item {
+                        width: attendancePage.colAction; height: parent.height
+                        SectionLabel { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "ACTION"; font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
                     }
                 }
-            }
-        }
 
-        // ─── History View ───
-        Loader {
-            Layout.fillWidth: true
-            active: viewMode === "history"
-            visible: active
+                Separator { width: parent.width }
 
-            sourceComponent: Component {
-                AppCard {
-                    title: "Historique des Séances"
+                // Empty state
+                Item {
+                    width: parent.width; height: 80
+                    visible: attendanceController.seances.length === 0
+                    Text {
+                        anchors.centerIn: parent
+                        text: attendanceController.loading ? "Chargement..." : "Aucune séance pour cette semaine"
+                        font.pixelSize: 13; font.italic: true; color: Style.textTertiary
+                    }
+                }
 
-                    Column {
+                // Data rows
+                Repeater {
+                    model: attendanceController.seances
+
+                    delegate: Column {
                         width: parent.width
-                        spacing: 0
+                        property bool validated: modelData.presenceValide === true || attendancePage.validatedSeances[modelData.id] === true
 
-                        RowLayout {
-                            width: parent.width
-                            height: 40
+                        Rectangle {
+                            width: parent.width; height: 60
+                            color: validated ? "#F0FDF4" : "transparent"
 
-                            SectionLabel {
-                                Layout.fillWidth: true; text: "DATE / SÉANCE"; font.pixelSize: 10
-                            }
-                            SectionLabel {
-                                Layout.preferredWidth: 120; text: "CLASSE"; font.pixelSize: 10
-                            }
-                            SectionLabel {
-                                Layout.preferredWidth: 100; text: "TYPE"; font.pixelSize: 10
-                            }
-                            SectionLabel {
-                                Layout.preferredWidth: 100; text: "ACTION"; font.pixelSize: 10
-                                horizontalAlignment: Text.AlignRight
+                            Row {
+                                anchors.fill: parent
+
+                                // Date + Matière + Horaire + Prof
+                                Item {
+                                    width: parent.width - attendancePage.colClasse - attendancePage.colType - attendancePage.colAction
+                                    height: parent.height
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter; spacing: 4
+                                        Text {
+                                            text: dayName(modelData.dateHeureDebut) + "  " + formatDateShort(modelData.dateHeureDebut) + "  ·  "
+                                                + findMatiereName(modelData.matiereId)
+                                                + (modelData.titre ? "  —  " + modelData.titre : "")
+                                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                            elide: Text.ElideRight
+                                            width: parent.parent.width
+                                        }
+                                        Text {
+                                            text: formatTime(modelData.dateHeureDebut, modelData.dureeMinutes) + "  ·  " + findProfName(modelData.profId)
+                                            font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
+                                        }
+                                    }
+                                }
+
+                                // Classe
+                                Item {
+                                    width: attendancePage.colClasse; height: parent.height
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: findClassName(modelData.classeId)
+                                        font.pixelSize: 12; font.bold: true; color: Style.textSecondary
+                                        elide: Text.ElideRight; width: parent.width
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+
+                                // Type badge
+                                Item {
+                                    width: attendancePage.colType; height: parent.height
+                                    Badge {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData.typeSeance
+                                        variant: modelData.typeSeance === "Cours" ? "info" : "warning"
+                                    }
+                                }
+
+                                // Valider / Modifier Présence button
+                                Item {
+                                    width: attendancePage.colAction; height: parent.height
+                                    Rectangle {
+                                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                        implicitWidth: valLbl.implicitWidth + 24
+                                        height: 32; radius: 10
+                                        color: validated
+                                               ? (valMa.containsMouse ? "#059669" : Style.successColor)
+                                               : (valMa.containsMouse ? Style.primaryDark : Style.primary)
+                                        Text {
+                                            id: valLbl; anchors.centerIn: parent
+                                            text: validated ? "Modifier Présence" : "Valider Présence"
+                                            font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF"
+                                        }
+                                        MouseArea {
+                                            id: valMa; anchors.fill: parent
+                                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                selectedSeanceId       = modelData.id
+                                                selectedClasseId       = modelData.classeId
+                                                selectedSessionSubject = findMatiereName(modelData.matiereId)
+                                                                      + (modelData.titre ? " — " + modelData.titre : "")
+                                                selectedSessionClass   = findClassName(modelData.classeId)
+                                                selectedSessionProf    = findProfName(modelData.profId)
+                                                selectedSessionTime    = formatTime(modelData.dateHeureDebut, modelData.dureeMinutes)
+                                                stagedStatuts          = {}
+                                                stagedInitialized      = false
+                                                attendanceController.loadParticipations(modelData.id)
+                                                showCallModal          = true
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 
                         Separator { width: parent.width }
-
-                        Text {
-                            visible: attendanceController.seances.length === 0
-                            text: attendanceController.loading ? "Chargement..." : "Aucune séance trouvée"
-                            font.pixelSize: 13; font.bold: true; color: Style.textTertiary
-                            width: parent.width; horizontalAlignment: Text.AlignHCenter
-                            topPadding: 32; bottomPadding: 32
-                        }
-
-                        Repeater {
-                            model: attendanceController.seances
-
-                            delegate: Column {
-                                width: parent.width
-
-                                RowLayout {
-                                    width: parent.width; height: 52
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: formatDateShort(modelData.dateHeureDebut) + " - " + findMatiereName(modelData.matiereId)
-                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                                    }
-
-                                    Text {
-                                        Layout.preferredWidth: 120
-                                        text: findClassName(modelData.classeId)
-                                        font.pixelSize: 12; font.bold: true; color: Style.textSecondary
-                                    }
-
-                                    Badge {
-                                        Layout.preferredWidth: 100
-                                        text: modelData.typeSeance
-                                        variant: modelData.typeSeance === "Cours" ? "info" : "warning"
-                                    }
-
-                                    Text {
-                                        Layout.preferredWidth: 100
-                                        text: "CONSULTER"
-                                        font.pixelSize: 10; font.weight: Font.Black
-                                        color: Style.primary; horizontalAlignment: Text.AlignRight
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                selectedSeanceId = modelData.id
-                                                selectedSessionSubject = findMatiereName(modelData.matiereId)
-                                                selectedSessionClass = findClassName(modelData.classeId)
-                                                selectedSessionProf = findProfName(modelData.profId)
-                                                selectedSessionTime = formatTime(modelData.dateHeureDebut, modelData.dureeMinutes)
-                                                attendanceController.loadParticipations(modelData.id)
-                                                showCallModal = true
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Separator { width: parent.width }
-                            }
-                        }
                     }
                 }
             }
@@ -673,112 +400,23 @@ Item {
         Item { Layout.preferredHeight: 32 }
     }
 
-    // ─── Day Header Component ───
-    Component {
-        id: dayHeaderComp
-
-        SectionLabel {
-            text: itemData.dayName
-            font.pixelSize: 10
-            topPadding: 8
-        }
-    }
-
-    // ─── Seance Card Component ───
-    Component {
-        id: seanceCardComp
-
-        Rectangle {
-            width: parent ? parent.width : 200
-            height: 72
-            radius: 16
-            color: Style.bgWhite
-            border.color: seanceCardMa.containsMouse ? Style.primary : Style.borderLight
-
-            Behavior on border.color { ColorAnimation { duration: 150 } }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 16
-                spacing: 12
-
-                Rectangle {
-                    width: 40; height: 40; radius: 12
-                    color: itemData.seance.typeSeance === "Cours" ? Style.successBg : Style.warningBg
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: findClassName(itemData.seance.classeId)
-                        font.pixelSize: 11; font.bold: true
-                        color: itemData.seance.typeSeance === "Cours" ? Style.successColor : Style.warningColor
-                    }
-                }
-
-                Column {
-                    Layout.fillWidth: true; spacing: 2
-
-                    Text {
-                        text: findMatiereName(itemData.seance.matiereId)
-                        font.pixelSize: 12; font.bold: true; color: Style.textPrimary
-                    }
-                    Text {
-                        text: formatTime(itemData.seance.dateHeureDebut, itemData.seance.dureeMinutes) + " - " + findProfName(itemData.seance.profId)
-                        font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
-                    }
-                }
-
-                Row {
-                    spacing: 4
-                    IconButton {
-                        iconName: "delete"; iconSize: 14
-                        hoverColor: Style.errorColor
-                        onClicked: attendanceController.deleteSeance(itemData.seance.id)
-                    }
-                }
-            }
-
-            MouseArea {
-                id: seanceCardMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    selectedSeanceId = itemData.seance.id
-                    selectedSessionSubject = findMatiereName(itemData.seance.matiereId)
-                    selectedSessionClass = findClassName(itemData.seance.classeId)
-                    selectedSessionProf = findProfName(itemData.seance.profId)
-                    selectedSessionTime = formatTime(itemData.seance.dateHeureDebut, itemData.seance.dureeMinutes)
-                    attendanceController.loadParticipations(itemData.seance.id)
-                    showCallModal = true
-                }
-            }
-        }
-    }
-
     // ─── Call Modal ───
     ModalOverlay {
         show: showCallModal
         modalWidth: Math.min(parent.width - 64, 900)
+        modalColor: "#FAFBFC"
         onClose: showCallModal = false
 
-        // Modal Header
-        Rectangle {
+        // Header
+        Item {
             width: parent.width; height: 80
-            color: "#FAFBFC"; radius: 32
-
-            Rectangle {
-                anchors.bottom: parent.bottom
-                width: parent.width; height: 40; color: "#FAFBFC"
-            }
-
-            Separator { anchors.bottom: parent.bottom; width: parent.width }
+            Separator  { anchors.bottom: parent.bottom; width: parent.width }
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 24; spacing: 14
 
                 Column {
                     Layout.fillWidth: true; spacing: 4
-
                     RowLayout {
                         spacing: 10
                         Text {
@@ -787,7 +425,6 @@ Item {
                         }
                         Badge { text: "Classe " + selectedSessionClass; variant: "info" }
                     }
-
                     Text {
                         text: selectedSessionProf + " - " + selectedSessionTime
                         font.pixelSize: 10; font.weight: Font.Bold
@@ -795,27 +432,21 @@ Item {
                     }
                 }
 
-                OutlineButton {
-                    text: "Ajouter Invité"; iconName: "plus"
-                    onClicked: showGuestModal = true
-                }
-
-                IconButton {
-                    iconName: "close"; iconSize: 18
-                    onClicked: showCallModal = false
-                }
+                OutlineButton { text: "Ajouter Invité"; iconName: "plus"; onClicked: showGuestModal = true }
+                IconButton    { iconName: "close"; iconSize: 18; onClicked: showCallModal = false }
             }
         }
 
-        // Student Cards Grid
-        Item {
+        // Students grid (all students in the class)
+        Rectangle {
             width: parent.width
             implicitHeight: studentGrid.implicitHeight + 48
+            color: Style.bgWhite
 
             Text {
-                visible: attendanceController.participations.length === 0
+                visible: attendanceController.loading
                 anchors.centerIn: parent
-                text: attendanceController.loading ? "Chargement des participations..." : "Aucune participation enregistrée pour cette séance"
+                text: "Chargement..."
                 font.pixelSize: 13; font.bold: true; color: Style.textTertiary
             }
 
@@ -826,120 +457,121 @@ Item {
                 columns: 4; columnSpacing: 16; rowSpacing: 16
 
                 Repeater {
-                    model: attendanceController.participations
+                    model: attendancePage.callModalStudents
 
                     delegate: Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: studentCardCol.implicitHeight + 32
-                        radius: 24; color: Style.bgWhite; border.color: Style.borderLight
+                        implicitHeight: cardCol.implicitHeight + 32
+                        radius: 24
+                        color: Style.bgWhite
+                        border.color: isGuest ? "#BAE6FD" : Style.borderLight
 
-                        property string currentStatus: {
-                            if (modelData.statut === "Présent") return "present"
-                            if (modelData.statut === "Retard") return "late"
-                            return "absent"
+                        // Staged statut: updated locally; defaults to "Présent" until explicitly changed
+                        property string statut: {
+                            var sid = modelData.id
+                            return attendancePage.stagedStatuts.hasOwnProperty(sid)
+                                   ? attendancePage.stagedStatuts[sid] : "Présent"
+                        }
+
+                        // Guest detection: reactive to participations changes
+                        property bool isGuest: {
+                            var parts = attendanceController.participations
+                            for (var i = 0; i < parts.length; i++)
+                                if (parts[i].eleveId === modelData.id && parts[i].estInvite) return true
+                            return false
+                        }
+                        property int guestParticipationId: {
+                            var parts = attendanceController.participations
+                            for (var i = 0; i < parts.length; i++)
+                                if (parts[i].eleveId === modelData.id && parts[i].estInvite) return parts[i].id
+                            return -1
+                        }
+
+                        // Remove button — top-right corner, guests only
+                        Rectangle {
+                            visible: isGuest
+                            anchors.top: parent.top; anchors.right: parent.right
+                            anchors.topMargin: 8; anchors.rightMargin: 8
+                            width: 24; height: 24; radius: 8
+                            color: removeMa.containsMouse ? Style.errorColor : "#FEE2E2"
+                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "✕"
+                                font.pixelSize: 10; font.bold: true
+                                color: removeMa.containsMouse ? "#FFFFFF" : Style.errorColor
+                            }
+                            MouseArea {
+                                id: removeMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (guestParticipationId !== -1) {
+                                        attendanceController.deleteParticipation(guestParticipationId)
+                                        attendanceController.loadParticipations(attendancePage.selectedSeanceId)
+                                    }
+                                }
+                            }
                         }
 
                         Column {
-                            id: studentCardCol
+                            id: cardCol
                             anchors.fill: parent; anchors.margins: 16; spacing: 12
 
                             Rectangle {
                                 width: 56; height: 56; radius: 20
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                color: Style.bgSecondary; border.color: "#FFFFFF"; border.width: 2
-
+                                color: isGuest ? "#E0F2FE" : Style.bgSecondary
+                                border.color: "#FFFFFF"; border.width: 2
                                 Text {
                                     anchors.centerIn: parent
-                                    text: findStudentName(modelData.eleveId).charAt(0)
-                                    font.pixelSize: 18; font.bold: true; color: Style.primary
+                                    text: modelData.prenom.charAt(0)
+                                    font.pixelSize: 18; font.bold: true
+                                    color: isGuest ? "#0284C7" : Style.primary
                                 }
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: findStudentName(modelData.eleveId)
+                                text: modelData.prenom + " " + modelData.nom
                                 font.pixelSize: 11; font.bold: true; color: Style.textPrimary
                                 elide: Text.ElideRight; width: parent.width
                                 horizontalAlignment: Text.AlignHCenter
                             }
 
-                            Badge {
-                                visible: modelData.estInvite === true
+                            // "INVITÉ" badge — only for guests
+                            Rectangle {
+                                visible: isGuest
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Invité"; variant: "info"
+                                implicitWidth: guestLbl.implicitWidth + 12
+                                height: 18; radius: 6
+                                color: "#E0F2FE"
+                                Text {
+                                    id: guestLbl
+                                    anchors.centerIn: parent
+                                    text: "INVITÉ"
+                                    font.pixelSize: 8; font.weight: Font.Black
+                                    color: "#0284C7"; font.letterSpacing: 0.5
+                                }
                             }
 
-                            // Status Buttons
                             Row {
-                                anchors.horizontalCenter: parent.horizontalCenter; spacing: 6
+                                anchors.horizontalCenter: parent.horizontalCenter; spacing: 8
 
-                                // Present
                                 Rectangle {
-                                    width: 32; height: 32; radius: 10
-                                    color: currentStatus === "present" ? Style.successColor : Style.bgPage
-                                    border.color: currentStatus === "present" ? Style.successColor : Style.borderLight
-                                    Text {
-                                        anchors.centerIn: parent; text: "P"
-                                        font.pixelSize: 12; font.bold: true
-                                        color: currentStatus === "present" ? "#FFFFFF" : Style.textTertiary
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            attendanceController.updateParticipation(modelData.id, {
-                                                seanceId: modelData.seanceId, eleveId: modelData.eleveId,
-                                                statut: "Présent", note: modelData.note !== undefined ? modelData.note : -1,
-                                                estInvite: modelData.estInvite
-                                            })
-                                            attendanceController.loadParticipations(selectedSeanceId)
-                                        }
-                                    }
+                                    width: 40; height: 32; radius: 10
+                                    color: statut === "Présent" ? Style.successColor : Style.bgPage
+                                    border.color: statut === "Présent" ? Style.successColor : Style.borderLight
+                                    Text { anchors.centerIn: parent; text: "P"; font.pixelSize: 12; font.bold: true; color: statut === "Présent" ? "#FFFFFF" : Style.textTertiary }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: attendancePage.setStagedStatut(modelData.id, "Présent") }
                                 }
 
-                                // Late
                                 Rectangle {
-                                    width: 32; height: 32; radius: 10
-                                    color: currentStatus === "late" ? Style.warningColor : Style.bgPage
-                                    border.color: currentStatus === "late" ? Style.warningColor : Style.borderLight
-                                    Text {
-                                        anchors.centerIn: parent; text: "R"
-                                        font.pixelSize: 12; font.bold: true
-                                        color: currentStatus === "late" ? "#FFFFFF" : Style.textTertiary
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            attendanceController.updateParticipation(modelData.id, {
-                                                seanceId: modelData.seanceId, eleveId: modelData.eleveId,
-                                                statut: "Retard", note: modelData.note !== undefined ? modelData.note : -1,
-                                                estInvite: modelData.estInvite
-                                            })
-                                            attendanceController.loadParticipations(selectedSeanceId)
-                                        }
-                                    }
-                                }
-
-                                // Absent
-                                Rectangle {
-                                    width: 32; height: 32; radius: 10
-                                    color: currentStatus === "absent" ? Style.errorColor : Style.bgPage
-                                    border.color: currentStatus === "absent" ? Style.errorColor : Style.borderLight
-                                    Text {
-                                        anchors.centerIn: parent; text: "A"
-                                        font.pixelSize: 12; font.bold: true
-                                        color: currentStatus === "absent" ? "#FFFFFF" : Style.textTertiary
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            attendanceController.updateParticipation(modelData.id, {
-                                                seanceId: modelData.seanceId, eleveId: modelData.eleveId,
-                                                statut: "Absent", note: modelData.note !== undefined ? modelData.note : -1,
-                                                estInvite: modelData.estInvite
-                                            })
-                                            attendanceController.loadParticipations(selectedSeanceId)
-                                        }
-                                    }
+                                    width: 40; height: 32; radius: 10
+                                    color: statut === "Absent" ? Style.errorColor : Style.bgPage
+                                    border.color: statut === "Absent" ? Style.errorColor : Style.borderLight
+                                    Text { anchors.centerIn: parent; text: "A"; font.pixelSize: 12; font.bold: true; color: statut === "Absent" ? "#FFFFFF" : Style.textTertiary }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: attendancePage.setStagedStatut(modelData.id, "Absent") }
                                 }
                             }
                         }
@@ -948,10 +580,9 @@ Item {
             }
         }
 
-        // Modal Footer
-        Rectangle {
-            width: parent.width; height: 80; color: "#FAFBFC"
-
+        // Footer
+        Item {
+            width: parent.width; height: 80
             Separator { anchors.top: parent.top; width: parent.width }
 
             RowLayout {
@@ -959,29 +590,35 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredWidth: 1
-                    height: 48; radius: 16
-                    color: Style.bgWhite; border.color: Style.borderLight
-                    Text {
-                        anchors.centerIn: parent; text: "FERMER"
-                        font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary
-                    }
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: showCallModal = false
-                    }
+                    height: 48; radius: 16; color: Style.bgWhite; border.color: Style.borderLight
+                    Text { anchors.centerIn: parent; text: "FERMER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showCallModal = false }
                 }
 
                 Rectangle {
-                    Layout.fillWidth: true; Layout.preferredWidth: 2
+                    Layout.fillWidth: true; Layout.preferredWidth: 1
                     height: 48; radius: 16; color: Style.primary
-                    Text {
-                        anchors.centerIn: parent; text: "ENREGISTRER L'APPEL"
-                        font.pixelSize: 11; font.weight: Font.Black
-                        color: "#FFFFFF"; font.letterSpacing: 1
-                    }
+                    Text { anchors.centerIn: parent; text: "CONFIRMER L'APPEL"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 1 }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: showCallModal = false
+                        onClicked: {
+                            var parts = attendanceController.participations
+                            var ep = {}
+                            for (var i = 0; i < parts.length; i++) ep[parts[i].eleveId] = parts[i]
+                            var students = attendancePage.classStudents
+                            for (var j = 0; j < students.length; j++) {
+                                var sid = students[j].id
+                                var s = attendancePage.stagedStatuts.hasOwnProperty(sid) ? attendancePage.stagedStatuts[sid] : "Présent"
+                                if (ep[sid] !== undefined)
+                                    attendanceController.updateParticipation(ep[sid].id, { seanceId: selectedSeanceId, eleveId: sid, statut: s, note: ep[sid].note !== undefined ? ep[sid].note : -1, estInvite: false })
+                                else
+                                    attendanceController.recordParticipation({ seanceId: selectedSeanceId, eleveId: sid, statut: s, note: -1, estInvite: false })
+                            }
+                            var v = Object.assign({}, attendancePage.validatedSeances)
+                            v[selectedSeanceId] = true; attendancePage.validatedSeances = v
+                            attendanceController.setPresenceValide(selectedSeanceId, true)
+                            showCallModal = false
+                        }
                     }
                 }
             }
@@ -991,229 +628,143 @@ Item {
     // ─── Guest Modal ───
     ModalOverlay {
         show: showGuestModal
-        modalWidth: 420
-        onClose: showGuestModal = false
+        modalWidth: 440
+        modalColor: "#FAFBFC"
+        onClose: { showGuestModal = false; guestSearch.text = "" }
 
-        Column {
-            width: parent.width; spacing: 0; padding: 32
+        // Header
+        Item {
+            width: parent.width; height: 72
+            Separator  { anchors.bottom: parent.bottom; width: parent.width }
 
-            Text {
-                text: "Ajouter un Invité"
-                font.pixelSize: 22; font.weight: Font.Black
-                color: Style.textPrimary; bottomPadding: 24
-            }
+            RowLayout {
+                anchors.fill: parent; anchors.margins: 24; spacing: 12
 
-            FormField {
-                id: guestNameField
-                width: parent.width - 64
-                label: "NOM DE L'ÉLÈVE INVITÉ"
-                placeholder: "Chercher ou saisir un nom..."
-            }
-
-            Item { width: 1; height: 24 }
-
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "AJOUTER"
-                confirmColor: Style.successColor
-                onCancel: showGuestModal = false
-                onConfirm: {
-                    attendanceController.recordParticipation({
-                        seanceId: selectedSeanceId,
-                        eleveId: 0,
-                        statut: "Présent",
-                        note: -1,
-                        estInvite: true
-                    })
-                    attendanceController.loadParticipations(selectedSeanceId)
-                    showGuestModal = false
+                Column {
+                    Layout.fillWidth: true; spacing: 2
+                    Text { text: "Ajouter un Invité"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: "Même niveau · autre classe"; font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
                 }
+
+                IconButton { iconName: "close"; onClicked: { showGuestModal = false; guestSearch.text = "" } }
             }
         }
-    }
 
-    // ─── Create Seance Modal ───
-    ModalOverlay {
-        show: showCreateSeanceModal
-        modalWidth: 480
-        onClose: showCreateSeanceModal = false
-
-        Column {
-            width: parent.width; spacing: 0; padding: 32
-
-            Text {
-                text: "Nouvelle Séance"
-                font.pixelSize: 22; font.weight: Font.Black
-                color: Style.textPrimary; bottomPadding: 24
-            }
+        // Body: search + list
+        Item {
+            width: parent.width
+            implicitHeight: guestBodyCol.implicitHeight + 40
 
             Column {
-                width: parent.width - 64; spacing: 18
+                id: guestBodyCol
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 20 }
+                spacing: 12
 
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "CLASSE" }
-                    ComboBox {
-                        id: newSeanceClasse; width: parent.width
-                        model: schoolingController.classes
-                        textRole: "nom"; valueRole: "id"
-                        background: Rectangle {
-                            implicitHeight: 44; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
+                // Search field
+                Rectangle {
+                    width: parent.width; height: 44; radius: 12
+                    color: Style.bgPage
+                    border.color: guestSearch.activeFocus ? Style.primary : Style.borderLight
+
+                    HoverHandler { cursorShape: Qt.IBeamCursor }
+
+                    TextInput {
+                        id: guestSearch
+                        anchors.fill: parent; anchors.margins: 12
+                        font.pixelSize: 13; color: Style.textPrimary
+                        selectByMouse: true
+
+                        Text {
+                            visible: !parent.text
+                            text: "Rechercher par nom..."
+                            font: parent.font; color: Style.textTertiary
                         }
                     }
                 }
 
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "MATIÈRE" }
-                    ComboBox {
-                        id: newSeanceMatiere; width: parent.width
-                        model: schoolingController.matieres
-                        textRole: "nom"; valueRole: "id"
-                        background: Rectangle {
-                            implicitHeight: 44; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
-                        }
-                    }
-                }
-
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "PROFESSEUR" }
-                    ComboBox {
-                        id: newSeanceProf; width: parent.width
-                        model: {
-                            var profs = staffController.personnel
-                            var items = []
-                            for (var i = 0; i < profs.length; i++)
-                                items.push({ displayName: profs[i].prenom + " " + profs[i].nom, id: profs[i].id })
-                            return items
-                        }
-                        textRole: "displayName"; valueRole: "id"
-                        background: Rectangle {
-                            implicitHeight: 44; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
-                        }
-                    }
-                }
-
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "SALLE" }
-                    ComboBox {
-                        id: newSeanceSalle; width: parent.width
-                        model: schoolingController.salles
-                        textRole: "nom"; valueRole: "id"
-                        background: Rectangle {
-                            implicitHeight: 44; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
-                        }
-                    }
-                }
-
-                FormField {
-                    id: newSeanceDateTime; width: parent.width
-                    label: "DATE ET HEURE (ISO)"
-                    placeholder: "2026-02-16T08:00:00"
-                }
-
-                FormField {
-                    id: newSeanceDuration; width: parent.width
-                    label: "DURÉE (MINUTES)"
-                    placeholder: "60"
-                }
-
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "TYPE" }
-                    ComboBox {
-                        id: newSeanceType; width: parent.width
-                        model: ["Cours", "Examen", "Événement"]
-                        background: Rectangle {
-                            implicitHeight: 44; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
-                        }
-                    }
-                }
-            }
-
-            Item { width: 1; height: 24 }
-
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "CRÉER"
-                onCancel: showCreateSeanceModal = false
-                onConfirm: {
-                    attendanceController.createSeance({
-                        classeId: newSeanceClasse.currentValue,
-                        matiereId: newSeanceMatiere.currentValue,
-                        profId: newSeanceProf.currentValue,
-                        salleId: newSeanceSalle.currentValue,
-                        dateHeureDebut: newSeanceDateTime.text,
-                        dureeMinutes: parseInt(newSeanceDuration.text) || 60,
-                        typeSeance: newSeanceType.currentText
-                    })
-                    showCreateSeanceModal = false
-                }
-            }
-        }
-    }
-
-    // ─── Incident Modal ───
-    ModalOverlay {
-        show: showIncidentModal
-        modalWidth: 420
-        onClose: showIncidentModal = false
-
-        Column {
-            width: parent.width; spacing: 0; padding: 32
-
-            Text {
-                text: "Signaler un Incident"
-                font.pixelSize: 22; font.weight: Font.Black
-                color: Style.textPrimary; bottomPadding: 24
-            }
-
-            Column {
-                width: parent.width - 64; spacing: 18
-
-                Column {
-                    width: parent.width; spacing: 6
-                    SectionLabel { text: "NATURE DE L'INCIDENT" }
-                    Rectangle {
-                        width: parent.width; height: 44; radius: 12
-                        color: Style.bgPage; border.color: Style.borderLight
-                        RowLayout {
-                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-                            Text {
-                                Layout.fillWidth: true; text: "Retard"
-                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                            }
-                            Text { text: "▾"; font.pixelSize: 12; color: Style.textTertiary }
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor }
-                    }
-                }
-
-                FormField {
+                // Student list
+                ListView {
+                    id: guestList
                     width: parent.width
-                    label: "COMMENTAIRE (OPTIONNEL)"
-                    placeholder: "Détails de l'incident..."
-                    fieldHeight: 100
-                    Component.onCompleted: inputItem.wrapMode = TextInput.Wrap
+                    height: Math.min(contentHeight, 280)
+                    clip: true
+                    spacing: 4
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    model: {
+                        var candidates = attendancePage.guestCandidates
+                        var q = guestSearch.text.toLowerCase().trim()
+                        if (!q) return candidates
+                        var r = []
+                        for (var i = 0; i < candidates.length; i++) {
+                            var n = (candidates[i].prenom + " " + candidates[i].nom).toLowerCase()
+                            if (n.indexOf(q) !== -1) r.push(candidates[i])
+                        }
+                        return r
+                    }
+
+                    delegate: Rectangle {
+                        width: guestList.width; height: 56; radius: 12
+                        color: guestItemMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                        border.color: Style.borderLight
+
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
+
+                            Rectangle {
+                                width: 36; height: 36; radius: 12; color: Style.primaryBg
+                                Text { anchors.centerIn: parent; text: modelData.prenom.charAt(0); font.pixelSize: 14; font.bold: true; color: Style.primary }
+                            }
+
+                            Column {
+                                Layout.fillWidth: true; spacing: 2
+                                Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                Text { text: attendancePage.findClassName(modelData.classeId); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
+                            }
+
+                            Rectangle {
+                                width: 60; height: 30; radius: 8; color: Style.primary
+                                Text { anchors.centerIn: parent; text: "INVITER"; font.pixelSize: 9; font.weight: Font.Black; color: "#FFFFFF" }
+                            }
+                        }
+
+                        MouseArea {
+                            id: guestItemMa; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                attendanceController.recordParticipation({
+                                    seanceId: attendancePage.selectedSeanceId,
+                                    eleveId: modelData.id, statut: "Présent", note: -1, estInvite: true
+                                })
+                                attendanceController.loadParticipations(attendancePage.selectedSeanceId)
+                                showGuestModal = false
+                                guestSearch.text = ""
+                            }
+                        }
+                    }
+
+                    // Empty state
+                    Text {
+                        anchors.centerIn: parent
+                        visible: guestList.count === 0
+                        text: guestSearch.text ? "Aucun résultat pour \"" + guestSearch.text + "\"" : "Aucun élève disponible dans le même niveau"
+                        font.pixelSize: 12; font.italic: true; color: Style.textTertiary
+                        horizontalAlignment: Text.AlignHCenter
+                        width: parent.width - 40
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
+        }
+    }
 
-            Item { width: 1; height: 24 }
-
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "SIGNALER & NOTIFIER"
-                confirmColor: Style.warningColor
-                onCancel: showIncidentModal = false
-                onConfirm: showIncidentModal = false
-            }
+    // ─── Week Picker Popup ───
+    WeekPickerPopup {
+        id: weekPickerPopup
+        onConfirmed: function(week, year) {
+            attendancePage.selectedWeek     = week
+            attendancePage.selectedWeekYear = year
+            attendancePage.loadSeances()
         }
     }
 }

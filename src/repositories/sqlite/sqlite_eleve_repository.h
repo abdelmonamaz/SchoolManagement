@@ -18,6 +18,15 @@ public:
     Result<int> countAll() override;
     Result<bool> unassignClasse(int classeId) override;
     Result<bool> removeFromClasse(int studentId) override;
+    Result<bool> assignToClasse(int studentId, int classeId) override;
+    Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& anneeScolaire, const QString& sexe, const QString& categorie) override;
+
+    // Enrollments
+    Result<int> createEnrollment(const Inscription& inscription) override;
+    Result<bool> updateEnrollment(const Inscription& inscription) override;
+    Result<QList<Inscription>> getEnrollmentsByStudentId(int studentId) override;
+    Result<std::optional<Inscription>> getEnrollmentByYear(int studentId, const QString& anneeScolaire) override;
+    Result<bool> deleteEnrollment(int enrollmentId) override;
 
 private:
     QString m_connectionName;

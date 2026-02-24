@@ -6,13 +6,15 @@ Rectangle {
     property string text: ""
     property string iconName: ""
     property color textColor: Style.textSecondary
+    property color baseColor: Style.bgWhite
+    property color hoverColor: Style.bgPage
 
     signal clicked()
 
     implicitWidth: row.implicitWidth + 36
     implicitHeight: 48
     radius: 16
-    color: mouseArea.containsMouse ? Style.bgPage : Style.bgWhite
+    color: mouseArea.containsMouse ? control.hoverColor : control.baseColor
     border.color: Style.borderLight
     border.width: 1
 

@@ -12,6 +12,9 @@ Column {
     id: root
 
     property string label: ""
+    property var nextTabItem: null
+    property var prevTabItem: null
+    property alias inputItem: dayInput
 
     // Validation calendaire stricte : ranges + nombre de jours réels dans le mois (années bissextiles incluses)
     readonly property bool isValid: {
@@ -99,7 +102,7 @@ Column {
             // ── Jour ──
             TextInput {
                 id: dayInput
-                Layout.preferredWidth: 22
+                Layout.preferredWidth: 30
                 font.pixelSize: 13
                 font.bold: true
                 color: Style.textPrimary
@@ -111,6 +114,11 @@ Column {
 
                 onTextChanged: {
                     if (text.length === 2) monthInput.forceActiveFocus()
+                }
+
+                Keys.onBacktabPressed: function(event) {
+                    event.accepted = true
+                    if (root.prevTabItem) root.prevTabItem.forceActiveFocus()
                 }
 
                 Text {
@@ -131,7 +139,7 @@ Column {
             // ── Mois ──
             TextInput {
                 id: monthInput
-                Layout.preferredWidth: 22
+                Layout.preferredWidth: 30
                 font.pixelSize: 13
                 font.bold: true
                 color: Style.textPrimary
@@ -168,7 +176,7 @@ Column {
             // ── Année ──
             TextInput {
                 id: yearInput
-                Layout.preferredWidth: 44
+                Layout.preferredWidth: 55
                 font.pixelSize: 13
                 font.bold: true
                 color: Style.textPrimary
@@ -182,6 +190,11 @@ Column {
                     event.accepted = true
                     monthInput.forceActiveFocus()
                 }
+                
+                Keys.onTabPressed: function(event) {
+                    event.accepted = true
+                    if (root.nextTabItem) root.nextTabItem.forceActiveFocus()
+                }
 
                 Text {
                     visible: !yearInput.text
@@ -192,6 +205,41 @@ Column {
             }
 
             Item { Layout.fillWidth: true }
+
+            IconLabel {
+                iconName: "calendar"
+                iconSize: 16
+                iconColor: dateMouseArea.containsMouse ? Style.primary : Style.textTertiary
+                MouseArea {
+                    id: dateMouseArea
+                    anchors.fill: parent
+                    anchors.margins: -8 // larger hit area
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: {
+                        var d = new Date()
+                        if (root.isValid) {
+                            var y = parseInt(yearInput.text)
+                            var m = parseInt(monthInput.text) - 1
+                            var dt = parseInt(dayInput.text)
+                            d = new Date(y, m, dt)
+                        }
+                        datePopup.selectedDate = d
+                        datePopup.open()
+                    }
+                }
+            }
+        }
+    }
+
+    DatePickerPopup {
+        id: datePopup
+        onConfirmed: function(isoDate) {
+            // ISO date comes as DD/MM/YYYY from DatePickerPopup formatSelected() wait actually DatePickerPopup confirmed(DD/MM/YYYY)
+            // So I must parse DD/MM/YYYY into the fields
+            dayInput.text = isoDate.substring(0, 2)
+            monthInput.text = isoDate.substring(3, 5)
+            yearInput.text = isoDate.substring(6, 10)
         }
     }
 }

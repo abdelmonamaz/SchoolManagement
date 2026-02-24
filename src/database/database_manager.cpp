@@ -123,11 +123,28 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  nom TEXT NOT NULL,"
             "  prenom TEXT NOT NULL,"
+            "  sexe TEXT DEFAULT 'M',"
             "  telephone TEXT,"
             "  adresse TEXT,"
             "  date_naissance TEXT,"
+            "  nom_parent TEXT,"
+            "  tel_parent TEXT,"
+            "  commentaire TEXT,"
             "  categorie TEXT NOT NULL,"
             "  classe_id INTEGER REFERENCES classes(id)"
+            ")"),
+
+        // ── Inscriptions Élèves (Historique) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS inscriptions_eleves ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  eleve_id INTEGER REFERENCES eleves(id) ON DELETE CASCADE,"
+            "  annee_scolaire TEXT NOT NULL,"
+            "  niveau_id INTEGER REFERENCES niveaux(id),"
+            "  resultat TEXT DEFAULT 'En cours',"
+            "  frais_inscription_paye INTEGER DEFAULT 0,"
+            "  montant_inscription REAL DEFAULT 50.0,"
+            "  date_inscription TEXT DEFAULT (date('now'))"
             ")"),
 
         // ── Matières ──
@@ -135,7 +152,17 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "CREATE TABLE IF NOT EXISTS matieres ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  nom TEXT NOT NULL,"
-            "  niveau_id INTEGER REFERENCES niveaux(id)"
+            "  niveau_id INTEGER REFERENCES niveaux(id),"
+            "  nombre_seances INTEGER DEFAULT 0,"
+            "  duree_seance_minutes INTEGER DEFAULT 60"
+            ")"),
+
+        // ── Évaluations configurables par matière ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS matiere_examens ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  matiere_id INTEGER NOT NULL REFERENCES matieres(id) ON DELETE CASCADE,"
+            "  titre TEXT NOT NULL"
             ")"),
 
         // ── Équipements ──
@@ -152,7 +179,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  salle_id INTEGER REFERENCES salles(id),"
             "  date_heure_debut TEXT NOT NULL,"
             "  duree_minutes INTEGER NOT NULL DEFAULT 60,"
-            "  type_seance TEXT DEFAULT 'Cours'"
+            "  type_seance TEXT DEFAULT 'Cours',"
+            "  presence_valide INTEGER DEFAULT 0"
             ")"),
 
         // ── Participations ──
@@ -423,6 +451,67 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         execStatement(db, QStringLiteral(
             "ALTER TABLE %1 ADD COLUMN sexe TEXT DEFAULT 'M'").arg(personnelTable));
         qInfo() << "[DatabaseManager] Migration 11: added column" << personnelTable << ".sexe";
+    }
+
+    // Migration 12 : ajout des colonnes dans eleves
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("sexe"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN sexe TEXT DEFAULT 'M'"));
+    }
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("nom_parent"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN nom_parent TEXT"));
+    }
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("tel_parent"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN tel_parent TEXT"));
+    }
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("commentaire"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN commentaire TEXT"));
+    }
+    qInfo() << "[DatabaseManager] Migration 12: added new columns to eleves";
+
+    // Migration 13 : création de la table inscriptions_eleves si elle n'existe pas (déjà fait dans createTables mais pour la sécurité)
+    if (!tableExists(QStringLiteral("inscriptions_eleves"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS inscriptions_eleves ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  eleve_id INTEGER REFERENCES eleves(id) ON DELETE CASCADE,"
+            "  annee_scolaire TEXT NOT NULL,"
+            "  niveau_id INTEGER REFERENCES niveaux(id),"
+            "  resultat TEXT DEFAULT 'En cours',"
+            "  frais_inscription_paye INTEGER DEFAULT 0,"
+            "  montant_inscription REAL DEFAULT 50.0,"
+            "  date_inscription TEXT DEFAULT (date('now'))"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 13: created inscriptions_eleves table";
+    }
+
+    // Migration 14 : ajout de presence_valide dans seances
+    if (!columnExists(QStringLiteral("seances"), QStringLiteral("presence_valide"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE seances ADD COLUMN presence_valide INTEGER DEFAULT 0"));
+        qInfo() << "[DatabaseManager] Migration 14: added column seances.presence_valide";
+    }
+
+    // Migration 15 : ajout des nouveaux champs dans matieres
+    if (!columnExists(QStringLiteral("matieres"), QStringLiteral("nombre_seances"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE matieres ADD COLUMN nombre_seances INTEGER DEFAULT 0"));
+        qInfo() << "[DatabaseManager] Migration 15a: added column matieres.nombre_seances";
+    }
+    if (!columnExists(QStringLiteral("matieres"), QStringLiteral("duree_seance_minutes"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE matieres ADD COLUMN duree_seance_minutes INTEGER DEFAULT 60"));
+        qInfo() << "[DatabaseManager] Migration 15b: added column matieres.duree_seance_minutes";
+    }
+
+    // Migration 16 : création de la table matiere_examens
+    if (!tableExists(QStringLiteral("matiere_examens"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS matiere_examens ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  matiere_id INTEGER NOT NULL REFERENCES matieres(id) ON DELETE CASCADE,"
+            "  titre TEXT NOT NULL"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 16: created table matiere_examens";
     }
 }
 

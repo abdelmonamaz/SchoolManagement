@@ -18,6 +18,7 @@ public:
     Result<QList<Seance>> getByClasseId(int classeId) override;
     Result<int> getTotalMinutesByProf(int profId, const QDate& from, const QDate& to) override;
     Result<QStringList> checkConflicts(const Seance& seance, int excludeSeanceId = 0) override;
+    Result<bool> setPresenceValide(int seanceId, bool valide) override;
 
 private:
     QString m_connectionName;

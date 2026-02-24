@@ -19,8 +19,13 @@ Item {
         studentController.loadStudents()
         schoolingController.loadNiveaux()
         schoolingController.loadAllClasses()
-        // Vérification immédiate si les élèves sont déjà chargés (navigation depuis SchoolingPage)
         checkPendingStudent()
+    }
+
+    // Avec les pages toujours vivantes, pendingStudentId peut être positionné
+    // après le Component.onCompleted → on le vérifie aussi à chaque activation.
+    onVisibleChanged: {
+        if (visible) checkPendingStudent()
     }
 
     Connections {
@@ -142,7 +147,6 @@ Item {
             showRegistrationModal = false
         }
         onCloseRequested: showRegistrationModal = false
-        onNiveauSelected: (niveauId) => schoolingController.loadClassesByNiveau(niveauId)
     }
 
     // ─── Edit Modal ───

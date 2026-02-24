@@ -41,7 +41,7 @@ static GS::TypePresence stringToTypePresence(const QString& s) {
 // Column order matches kSeanceSelect JOIN query:
 // 0: s.id, 1: s.salle_id, 2: s.date_heure_debut, 3: s.duree_minutes, 4: s.type_seance,
 // 5: matiere_id (COALESCE), 6: prof_id (COALESCE), 7: classe_id (COALESCE),
-// 8: titre (COALESCE), 9: descriptif (COALESCE)
+// 8: titre (COALESCE), 9: descriptif (COALESCE), 10: s.presence_valide
 static Seance rowToSeance(const QSqlQuery& q) {
     Seance s;
     s.id = q.value(0).toInt();
@@ -54,6 +54,7 @@ static Seance rowToSeance(const QSqlQuery& q) {
     s.classeId = q.value(7).toInt();
     s.titre = q.value(8).toString();
     s.descriptif = q.value(9).toString();
+    s.presenceValide = q.value(10).toBool();
     return s;
 }
 
@@ -79,7 +80,8 @@ static const auto kSeanceSelect = QStringLiteral(
     "COALESCE(c.prof_id, e.prof_id, 0), "
     "COALESCE(c.classe_id, e.classe_id, 0), "
     "COALESCE(e.titre, ev.titre, ''), "
-    "COALESCE(ev.descriptif, '') "
+    "COALESCE(ev.descriptif, ''), "
+    "s.presence_valide "
     "FROM seances s "
     "LEFT JOIN cours c ON c.seance_id = s.id "
     "LEFT JOIN examens e ON e.seance_id = s.id "
@@ -238,6 +240,16 @@ Result<bool> SqliteSeanceRepository::remove(int id) {
     // CASCADE deletes the sub-table row automatically
     query.prepare(QStringLiteral("DELETE FROM seances WHERE id = ?"));
     query.addBindValue(id);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteSeanceRepository::setPresenceValide(int seanceId, bool valide) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("UPDATE seances SET presence_valide = ? WHERE id = ?"));
+    query.addBindValue(valide ? 1 : 0);
+    query.addBindValue(seanceId);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
 }

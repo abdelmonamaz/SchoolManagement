@@ -37,6 +37,21 @@ Item {
         examsController.loadSessionsByWeek(selectedWeek, selectedWeekYear)
     }
 
+    function navigateWeek(delta) {
+        var maxW    = weekPickerPopup.maxWeeksInYear(selectedWeekYear)
+        var newWeek = selectedWeek + delta
+        var newYear = selectedWeekYear
+        if (newWeek < 1) {
+            newYear -= 1
+            newWeek  = weekPickerPopup.maxWeeksInYear(newYear)
+        } else if (newWeek > maxW) {
+            newYear += 1
+            newWeek  = 1
+        }
+        selectedWeek     = newWeek
+        selectedWeekYear = newYear
+    }
+
     function reloadCurrentView() {
         if (activeView === "planning")
             examsController.loadSessionsByWeek(selectedWeek, selectedWeekYear)
@@ -255,6 +270,8 @@ Item {
                     selectedWeek: examsPage.selectedWeek
                     selectedWeekYear: examsPage.selectedWeekYear
                     onOpenWeekPicker: weekPickerPopup.open()
+                    onPrevWeek: examsPage.navigateWeek(-1)
+                    onNextWeek: examsPage.navigateWeek(1)
                     onOpenDetail: function(item) {
                         selectedItem = item
                         showDetailModal = true

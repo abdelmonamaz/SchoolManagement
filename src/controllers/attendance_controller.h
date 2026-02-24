@@ -31,6 +31,8 @@ public:
     Q_INVOKABLE void loadParticipations(int seanceId);
     Q_INVOKABLE void recordParticipation(const QVariantMap& data);
     Q_INVOKABLE void updateParticipation(int id, const QVariantMap& data);
+    Q_INVOKABLE void deleteParticipation(int id);
+    Q_INVOKABLE void setPresenceValide(int seanceId, bool valide);
 
 signals:
     void seancesChanged();

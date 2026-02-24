@@ -18,6 +18,9 @@ public:
 
     // Conflict detection: returns list of conflict descriptions, empty if no conflicts
     virtual Result<QStringList> checkConflicts(const Seance& seance, int excludeSeanceId = 0) = 0;
+
+    // Mark attendance as validated / unvalidated for a seance
+    virtual Result<bool> setPresenceValide(int seanceId, bool valide) = 0;
 };
 
 class IParticipationRepository : public IRepository<Participation> {

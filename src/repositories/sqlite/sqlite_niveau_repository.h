@@ -49,3 +49,19 @@ public:
 private:
     QString m_connectionName;
 };
+
+class SqliteMatiereExamenRepository : public IMatiereExamenRepository {
+public:
+    explicit SqliteMatiereExamenRepository(QString connectionName);
+
+    Result<QList<MatiereExamen>> getAll() override;
+    Result<std::optional<MatiereExamen>> getById(int id) override;
+    Result<int> create(const MatiereExamen& entity) override;
+    Result<bool> update(const MatiereExamen& entity) override;
+    Result<bool> remove(int id) override;
+
+    Result<QList<MatiereExamen>> getByMatiereId(int matiereId) override;
+
+private:
+    QString m_connectionName;
+};

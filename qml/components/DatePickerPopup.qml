@@ -110,74 +110,76 @@ Popup {
         // Month/Year navigation
         Item {
             width: parent.width
-            height: 48
+            height: 54
 
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 24
                 anchors.rightMargin: 24
+                anchors.topMargin: 8
+                anchors.bottomMargin: 8
                 spacing: 8
 
                 Rectangle {
-                    width: 32; height: 32; radius: 10
-                    color: prevMa.containsMouse ? Style.bgSecondary : Style.bgPage
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "◀"
-                        font.pixelSize: 10
-                        color: Style.textSecondary
-                    }
-
-                    MouseArea {
-                        id: prevMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.viewMonth === 0) {
-                                root.viewMonth = 11
-                                root.viewYear--
-                            } else {
-                                root.viewMonth--
-                            }
-                        }
-                    }
-                }
-
-                Text {
                     Layout.fillWidth: true
-                    text: root.monthNames[root.viewMonth] + " " + root.viewYear
-                    font.pixelSize: 13
-                    font.weight: Font.Black
-                    color: Style.textPrimary
-                    horizontalAlignment: Text.AlignHCenter
+                    height: 38
+                    radius: 12
+                    color: Style.bgPage
+                    border.color: Style.borderLight
+
+                    ComboBox {
+                        id: monthCombo
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        model: root.monthNames
+                        currentIndex: root.viewMonth
+                        
+                        background: Rectangle { color: "transparent" }
+                        contentItem: Text {
+                            text: monthCombo.displayText
+                            font.pixelSize: 13
+                            font.bold: true
+                            color: Style.textPrimary
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 8
+                        }
+
+                        onActivated: root.viewMonth = currentIndex
+                    }
                 }
 
                 Rectangle {
-                    width: 32; height: 32; radius: 10
-                    color: nextMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    Layout.preferredWidth: 120
+                    height: 38
+                    radius: 12
+                    color: Style.bgPage
+                    border.color: Style.borderLight
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "▶"
-                        font.pixelSize: 10
-                        color: Style.textSecondary
-                    }
-
-                    MouseArea {
-                        id: nextMa
+                    ComboBox {
+                        id: yearCombo
                         anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (root.viewMonth === 11) {
-                                root.viewMonth = 0
-                                root.viewYear++
-                            } else {
-                                root.viewMonth++
+                        anchors.margins: 2
+                        model: {
+                            var years = []
+                            var currentYear = new Date().getFullYear()
+                            for (var i = currentYear - 80; i <= currentYear + 5; i++) {
+                                years.push(i)
                             }
+                            return years
                         }
+                        currentIndex: root.viewYear - (new Date().getFullYear() - 80)
+                        
+                        background: Rectangle { color: "transparent" }
+                        contentItem: Text {
+                            text: yearCombo.displayText
+                            font.pixelSize: 13
+                            font.bold: true
+                            color: Style.textPrimary
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 8
+                        }
+
+                        onActivated: root.viewYear = new Date().getFullYear() - 80 + currentIndex
                     }
                 }
             }

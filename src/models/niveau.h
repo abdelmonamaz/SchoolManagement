@@ -17,6 +17,14 @@ struct Matiere {
     int id = 0;
     QString nom;
     int niveauId = 0;
+    int nombreSeances = 0;
+    int dureeSeanceMinutes = 60;
+};
+
+struct MatiereExamen {
+    int id = 0;
+    int matiereId = 0;
+    QString titre;
 };
 
 struct Equipement {

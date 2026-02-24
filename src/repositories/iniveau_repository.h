@@ -22,6 +22,14 @@ public:
     ~IMatiereRepository() override = default;
 
     virtual Result<QList<Matiere>> getByNiveauId(int niveauId) = 0;
+    virtual Result<bool> update(const Matiere& entity) = 0;
+};
+
+class IMatiereExamenRepository : public IRepository<MatiereExamen> {
+public:
+    ~IMatiereExamenRepository() override = default;
+
+    virtual Result<QList<MatiereExamen>> getByMatiereId(int matiereId) = 0;
 };
 
 class IEquipementRepository : public IRepository<Equipement> {

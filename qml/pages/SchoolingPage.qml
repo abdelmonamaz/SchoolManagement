@@ -27,6 +27,9 @@ Item {
     property int deletingNiveauId: 0
     property bool showDeleteMatiereConfirm: false
     property int deletingMatiereId: 0
+    property bool showEditMatiereModal: false
+    property int editingMatiereId: 0
+    property var editingMatiere: ({id: 0, nom: "", niveauId: 0, nombreSeances: 0, dureeSeanceMinutes: 60})
     property bool showEditRoomModal: false
     property var editingRoom: ({id: 0, nom: "", capaciteChaises: 20, equipement: ""})
     property bool showDeleteRoomConfirm: false
@@ -55,6 +58,12 @@ Item {
             if (selectedNiveauId > 0) {
                 schoolingController.loadClassesByNiveau(selectedNiveauId)
                 schoolingController.loadMatieresByNiveau(selectedNiveauId)
+            }
+        }
+        function onClasseCreated(classeId) {
+            if (classModals && classModals.pendingStudentsToAssign && classModals.pendingStudentsToAssign.length > 0) {
+                studentController.assignMultipleStudentsToClasse(classModals.pendingStudentsToAssign, classeId)
+                classModals.pendingStudentsToAssign = []
             }
         }
         function onOperationFailed(err) { console.warn("SchoolingPage error:", err) }
@@ -204,6 +213,19 @@ Item {
                                 schoolPage.deletingMatiereId = id
                                 schoolPage.showDeleteMatiereConfirm = true
                             }
+                            onMatiereEditRequested: (id) => {
+                                // Trouver la matière dans la liste pour pré-remplir le modal
+                                var mats = schoolingController.matieres
+                                for (var i = 0; i < mats.length; i++) {
+                                    if (mats[i].id === id) {
+                                        schoolPage.editingMatiere = mats[i]
+                                        break
+                                    }
+                                }
+                                schoolPage.editingMatiereId = id
+                                schoolingController.loadMatiereExamens(id)
+                                schoolPage.showEditMatiereModal = true
+                            }
                         }
 
                         ClassesSection {
@@ -299,7 +321,29 @@ Item {
         onCloseRequested: showDeleteMatiereConfirm = false
     }
 
+    MatiereEditModal {
+        show:             showEditMatiereModal
+        editingMatiereId: schoolPage.editingMatiereId
+        editingNiveauId:  schoolPage.editingMatiere.niveauId || schoolPage.selectedNiveauId
+        initialNom:              schoolPage.editingMatiere.nom             || ""
+        initialNombreSeances:    schoolPage.editingMatiere.nombreSeances   || 0
+        initialDureeMinutes:     schoolPage.editingMatiere.dureeSeanceMinutes > 0
+                                     ? schoolPage.editingMatiere.dureeSeanceMinutes : 60
+
+        onSaveRequested: (data) => {
+            schoolingController.updateMatiere(data.id, {
+                nom:                data.nom,
+                niveauId:           data.niveauId,
+                nombreSeances:      data.nombreSeances,
+                dureeSeanceMinutes: data.dureeSeanceMinutes
+            })
+            showEditMatiereModal = false
+        }
+        onCloseRequested: showEditMatiereModal = false
+    }
+
     ClassModals {
+        id: classModals
         showCreate: showClassModal
         showEdit: showEditClassModal
         showDelete: showDeleteClassConfirm
@@ -308,12 +352,25 @@ Item {
         selectedNiveauNom: schoolPage.selectedNiveauNom()
         selectedNiveauId: schoolPage.selectedNiveauId
 
-        onCreateRequested: (nom, niveauId) => {
+        property var pendingStudentsToAssign: []
+
+        onCreateRequested: (nom, niveauId, studentIdsToAssign) => {
+            pendingStudentsToAssign = studentIdsToAssign || []
             schoolingController.createClasse(nom, niveauId)
             showClassModal = false
         }
-        onEditRequested: (id, nom, niveauId) => {
+        onEditRequested: (id, nom, niveauId, studentIdsToAdd, studentIdsToRemove) => {
             schoolingController.updateClasse(id, nom, niveauId)
+            
+            if (studentIdsToRemove && studentIdsToRemove.length > 0) {
+                for (var j = 0; j < studentIdsToRemove.length; j++) {
+                    studentController.removeStudentFromClasse(studentIdsToRemove[j])
+                }
+            }
+            if (studentIdsToAdd && studentIdsToAdd.length > 0) {
+                studentController.assignMultipleStudentsToClasse(studentIdsToAdd, id)
+            }
+            
             showEditClassModal = false
         }
         onDeleteRequested: (id) => {

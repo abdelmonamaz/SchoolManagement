@@ -16,6 +16,7 @@ class SchoolingController : public QObject {
     Q_PROPERTY(QVariantList allMatieres READ allMatieres NOTIFY allMatieresChanged)
     Q_PROPERTY(QVariantList salles READ salles NOTIFY sallesChanged)
     Q_PROPERTY(QVariantList equipements READ equipements NOTIFY equipementsChanged)
+    Q_PROPERTY(QVariantList matiereExamens READ matiereExamens NOTIFY matiereExamensChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
@@ -29,6 +30,7 @@ public:
     QVariantList allMatieres() const { return m_allMatieres; }
     QVariantList salles() const { return m_salles; }
     QVariantList equipements() const { return m_equipements; }
+    QVariantList matiereExamens() const { return m_matiereExamens; }
     bool loading() const { return m_loading; }
     QString errorMessage() const { return m_errorMessage; }
 
@@ -49,7 +51,13 @@ public:
     Q_INVOKABLE void deleteClasse(int id);
 
     Q_INVOKABLE void createMatiere(const QString& nom, int niveauId);
+    Q_INVOKABLE void updateMatiere(int id, const QVariantMap& data);
     Q_INVOKABLE void deleteMatiere(int id);
+
+    Q_INVOKABLE void loadMatiereExamens(int matiereId);
+    Q_INVOKABLE void createMatiereExamen(int matiereId, const QString& titre);
+    Q_INVOKABLE void updateMatiereExamen(int id, const QString& titre);
+    Q_INVOKABLE void deleteMatiereExamen(int id);
 
     Q_INVOKABLE void createSalle(const QVariantMap& data);
     Q_INVOKABLE void updateSalle(int id, const QVariantMap& data);
@@ -66,10 +74,12 @@ signals:
     void allMatieresChanged();
     void sallesChanged();
     void equipementsChanged();
+    void matiereExamensChanged();
     void loadingChanged();
     void errorMessageChanged();
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
+    void classeCreated(int classeId);
 
 private slots:
     void onQueryCompleted(const QString& queryId, const QVariant& result);
@@ -88,6 +98,7 @@ private:
     QVariantList m_allMatieres;
     QVariantList m_salles;
     QVariantList m_equipements;
+    QVariantList m_matiereExamens;
     bool m_loading = false;
     QString m_errorMessage;
 };

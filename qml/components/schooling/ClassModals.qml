@@ -15,97 +15,572 @@ Item {
     required property string selectedNiveauNom
     required property int selectedNiveauId
 
-    signal createRequested(string nom, int niveauId)
-    signal editRequested(int id, string nom, int niveauId)
+    // Students passed from parent to see existing assignments
+    property var allStudents: studentController.students
+    property var unassignedStudentsList: studentController.unassignedStudents
+
+    signal createRequested(string nom, int niveauId, var studentIdsToAssign)
+    signal editRequested(int id, string nom, int niveauId, var studentIdsToAssign, var studentIdsToRemove)
     signal deleteRequested(int id)
     signal closeRequested()
 
-    // ─── Class Modal (Create) ───
-    ModalOverlay {
-        show: root.showCreate
-        modalWidth: 420
-        onClose: root.closeRequested()
+    // Internal state for managing assigned students in the modal
+    property var currentAssignedStudents: [] // List of {id, nom, prenom, sexe, categorie}
+    property var initiallyAssignedIds: []
+    property var selectedSexe: "all"
+    property var selectedCategorie: "all"
+    property string selectedAnneeScolaire: ""
+    property var anneeScolaireOptions: []
+    property string searchText: ""
+    property string qteText: "15"
+    property string localClassNameText: ""
+    property var pendingEditData: null
+    property bool showEditConfirm: false
 
-        Column {
-            width: parent.width
-            spacing: 0
-            padding: 32
+    Component.onCompleted: initAnneeScolaire()
 
-            Text {
-                text: "Nouveau Groupe (" + root.selectedNiveauNom + ")"
-                font.pixelSize: 22
-                font.weight: Font.Black
-                color: Style.textPrimary
+    function initAnneeScolaire() {
+        var date = new Date()
+        var year = date.getFullYear()
+        var baseYear = date.getMonth() < 8 ? year - 1 : year
+        anneeScolaireOptions = [
+            "Sélectionner...",
+            (baseYear - 2) + "-" + (baseYear - 1),
+            (baseYear - 1) + "-" + baseYear,
+            baseYear + "-" + (baseYear + 1),
+            (baseYear + 1) + "-" + (baseYear + 2),
+            (baseYear + 2) + "-" + (baseYear + 3)
+        ]
+        selectedAnneeScolaire = anneeScolaireOptions[0]
+    }
+
+    function initEditState() {
+        currentAssignedStudents = []
+        initiallyAssignedIds = []
+        if (root.showEdit && root.editingClass && root.editingClass.id > 0) {
+            for (var i = 0; i < root.allStudents.length; i++) {
+                if (root.allStudents[i].classeId === root.editingClass.id) {
+                    currentAssignedStudents.push(root.allStudents[i])
+                    initiallyAssignedIds.push(root.allStudents[i].id)
+                }
+            }
+        }
+        currentAssignedStudentsChanged()
+    }
+
+    function resetFilters() {
+        selectedSexe = "all"
+        selectedCategorie = "all"
+        if (anneeScolaireOptions.length > 0) selectedAnneeScolaire = anneeScolaireOptions[0]
+        searchText = ""
+        qteText = "15"
+    }
+
+    onShowCreateChanged: {
+        if (showCreate) {
+            resetFilters()
+            currentAssignedStudents = []
+            initiallyAssignedIds = []
+            localClassNameText = ""
+            reloadUnassigned()
+        }
+    }
+
+    onShowEditChanged: {
+        if (showEdit) {
+            resetFilters()
+            initEditState()
+            localClassNameText = root.editingClass.nom
+            reloadUnassigned()
+        }
+    }
+
+    function reloadUnassigned() {
+        studentController.loadUnassignedStudents(root.selectedNiveauId, selectedAnneeScolaire, selectedSexe, selectedCategorie)
+    }
+
+    // Assign multiple randomly
+    function autoFill(count) {
+        var available = []
+        // Filter out those already in currentAssignedStudents
+        for (var i = 0; i < unassignedStudentsList.length; i++) {
+            var st = unassignedStudentsList[i]
+            var alreadyAdded = false
+            for (var j = 0; j < currentAssignedStudents.length; j++) {
+                if (currentAssignedStudents[j].id === st.id) {
+                    alreadyAdded = true; break;
+                }
+            }
+            if (!alreadyAdded) available.push(st)
+        }
+
+        // Shuffle
+        for (var k = available.length - 1; k > 0; k--) {
+            var j = Math.floor(Math.random() * (k + 1));
+            var temp = available[k];
+            available[k] = available[j];
+            available[j] = temp;
+        }
+
+        var toAdd = Math.min(count, available.length)
+        var newAssigned = currentAssignedStudents.slice()
+        for (var n = 0; n < toAdd; n++) {
+            newAssigned.push(available[n])
+        }
+        currentAssignedStudents = newAssigned
+        currentAssignedStudentsChanged() // Force UI update
+    }
+
+    function removeStudentFromSelection(studentId) {
+        var newAssigned = []
+        for (var i = 0; i < currentAssignedStudents.length; i++) {
+            if (currentAssignedStudents[i].id !== studentId) {
+                newAssigned.push(currentAssignedStudents[i])
+            }
+        }
+        currentAssignedStudents = newAssigned
+        currentAssignedStudentsChanged()
+    }
+
+    function addStudentToSelection(studentObj) {
+        // check if already added
+        for (var i = 0; i < currentAssignedStudents.length; i++) {
+            if (currentAssignedStudents[i].id === studentObj.id) return;
+        }
+        var newAssigned = currentAssignedStudents.slice()
+        newAssigned.push(studentObj)
+        currentAssignedStudents = newAssigned
+        currentAssignedStudentsChanged()
+    }
+
+    Component {
+        id: classModalContent
+        
+        Item {
+            anchors.fill: parent
+            
+            // Left panel: Class info
+            Item {
+                width: 280
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 16
+                    
+                    Text {
+                        text: (root.showCreate ? "Nouveau Groupe" : "Modifier le Groupe")
+                        font.pixelSize: 20
+                        font.weight: Font.Black
+                        color: Style.textPrimary
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    
+                    Text {
+                        text: "Niveau : " + root.selectedNiveauNom
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                        color: Style.primary
+                    }
+
+                    FormField {
+                        id: localClassNameField
+                        Layout.fillWidth: true
+                        label: "NOM DU GROUPE"
+                        placeholder: "ex: A, Matin..."
+                        text: root.localClassNameText
+                        onTextChanged: root.localClassNameText = text
+                    }
+                    
+                    Separator { Layout.fillWidth: true; anchors.leftMargin: -12; anchors.rightMargin: -12 }
+                    
+                    Text { text: "FILTRAGE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+
+                    Column {
+                        Layout.fillWidth: true; spacing: 4
+                        SectionLabel { text: "ANNÉE SCOLAIRE" }
+                        Rectangle {
+                            width: parent.width; height: 40; radius: 10
+                            color: Style.bgPage; border.color: Style.borderLight
+                            ComboBox {
+                                id: anneeCombo; anchors.fill: parent; anchors.margins: 2
+                                model: root.anneeScolaireOptions
+                                currentIndex: Math.max(0, root.anneeScolaireOptions.indexOf(root.selectedAnneeScolaire))
+                                background: Rectangle { color: "transparent" }
+                                contentItem: Text {
+                                    text: anneeCombo.displayText; font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                    verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                }
+                                onActivated: function(index) {
+                                    root.selectedAnneeScolaire = root.anneeScolaireOptions[index]
+                                    root.reloadUnassigned()
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 12
+                        Column {
+                            Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
+                            SectionLabel { text: "SEXE" }
+                            Rectangle {
+                                width: parent.width; height: 40; radius: 10
+                                color: Style.bgPage; border.color: Style.borderLight
+                                ComboBox {
+                                    id: sexeCombo; anchors.fill: parent; anchors.margins: 2
+                                    model: ["Mixte", "Garçons", "Filles"];
+                                    currentIndex: root.selectedSexe === "M" ? 1 : (root.selectedSexe === "F" ? 2 : 0)
+                                    background: Rectangle { color: "transparent" }
+                                    contentItem: Text {
+                                        text: sexeCombo.displayText; font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight
+                                    }
+                                    onActivated: { 
+                                        root.selectedSexe = (currentIndex === 0) ? "all" : (currentIndex === 1 ? "M" : "F")
+                                        root.reloadUnassigned()
+                                    }
+                                }
+                            }
+                        }
+                        Column {
+                            Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
+                            SectionLabel { text: "CATÉGORIE" }
+                            Rectangle {
+                                width: parent.width; height: 40; radius: 10
+                                color: Style.bgPage; border.color: Style.borderLight
+                                ComboBox {
+                                    id: catCombo; anchors.fill: parent; anchors.margins: 2
+                                    model: ["Toutes", "Jeune", "Adulte"];
+                                    currentIndex: root.selectedCategorie === "Jeune" ? 1 : (root.selectedCategorie === "Adulte" ? 2 : 0)
+                                    background: Rectangle { color: "transparent" }
+                                    contentItem: Text {
+                                        text: catCombo.displayText; font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight
+                                    }
+                                    onActivated: { 
+                                        root.selectedCategorie = (currentIndex === 0) ? "all" : (currentIndex === 1 ? "Jeune" : "Adulte")
+                                        root.reloadUnassigned()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 12
+                        Column {
+                            Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
+                            SectionLabel { text: "QTÉ" }
+                            Rectangle {
+                                width: parent.width; height: 40; radius: 10
+                                color: Style.bgPage; border.color: Style.borderLight
+                                TextInput {
+                                    id: qteInput; anchors.fill: parent; anchors.margins: 4
+                                    text: root.qteText; font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    onTextChanged: root.qteText = text
+                                }
+                            }
+                        }
+                        PrimaryButton {
+                            Layout.alignment: Qt.AlignBottom
+                            Layout.fillWidth: true; Layout.preferredWidth: 2; Layout.preferredHeight: 40
+                            text: "Auto Remplissage"
+                            onClicked: {
+                                var qte = parseInt(qteInput.text) || 0
+                                if (qte > 0) root.autoFill(qte)
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        text: root.unassignedStudentsList.length + " élèves non assignés disponibles."
+                        font.pixelSize: 11; color: Style.textSecondary; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                    }
+
+                    Item { height: 1; width: 1; Layout.fillHeight: true } // Spacer
+                    
+                    Text {
+                        text: "Total inscrits : " + currentAssignedStudents.length
+                        font.pixelSize: 14
+                        font.weight: Font.Black
+                        color: Style.textPrimary
+                    }
+                }
             }
 
-            Item { width: 1; height: 24 }
-
-            FormField {
-                id: classNameField
-                width: parent.width - 64
-                label: "NOM DU GROUPE"
-                placeholder: "ex: A, B, Matin, etc."
+            Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: 280
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: Style.borderLight
             }
+            
+            // Right panel: Student Assignment
+            Item {
+                anchors.left: parent.left
+                anchors.leftMargin: 281
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 32
+                    spacing: 20
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Affectation des Étudiants"
+                            font.pixelSize: 18
+                            font.weight: Font.Black
+                            color: Style.textPrimary
+                            Layout.fillWidth: true
+                        }
+                        IconButton { iconName: "close"; iconSize: 18; onClicked: root.closeRequested() }
+                    }
+                    
+                    // Search & Manual add
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        
+                        SearchField {
+                            id: searchInput
+                            Layout.fillWidth: true
+                            placeholder: "Chercher un élève non assigné..."
+                            text: root.searchText
+                            onTextChanged: root.searchText = text
+                        }
+                    }
 
-            Item { width: 1; height: 24 }
+                    // Matching search results (dropdown overlay-like, but inline for simplicity)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: Math.min(150, searchRepeater.count * 40 + 8)
+                        visible: root.searchText.trim().length > 0 && searchRepeater.count > 0
+                        color: Style.bgPage; radius: 12; border.color: Style.borderLight
+                        clip: true
+                        
+                        Flickable {
+                            anchors.fill: parent; anchors.margins: 4
+                            contentHeight: searchCol.height
+                            Column {
+                                id: searchCol; width: parent.width
+                                Repeater {
+                                    id: searchRepeater
+                                    model: {
+                                        var query = root.searchText.trim().toLowerCase()
+                                        var res = []
+                                        if (query === "") return res
+                                        for (var i = 0; i < root.unassignedStudentsList.length; i++) {
+                                            var st = root.unassignedStudentsList[i]
+                                            var nomComplet = (st.prenom + " " + st.nom).toLowerCase()
+                                            if (nomComplet.indexOf(query) !== -1 || st.id.toString().indexOf(query) !== -1) {
+                                                // Check if already assigned
+                                                var added = false
+                                                for (var j = 0; j < root.currentAssignedStudents.length; j++) {
+                                                    if (root.currentAssignedStudents[j].id === st.id) { added = true; break; }
+                                                }
+                                                if (!added) res.push(st)
+                                            }
+                                        }
+                                        return res
+                                    }
+                                    delegate: Rectangle {
+                                        width: parent.width; height: 40; radius: 8
+                                        color: smHover.containsMouse ? Style.bgSecondary : "transparent"
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
+                                            Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
+                                            Text { text: modelData.id; font.pixelSize: 11; color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter }
+                                            IconLabel { iconName: "plus"; iconSize: 14; iconColor: Style.primary; Layout.alignment: Qt.AlignVCenter }
+                                        }
+                                        MouseArea {
+                                            id: smHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: { root.addStudentToSelection(modelData); root.searchText = "" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-            ModalButtons {
-                width: parent.width - 64
-                confirmText: "CRÉER"
-                onCancel: root.closeRequested()
-                onConfirm: {
-                    if (classNameField.text.trim() !== "" && root.selectedNiveauId > 0) {
-                        root.createRequested(classNameField.text.trim(), root.selectedNiveauId)
-                        classNameField.text = ""
+                    // Assigned students list
+                    Rectangle {
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                        color: Style.bgPage; radius: 16; border.color: Style.borderLight
+                        
+                        Flickable {
+                            anchors.fill: parent; anchors.margins: 8; clip: true
+                            contentHeight: assignedCol.height
+                            Column {
+                                id: assignedCol; width: parent.width; spacing: 4
+                                Repeater {
+                                    model: root.currentAssignedStudents
+                                    delegate: Rectangle {
+                                        width: parent.width; height: 44; radius: 12
+                                        color: Style.bgWhite; border.color: Style.borderLight
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
+                                            Avatar { initials: modelData.nom.charAt(0); size: 24; Layout.alignment: Qt.AlignVCenter }
+                                            Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? "#DB2777" : Style.primary; customTextColor: "#FFFFFF"; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.categorie; variant: "neutral"; Layout.alignment: Qt.AlignVCenter }
+                                            IconButton {
+                                                iconName: "close"; iconSize: 14; hoverColor: Style.errorColor; Layout.alignment: Qt.AlignVCenter
+                                                onClicked: root.removeStudentFromSelection(modelData.id)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            visible: root.currentAssignedStudents.length === 0
+                            text: "Aucun élève affecté au groupe."
+                            font.pixelSize: 13; color: Style.textTertiary; font.italic: true
+                        }
+                    }
+
+                    // Actions
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Item { Layout.fillWidth: true }
+                        OutlineButton { text: "ANNULER"; onClicked: root.closeRequested() }
+                        PrimaryButton {
+                            text: root.showCreate ? "CRÉER LE GROUPE" : "ENREGISTRER"
+                            onClicked: {
+                                var currentIds = []
+                                for (var i = 0; i < currentAssignedStudents.length; i++) {
+                                    currentIds.push(currentAssignedStudents[i].id)
+                                }
+                                
+                                if (root.showCreate) {
+                                    if (root.localClassNameText.trim() !== "" && root.selectedNiveauId > 0) {
+                                        root.createRequested(root.localClassNameText.trim(), root.selectedNiveauId, currentIds)
+                                    }
+                                } else {
+                                    if (root.localClassNameText.trim() !== "" && root.editingClass.id > 0) {
+                                        var idsToRemove = []
+                                        for (var j = 0; j < initiallyAssignedIds.length; j++) {
+                                            if (currentIds.indexOf(initiallyAssignedIds[j]) === -1) {
+                                                idsToRemove.push(initiallyAssignedIds[j])
+                                            }
+                                        }
+                                        var idsToAdd = []
+                                        for (var k = 0; k < currentIds.length; k++) {
+                                            if (initiallyAssignedIds.indexOf(currentIds[k]) === -1) {
+                                                idsToAdd.push(currentIds[k])
+                                            }
+                                        }
+                                        
+                                        var hasChanges = (root.localClassNameText.trim() !== root.editingClass.nom) || (idsToRemove.length > 0) || (idsToAdd.length > 0)
+                                        
+                                        if (hasChanges) {
+                                            root.pendingEditData = {
+                                                id: root.editingClass.id,
+                                                nom: root.localClassNameText.trim(),
+                                                niveauId: root.selectedNiveauId,
+                                                idsToAdd: idsToAdd,
+                                                idsToRemove: idsToRemove
+                                            }
+                                            root.showEditConfirm = true
+                                        } else {
+                                            root.closeRequested()
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // ─── Edit Class Modal ───
-    ModalOverlay {
-        show: root.showEdit
-        modalWidth: 420
-        onClose: root.closeRequested()
-
-        onShowChanged: {
-            if (show)
-                editClassNameField.text = root.editingClass.nom
+    // Modal wrapper for Create & Edit
+    Popup {
+        id: fullModal
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 800
+        height: 600
+        modal: true
+        padding: 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        visible: root.showCreate || root.showEdit
+        
+        onClosed: root.closeRequested()
+        
+        background: Rectangle {
+            radius: 24
+            color: Style.bgWhite
+            clip: true
         }
 
+        contentItem: Loader {
+            sourceComponent: classModalContent
+        }
+    }
+
+    // ─── Confirmation Modification Classe ───
+    ModalOverlay {
+        id: editConfirmPopup
+        show: root.showEditConfirm
+        modalWidth: 460
+        onClose: root.showEditConfirm = false
+        
         Column {
             width: parent.width
-            spacing: 0
+            spacing: 24
             padding: 32
 
             Text {
-                text: "Modifier le Groupe"
+                text: "Confirmer les modifications"
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
             }
 
-            Item { width: 1; height: 24 }
-
-            FormField {
-                id: editClassNameField
+            Text {
                 width: parent.width - 64
-                label: "NOM DU GROUPE"
-                placeholder: "ex: A, B, Matin, etc."
+                text: "Vous avez modifié les informations de ce groupe. Voulez-vous enregistrer ces changements ?"
+                font.pixelSize: 14
+                color: Style.textSecondary
+                wrapMode: Text.WordWrap
+                lineHeight: 1.4
             }
-
-            Item { width: 1; height: 24 }
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "MODIFIER"
-                onCancel: root.closeRequested()
+                cancelText: "ANNULER"
+                confirmText: "CONFIRMER"
+                confirmColor: Style.primary
+                onCancel: root.showEditConfirm = false
                 onConfirm: {
-                    if (editClassNameField.text.trim() !== "" && root.editingClass.id > 0) {
-                        root.editRequested(root.editingClass.id, editClassNameField.text.trim(), root.selectedNiveauId)
-                        editClassNameField.text = ""
+                    if (root.pendingEditData) {
+                        root.editRequested(
+                            root.pendingEditData.id,
+                            root.pendingEditData.nom,
+                            root.pendingEditData.niveauId,
+                            root.pendingEditData.idsToAdd,
+                            root.pendingEditData.idsToRemove
+                        )
+                        root.pendingEditData = null
                     }
+                    root.showEditConfirm = false
                 }
             }
         }

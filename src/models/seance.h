@@ -15,6 +15,7 @@ struct Seance {
     GS::CategorieSeance typeSeance = GS::CategorieSeance::Cours;
     QString titre;       // used for Examen (titre de l'épreuve) and Événement (nom)
     QString descriptif;  // used for Événement only
+    bool presenceValide = false; // true once attendance has been confirmed for this seance
 };
 
 struct Participation {

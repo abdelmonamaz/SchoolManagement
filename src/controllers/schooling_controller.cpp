@@ -11,7 +11,12 @@ static QVariantMap classeToMap(const Classe& c) {
 }
 
 static QVariantMap matiereToMap(const Matiere& m) {
-    return {{"id", m.id}, {"nom", m.nom}, {"niveauId", m.niveauId}};
+    return {{"id", m.id}, {"nom", m.nom}, {"niveauId", m.niveauId},
+            {"nombreSeances", m.nombreSeances}, {"dureeSeanceMinutes", m.dureeSeanceMinutes}};
+}
+
+static QVariantMap matiereExamenToMap(const MatiereExamen& e) {
+    return {{"id", e.id}, {"matiereId", e.matiereId}, {"titre", e.titre}};
 }
 
 static QVariantMap salleToMap(const Salle& s) {
@@ -159,7 +164,7 @@ void SchoolingController::createClasse(const QString& nom, int niveauId) {
             auto result = svc->createClasse(nom, niveauId);
             if (!result.isOk())
                 return QVariantMap{{"error", result.errorMessage()}};
-            return QVariantMap{{"success", true}};
+            return QVariantMap{{"success", true}, {"id", result.value()}};
         });
 }
 
@@ -194,9 +199,66 @@ void SchoolingController::createMatiere(const QString& nom, int niveauId) {
         });
 }
 
+void SchoolingController::updateMatiere(int id, const QVariantMap& data) {
+    int niveauId = data.value("niveauId").toInt();
+    m_worker->submit("Schooling.updateMatiere:" + QString::number(niveauId),
+        [svc = m_service, id, data, niveauId]() -> QVariant {
+            auto result = svc->updateMatiere(id,
+                data.value("nom").toString(),
+                niveauId,
+                data.value("nombreSeances", 0).toInt(),
+                data.value("dureeSeanceMinutes", 60).toInt());
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
 void SchoolingController::deleteMatiere(int id) {
     m_worker->submit("Schooling.deleteMatiere", [svc = m_service, id]() -> QVariant {
         auto result = svc->deleteMatiere(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+// ─── MatiereExamen CRUD ───
+
+void SchoolingController::loadMatiereExamens(int matiereId) {
+    m_worker->submit("Schooling.loadMatiereExamens:" + QString::number(matiereId),
+        [svc = m_service, matiereId]() -> QVariant {
+            auto result = svc->getExamensByMatiere(matiereId);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            QVariantList list;
+            for (const auto& e : result.value()) list.append(matiereExamenToMap(e));
+            return list;
+        });
+}
+
+void SchoolingController::createMatiereExamen(int matiereId, const QString& titre) {
+    m_worker->submit("Schooling.createMatiereExamen:" + QString::number(matiereId),
+        [svc = m_service, matiereId, titre]() -> QVariant {
+            auto result = svc->createMatiereExamen(matiereId, titre);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
+void SchoolingController::updateMatiereExamen(int id, const QString& titre) {
+    m_worker->submit("Schooling.updateMatiereExamen", [svc = m_service, id, titre]() -> QVariant {
+        auto result = svc->updateMatiereExamen(id, titre);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void SchoolingController::deleteMatiereExamen(int id) {
+    m_worker->submit("Schooling.deleteMatiereExamen", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deleteMatiereExamen(id);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -316,7 +378,12 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
         if (isError) emit operationFailed(map["error"].toString());
         else {
             int niveauId = queryId.mid(queryId.indexOf(':') + 1).toInt();
-            emit operationSucceeded(queryId.contains("create") ? "Classe créée" : "Classe mise à jour");
+            if (queryId.startsWith("Schooling.createClasse:")) {
+                emit classeCreated(map["id"].toInt());
+                emit operationSucceeded("Classe créée");
+            } else {
+                emit operationSucceeded("Classe mise à jour");
+            }
             loadClassesByNiveau(niveauId);
         }
     }
@@ -333,9 +400,38 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
             loadMatieresByNiveau(niveauId);
         }
     }
+    else if (queryId.startsWith("Schooling.updateMatiere:")) {
+        if (isError) emit operationFailed(map["error"].toString());
+        else {
+            int niveauId = queryId.mid(queryId.indexOf(':') + 1).toInt();
+            emit operationSucceeded("Matière mise à jour");
+            loadMatieresByNiveau(niveauId);
+            loadAllMatieres();
+        }
+    }
     else if (queryId == "Schooling.deleteMatiere") {
         if (isError) emit operationFailed(map["error"].toString());
         else emit operationSucceeded("Matière supprimée");
+    }
+    // ── MatiereExamen mutations ──
+    else if (queryId.startsWith("Schooling.loadMatiereExamens:")) {
+        if (isError) { /* silent */ }
+        else { m_matiereExamens = result.toList(); emit matiereExamensChanged(); }
+    }
+    else if (queryId.startsWith("Schooling.createMatiereExamen:")) {
+        if (isError) emit operationFailed(map["error"].toString());
+        else {
+            int matiereId = queryId.mid(queryId.indexOf(':') + 1).toInt();
+            loadMatiereExamens(matiereId);
+        }
+    }
+    else if (queryId == "Schooling.updateMatiereExamen") {
+        if (isError) emit operationFailed(map["error"].toString());
+        // reload is triggered from QML after this signal
+    }
+    else if (queryId == "Schooling.deleteMatiereExamen") {
+        if (isError) emit operationFailed(map["error"].toString());
+        // reload is triggered from QML after this signal
     }
     // ── Salle mutations ──
     else if (queryId == "Schooling.createSalle" || queryId == "Schooling.updateSalle" || queryId == "Schooling.deleteSalle") {
