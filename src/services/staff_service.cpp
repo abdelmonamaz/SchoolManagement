@@ -93,8 +93,8 @@ Result<int> StaffService::createContrat(const Contrat& contrat)
         return Result<int>::error("ID du personnel invalide.");
     if (!contrat.dateDebut.isValid())
         return Result<int>::error("La date de début est requise.");
-    if (contrat.dateFin.isValid() && contrat.dateDebut >= contrat.dateFin)
-        return Result<int>::error("La date de début doit être antérieure à la date de fin.");
+    if (contrat.dateFin.isValid() && contrat.dateDebut > contrat.dateFin)
+        return Result<int>::error("La date de début doit être antérieure ou égale à la date de fin.");
     if (contrat.valeurBase < 0.0)
         return Result<int>::error("La valeur de base ne peut pas être négative.");
 
@@ -112,8 +112,8 @@ Result<bool> StaffService::updateContrat(const Contrat& contrat)
 {
     if (!contrat.dateDebut.isValid())
         return Result<bool>::error("La date de début est requise.");
-    if (contrat.dateFin.isValid() && contrat.dateDebut >= contrat.dateFin)
-        return Result<bool>::error("La date de début doit être antérieure à la date de fin.");
+    if (contrat.dateFin.isValid() && contrat.dateDebut > contrat.dateFin)
+        return Result<bool>::error("La date de début doit être antérieure ou égale à la date de fin.");
     if (contrat.valeurBase < 0.0)
         return Result<bool>::error("La valeur de base ne peut pas être négative.");
 
@@ -157,6 +157,30 @@ Result<int> StaffService::getTotalMinutesForMonth(int profId, int mois, int anne
     return m_seanceRepo->getTotalMinutesByProf(profId, from, to);
 }
 
+Result<int> StaffService::getTotalJoursForMonth(int personnelId, int mois, int annee)
+{
+    QDate refDate = QDate(annee, mois, 1).addMonths(1).addDays(-1);
+    auto contratResult = m_contratRepo->getActiveContrat(personnelId, refDate);
+    if (!contratResult.isOk() || !contratResult.value().has_value())
+        return Result<int>::success(0);
+
+    const Contrat& contrat = contratResult.value().value();
+    int mask = contrat.joursTravail > 0 ? contrat.joursTravail : 31;
+
+    // Plage effective : max(dateDebut, 1er du mois) → min(dateFin, dernier du mois)
+    QDate from = QDate(annee, mois, 1);
+    QDate to   = from.addMonths(1).addDays(-1);
+    if (contrat.dateDebut > from) from = contrat.dateDebut;
+    if (contrat.dateFin.isValid() && contrat.dateFin < to) to = contrat.dateFin;
+
+    int count = 0;
+    for (QDate d = from; d <= to; d = d.addDays(1)) {
+        int bit = 1 << (d.dayOfWeek() - 1); // dayOfWeek(): 1=Lun..7=Dim → bit 0..6
+        if (mask & bit) ++count;
+    }
+    return Result<int>::success(count);
+}
+
 Result<double> StaffService::calculateSommeDue(int personnelId, int mois, int annee)
 {
     if (mois < 1 || mois > 12)
@@ -177,6 +201,13 @@ Result<double> StaffService::calculateSommeDue(int personnelId, int mois, int an
 
     if (contrat.modePaie == "Fixe") {
         return Result<double>::success(contrat.valeurBase);
+    }
+
+    if (contrat.modePaie == "Jour") {
+        auto joursResult = getTotalJoursForMonth(personnelId, mois, annee);
+        if (!joursResult.isOk())
+            return Result<double>::error(joursResult.errorMessage());
+        return Result<double>::success(joursResult.value() * contrat.valeurBase);
     }
 
     // Hourly mode: calculate from sessions

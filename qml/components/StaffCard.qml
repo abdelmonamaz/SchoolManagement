@@ -339,7 +339,9 @@ Rectangle {
                 }
 
                 Text {
-                    text: "/" + ((staffData.modePaie === "Heure" || !staffData.modePaie) ? "h" : "mois")
+                    text: "/" + (staffData.modePaie === "Heure" ? "h"
+                               : staffData.modePaie === "Jour"  ? "jour"
+                               : "mois")
                     font.pixelSize: 10
                     color: Style.textTertiary
                     font.bold: true
@@ -348,18 +350,22 @@ Rectangle {
 
             Column {
                 Layout.alignment: Qt.AlignTop
-                visible: staffData.modePaie === "Heure" || !staffData.modePaie
+                visible: staffData.modePaie === "Heure" || staffData.modePaie === "Jour" || !staffData.modePaie
                 spacing: 2
 
                 Text {
-                    text: "Heures " + (root.moisLabel || "")
+                    text: staffData.modePaie === "Jour"
+                        ? "Jours " + (root.moisLabel || "")
+                        : "Heures " + (root.moisLabel || "")
                     font.pixelSize: 10
                     font.bold: true
                     color: Style.textTertiary
                 }
 
                 Text {
-                    text: (staffData.heuresTravailes || 0) + "h"
+                    text: staffData.modePaie === "Jour"
+                        ? (staffData.joursTravailes || 0) + "j"
+                        : (staffData.heuresTravailes || 0) + "h"
                     font.pixelSize: 18
                     font.weight: Font.Black
                     color: Style.primary

@@ -32,13 +32,11 @@ Popup {
         // If we are before September, consider the current school year to be (year-1)-(year). Otherwise, year-(year+1)
         var baseYear = date.getMonth() < 8 ? year - 1 : year
         anneeScolaireOptions = [
-            (baseYear - 2) + "-" + (baseYear - 1),
-            (baseYear - 1) + "-" + baseYear,
             baseYear + "-" + (baseYear + 1),
             (baseYear + 1) + "-" + (baseYear + 2),
             (baseYear + 2) + "-" + (baseYear + 3)
         ]
-        selectedAnneeScolaire = anneeScolaireOptions[2]
+        selectedAnneeScolaire = anneeScolaireOptions[0]
         nameField.inputItem.forceActiveFocus()
     }
 
@@ -216,9 +214,12 @@ Popup {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
                             label: "TÉLÉPHONE"
-                            placeholder: "06 00 00 00 00"
+                            placeholder: "XX XXX XXX"
                             nextTabItem: addressField.inputItem
                             prevTabItem: birthDateField.inputItem
+                            validator: RegularExpressionValidator {
+                                regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
+                            }
                         }
                         FormField {
                             id: addressField
@@ -247,8 +248,11 @@ Popup {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
                             label: "TÉLÉPHONE PARENT"
-                            placeholder: "06 00 00 00 00"
+                            placeholder: "XX XXX XXX"
                             prevTabItem: parentNameField.inputItem
+                            validator: RegularExpressionValidator {
+                                regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
+                            }
                         }
                     }
 
@@ -304,7 +308,7 @@ Popup {
                                     id: anneeCombo
                                     anchors.fill: parent; anchors.margins: 2
                                     model: root.anneeScolaireOptions
-                                    currentIndex: 2 // Defaults to current base year
+                                    currentIndex: 0 // Defaults to current base year
                                     
                                     background: Rectangle { color: "transparent" }
                                     contentItem: Text {
@@ -367,6 +371,9 @@ Popup {
                                             text: root.inscriptionFee.toString()
                                             font.pixelSize: 24; font.weight: Font.Black; color: Style.textPrimary
                                             onTextChanged: root.inscriptionFee = parseFloat(text) || 0
+                                            validator: RegularExpressionValidator {
+                                                regularExpression: /^\d{0,4}(\.\d{0,3})?$/
+                                            }
                                         }
                                         Text { text: "DT"; font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
                                     }

@@ -16,6 +16,7 @@ Item {
     property bool showPaymentPopup: false
     property int selectedPersonnelId: 0
     property string selectedPersonnelName: ""
+    property var selectedPersonnelData: null
 
     property bool showHistoryPopup: false
     property int historyPersonnelId: -1
@@ -55,6 +56,10 @@ Item {
     }
 
     onShowAllModeChanged: reloadData()
+
+    onVisibleChanged: {
+        if (visible) reloadData()
+    }
 
     Component.onCompleted: {
         staffController.currentMonth = displayMonth
@@ -238,6 +243,7 @@ Item {
                     onPayClicked: {
                         selectedPersonnelId = modelData.id
                         selectedPersonnelName = modelData.nom
+                        selectedPersonnelData = modelData
                         staffController.loadPaymentData(modelData.id, displayMonth, displayYear)
                         showPaymentPopup = true
                     }
@@ -280,7 +286,8 @@ Item {
                     formData.modePaie,
                     formData.valeurBase,
                     formData.dateDebut,
-                    formData.dateFin || ""
+                    formData.dateFin || "",
+                    formData.joursTravail || 31
                 )
             } else if (formData.mode === "editContract") {
                 staffController.updateContrat(
@@ -291,7 +298,8 @@ Item {
                     formData.modePaie,
                     formData.valeurBase,
                     formData.dateDebut,
-                    formData.dateFin || ""
+                    formData.dateFin || "",
+                    formData.joursTravail || 31
                 )
             } else {
                 // mode "full" - new member + contract
@@ -304,7 +312,8 @@ Item {
                     formData.modePaie,
                     formData.valeurBase,
                     formData.dateDebut,
-                    formData.dateFin || ""
+                    formData.dateFin || "",
+                    formData.joursTravail || 31
                 )
             }
         }
@@ -413,6 +422,9 @@ Item {
         personnelName: selectedPersonnelName
         selectedMonth: displayMonth
         selectedYear: displayYear
+        modePaie: selectedPersonnelData ? (selectedPersonnelData.modePaie || "Heure") : "Heure"
+        joursTravailDefault: selectedPersonnelData ? (selectedPersonnelData.joursTravail || 31) : 31
+        valeurBase: selectedPersonnelData ? (selectedPersonnelData.valeurBase || 0) : 0
 
         onSaveRequested: function(newSommeDue, newSommePaye) {
             staffController.savePayment(

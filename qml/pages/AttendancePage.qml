@@ -99,6 +99,15 @@ Item {
 
     function pad2(n) { return n < 10 ? "0" + n : "" + n }
 
+    function weekRangeLabel(week, year) {
+        var months = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"]
+        var r = weekDateRange(week, year)
+        var s = r.start, e = r.end
+        var sStr = s.getDate() + " " + months[s.getMonth()]
+        var eStr = e.getDate() + " " + months[e.getMonth()] + " " + e.getFullYear()
+        return sStr + " — " + eStr
+    }
+
     function navigateWeek(delta) {
         var maxW    = weekPickerPopup.maxWeeksInYear(selectedWeekYear)
         var newWeek = selectedWeek + delta
@@ -158,6 +167,10 @@ Item {
         loadSeances()
     }
 
+    onVisibleChanged: {
+        if (visible) loadSeances()
+    }
+
     Connections {
         target: attendanceController
         function onOperationSucceeded(msg) { console.log("AttendancePage:", msg); loadSeances() }
@@ -181,7 +194,10 @@ Item {
                 subtitle: "Pilotage hebdomadaire de l'appel et suivi des séances."
             }
 
-            // Navigation semaine : ◀ [Sem. X · Année] ▶
+            // Navigation semaine : ◀ [Sem. X · Année] ▶ + date range
+            Column {
+                spacing: 4
+
             Row {
                 spacing: 4
 
@@ -249,7 +265,17 @@ Item {
                         onClicked: attendancePage.navigateWeek(1)
                     }
                 }
+            } // fin Row
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: attendancePage.weekRangeLabel(selectedWeek, selectedWeekYear)
+                font.pixelSize: 9; font.weight: Font.Bold
+                color: Style.textSecondary
+                horizontalAlignment: Text.AlignHCenter
             }
+
+            } // fin Column
         }
 
         // ─── Seances Table Card ───

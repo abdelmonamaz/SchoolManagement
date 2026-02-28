@@ -24,6 +24,14 @@ ModalOverlay {
     property string selectedPaymentMode: "Heure"
     property string dateDebutText: ""
     property string dateFinText: ""
+    property int joursTravailValue: 31   // bitmask Lun-Dim, bit0=Lun..bit6=Dim
+
+    onSelectedPostChanged: {
+        if (selectedPost === "Enseignant" && selectedPaymentMode === "Jour")
+            selectedPaymentMode = "Heure"
+        else if (selectedPost !== "Enseignant" && selectedPaymentMode === "Heure")
+            selectedPaymentMode = "Jour"
+    }
 
     // Context
     property int personnelId: -1
@@ -43,6 +51,7 @@ ModalOverlay {
         baseValueText = "25"
         selectedPost = "Enseignant"
         selectedPaymentMode = "Heure"
+        joursTravailValue = 31
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
         personnelId = -1
@@ -62,7 +71,8 @@ ModalOverlay {
         personnelId = data.id || -1
         selectedPost = data.poste || "Enseignant"
         specialtyText = ""
-        selectedPaymentMode = data.modePaie || "Heure"
+        selectedPaymentMode = data.modePaie || (data.poste === "Enseignant" ? "Heure" : "Jour")
+        joursTravailValue = data.joursTravail || 31
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
@@ -75,6 +85,7 @@ ModalOverlay {
         selectedPost = data.poste || "Enseignant"
         specialtyText = data.specialite || ""
         selectedPaymentMode = data.modePaie || "Heure"
+        joursTravailValue = data.joursTravail || 31
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = data.dateDebutISO || ""
         dateFinText = data.dateFinISO || ""
@@ -526,20 +537,25 @@ ModalOverlay {
                                     width: (parent.parent.width - 8) / 2
                                     height: 36
                                     radius: 8
-                                    color: root.selectedPaymentMode === "Heure" ? Style.bgWhite : "transparent"
+                                    readonly property bool isFirstModeActive:
+                                        root.selectedPost === "Enseignant"
+                                            ? root.selectedPaymentMode === "Heure"
+                                            : root.selectedPaymentMode === "Jour"
+                                    color: isFirstModeActive ? Style.bgWhite : "transparent"
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "À L'HEURE"
+                                        text: root.selectedPost === "Enseignant" ? "À L'HEURE" : "À LA JOURNÉE"
                                         font.pixelSize: 10
                                         font.weight: Font.Black
-                                        color: root.selectedPaymentMode === "Heure" ? Style.textPrimary : Style.textTertiary
+                                        color: parent.isFirstModeActive ? Style.textPrimary : Style.textTertiary
                                     }
 
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.selectedPaymentMode = "Heure"
+                                        onClicked: root.selectedPaymentMode =
+                                            root.selectedPost === "Enseignant" ? "Heure" : "Jour"
                                     }
 
                                     Behavior on color {
@@ -582,7 +598,9 @@ ModalOverlay {
                         spacing: 6
 
                         SectionLabel {
-                            text: root.selectedPaymentMode === "Heure" ? "TAUX HORAIRE (DT/H)" : "SALAIRE MENSUEL (DT)"
+                            text: root.selectedPaymentMode === "Heure" ? "TAUX HORAIRE (DT/H)"
+                                : root.selectedPaymentMode === "Jour"  ? "TAUX JOURNALIER (DT/JOUR)"
+                                : "SALAIRE MENSUEL (DT)"
                         }
 
                         FormField {
@@ -597,6 +615,40 @@ ModalOverlay {
                         }
                     }
 
+                    // Sélecteur de jours de travail (visible uniquement en mode "Jour")
+                    Column {
+                        Layout.fillWidth: true
+                        Layout.columnSpan: 2
+                        spacing: 8
+                        visible: root.selectedPaymentMode === "Jour"
+
+                        SectionLabel { text: "JOURS DE TRAVAIL" }
+
+                        Row {
+                            spacing: 6
+                            Repeater {
+                                model: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+                                delegate: Rectangle {
+                                    width: 50; height: 44; radius: 10
+                                    property int bit: 1 << index
+                                    property bool active: (root.joursTravailValue & bit) !== 0
+                                    color: active ? Style.primary : Style.bgPage
+                                    border.color: active ? Style.primary : Style.borderLight
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData
+                                        font.pixelSize: 10; font.weight: Font.Black
+                                        color: active ? "white" : Style.textTertiary
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.joursTravailValue ^= bit
+                                    }
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -632,6 +684,7 @@ ModalOverlay {
                         specialite: root.specialtyText,
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        joursTravail: root.joursTravailValue,
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -644,6 +697,7 @@ ModalOverlay {
                         specialite: root.specialtyText,
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        joursTravail: root.joursTravailValue,
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -657,6 +711,7 @@ ModalOverlay {
                         specialite: root.specialtyText,
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
+                        joursTravail: root.joursTravailValue,
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })

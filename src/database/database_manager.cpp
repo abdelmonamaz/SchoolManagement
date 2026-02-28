@@ -288,7 +288,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  mode_paie TEXT DEFAULT 'Heure',"
             "  valeur_base REAL DEFAULT 25.0,"
             "  date_debut TEXT NOT NULL,"
-            "  date_fin TEXT"
+            "  date_fin TEXT,"
+            "  jours_travail INTEGER DEFAULT 31"
             ")"),
 
         QStringLiteral(
@@ -512,6 +513,13 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "  titre TEXT NOT NULL"
             ")"));
         qInfo() << "[DatabaseManager] Migration 16: created table matiere_examens";
+    }
+
+    // Migration 17 : ajout de jours_travail dans contrats (bitmask Lun-Ven, défaut 31)
+    if (!columnExists(QStringLiteral("contrats"), QStringLiteral("jours_travail"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE contrats ADD COLUMN jours_travail INTEGER DEFAULT 31"));
+        qInfo() << "[DatabaseManager] Migration 17: added column contrats.jours_travail";
     }
 }
 

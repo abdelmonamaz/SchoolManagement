@@ -18,8 +18,9 @@ struct Contrat {
     int personnelId = 0;
     QString poste = "Enseignant";       // Enseignant, Administration, Sécurité, Entretien
     QString specialite;                  // Pour les enseignants
-    QString modePaie = "Heure";         // "Heure" ou "Fixe"
-    double valeurBase = 25.0;           // DT/h ou DT/mois
+    QString modePaie = "Heure";         // "Heure" | "Jour" | "Fixe"
+    double valeurBase = 25.0;           // DT/h, DT/jour ou DT/mois selon modePaie
+    int joursTravail = 31;              // bitmask Lun-Dim : bit0=Lun..bit6=Dim, défaut 31=Lun-Ven
     QDate dateDebut;                    // Début de validité
     QDate dateFin;                      // Fin de validité (null/invalid = en cours)
 };

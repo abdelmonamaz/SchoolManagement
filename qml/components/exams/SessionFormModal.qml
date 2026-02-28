@@ -68,6 +68,7 @@ ModalOverlay {
         showAllEpreuves      = false
         if (titreField)       titreField.text = ""
         if (descriptifField)  descriptifField.text = ""
+        if (heureFormField)   heureFormField.text = "08:00"
         if (dureeFormField)   dureeFormField.text = "120"
         if (modalNiveauCombo)    modalNiveauCombo.currentIndex    = -1
         if (modalMatiereCombo)   modalMatiereCombo.currentIndex   = -1
@@ -719,6 +720,7 @@ ModalOverlay {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                 SectionLabel { text: "HEURE" }
                 FormField {
+                    id: heureFormField
                     width: parent.width
                     text: "08:00"
                     onTextChanged: root.formTime = text

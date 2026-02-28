@@ -39,7 +39,8 @@ public:
                                       const QString& sexe,
                                       const QString& poste, const QString& specialite,
                                       const QString& modePaie, double valeurBase,
-                                      const QString& dateDebut, const QString& dateFin);
+                                      const QString& dateDebut, const QString& dateFin,
+                                      int joursTravail = 31);
 
     // Update identity only
     Q_INVOKABLE void updatePersonnel(int id, const QString& nom, const QString& telephone,
@@ -50,10 +51,12 @@ public:
     // Contract management
     Q_INVOKABLE void createContrat(int personnelId, const QString& poste, const QString& specialite,
                                     const QString& modePaie, double valeurBase,
-                                    const QString& dateDebut, const QString& dateFin);
+                                    const QString& dateDebut, const QString& dateFin,
+                                    int joursTravail = 31);
     Q_INVOKABLE void updateContrat(int contratId, int personnelId, const QString& poste,
                                     const QString& specialite, const QString& modePaie,
-                                    double valeurBase, const QString& dateDebut, const QString& dateFin);
+                                    double valeurBase, const QString& dateDebut, const QString& dateFin,
+                                    int joursTravail = 31);
     Q_INVOKABLE void deleteContrat(int contratId);
     Q_INVOKABLE void loadContratHistorique(int personnelId);
 

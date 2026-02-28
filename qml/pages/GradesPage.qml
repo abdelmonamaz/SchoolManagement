@@ -110,9 +110,13 @@ Item {
 
     // Rechargement automatique quand la page redevient visible
     onVisibleChanged: {
-        if (visible && selSeanceId >= 0) {
-            gradesController.loadGradesBySeance(selSeanceId)
-            gradesController.loadClassAverage(selSeanceId)
+        if (visible) {
+            if (selClasseId >= 0 && selMatiereId >= 0)
+                examsController.loadExamSeancesByClasseMatiere(selClasseId, selMatiereId)
+            if (selSeanceId >= 0) {
+                gradesController.loadGradesBySeance(selSeanceId)
+                gradesController.loadClassAverage(selSeanceId)
+            }
         }
     }
 
@@ -531,8 +535,10 @@ Item {
                                                 color: Style.primary
                                                 horizontalAlignment: Text.AlignHCenter
                                                 selectByMouse: true
-                                                validator: RegularExpressionValidator {
-                                                    regularExpression: /^[0-9]{0,2}(\.[0-9]{0,2})?$/
+                                                validator: DoubleValidator {
+                                                    bottom: 0; top: 20; decimals: 2
+                                                    notation: DoubleValidator.StandardNotation
+                                                    locale: "C"
                                                 }
 
                                                 Text {

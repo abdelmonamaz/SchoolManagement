@@ -42,8 +42,9 @@ public:
     // Contract check
     Result<bool> hasActiveContrat(int personnelId, const QDate& date);
 
-    // Hours calculation
+    // Hours/days calculation
     Result<int> getTotalMinutesForMonth(int profId, int mois, int annee);
+    Result<int> getTotalJoursForMonth(int personnelId, int mois, int annee);
 
 private:
     IPersonnelRepository* m_profRepo;
