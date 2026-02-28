@@ -4,7 +4,7 @@ project(GestionScolaire VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Sql)
 
 # Politiques Qt 6 recommandées
 qt_policy(SET QTP0001 NEW) # Préfixe /qt/qml/
@@ -112,7 +112,7 @@ add_library(GS_Services STATIC
     src/controllers/dashboard_controller.cpp
 )
 
-target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core)
+target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui)
 
 # ═══════════════════════════════════════════════════════════════
 # Exécutable principal

@@ -101,6 +101,7 @@ RowLayout {
 
     // ═══ LEFT: Heatmap Calendar (2/3) ═══
     Rectangle {
+        id: leftRect
         Layout.fillWidth: true
         Layout.preferredWidth: 2
         Layout.alignment: Qt.AlignTop
@@ -143,29 +144,41 @@ RowLayout {
                     }
                 }
 
-                ComboBox {
-                    implicitWidth: 140; implicitHeight: 32
-                    currentIndex: root.selectedMonth
-                    model: ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-                    onCurrentIndexChanged: root.monthChanged(currentIndex)
-                    background: Rectangle { radius: 10; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
-                    contentItem: Text {
-                        leftPadding: 12; rightPadding: 12; text: parent.displayText
-                        font.pixelSize: 9; font.weight: Font.Black; color: Style.textPrimary
-                        font.letterSpacing: 0.5; verticalAlignment: Text.AlignVCenter
-                    }
-                }
+                // Pill mois + année (cliquable → MonthYearSelector)
+                Rectangle {
+                    id: calPillRect
+                    implicitWidth: calPillRow.implicitWidth + 20
+                    height: 32; radius: 10
+                    color: calMonthPicker.show ? Style.bgPage : Style.bgWhite
+                    border.color: calMonthPicker.show ? Style.primary : Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 100 } }
 
-                ComboBox {
-                    implicitWidth: 90; implicitHeight: 32
-                    currentIndex: root.selectedYear - 2024
-                    model: ["2024","2025","2026","2027","2028"]
-                    onCurrentIndexChanged: root.yearChanged(2024 + currentIndex)
-                    background: Rectangle { radius: 10; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
-                    contentItem: Text {
-                        leftPadding: 12; rightPadding: 12; text: parent.displayText
-                        font.pixelSize: 9; font.weight: Font.Black; color: Style.textPrimary
-                        font.letterSpacing: 0.5; verticalAlignment: Text.AlignVCenter
+                    RowLayout {
+                        id: calPillRow
+                        anchors.centerIn: parent; spacing: 6
+                        IconLabel { iconName: "calendar"; iconSize: 12; iconColor: Style.primary }
+                        Text {
+                            text: {
+                                var months = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                                              "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+                                return months[root.selectedMonth] + " " + root.selectedYear
+                            }
+                            font.pixelSize: 9; font.weight: Font.Black
+                            color: Style.textPrimary; font.letterSpacing: 0.5
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var pos = calPillRect.mapToItem(leftRect, 0, calPillRect.height + 4)
+                            calMonthPicker.x = Math.min(pos.x, leftRect.width - calMonthPicker.width)
+                            calMonthPicker.y = pos.y
+                            calMonthPicker.selectedMonth = root.selectedMonth + 1
+                            calMonthPicker.selectedYear = root.selectedYear
+                            calMonthPicker.show = !calMonthPicker.show
+                        }
                     }
                 }
 
@@ -439,6 +452,16 @@ RowLayout {
                         }
                     }
                 }
+            }
+        }
+
+        // ── MonthYearSelector flottant — enfant direct du Rectangle gauche, z élevé ──
+        MonthYearSelector {
+            id: calMonthPicker
+            z: 200
+            onMonthYearChanged: function(month, year) {
+                root.monthChanged(month - 1)
+                if (year !== root.selectedYear) root.yearChanged(year)
             }
         }
     }

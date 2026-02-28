@@ -28,6 +28,15 @@ public:
     Q_INVOKABLE void saveGrades(const QVariantList& grades);
     Q_INVOKABLE void loadClassAverage(int seanceId);
 
+    // Bulletin
+    Q_INVOKABLE void loadBulletinData(int eleveId, int classeId);
+    Q_INVOKABLE QString exportBulletinPdf(const QVariantMap& bulletinData,
+                                          const QString& studentName,
+                                          const QString& studentMatricule,
+                                          const QString& niveauNom,
+                                          const QString& classeNom,
+                                          const QString& anneeScolaire);
+
 signals:
     void gradesChanged();
     void classAverageChanged();
@@ -35,6 +44,7 @@ signals:
     void errorMessageChanged();
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
+    void bulletinDataLoaded(const QVariantMap& data);
 
 private slots:
     void onQueryCompleted(const QString& queryId, const QVariant& result);

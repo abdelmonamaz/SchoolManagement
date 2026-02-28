@@ -13,6 +13,15 @@ Item {
     property int selMatiereId: -1
     property int selSeanceId:  -1
 
+    // ── Contexte pour le bulletin ──
+    property string selNiveauNom:  ""
+    property string selClasseNom:  ""
+    property string selAnneeScolaire: {
+        var d = new Date()
+        var y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1
+        return y + "/" + (y + 1)
+    }
+
     // ── État local des notes saisies (avant enregistrement) ──
     // participationId (string) → note saisie (string)
     property var pendingGrades:  ({})
@@ -134,6 +143,38 @@ Item {
             gradesPage.pendingGrades  = ({})
             gradesPage.pendingVersion++
         }
+        function onBulletinDataLoaded(data) {
+            var st = gradesPage._currentBulletinStudent
+            if (!st) return
+
+            // Retrouve le nom de la classe depuis le classeId du bulletin
+            var classeNomBul = gradesPage.selClasseNom
+            var classeIdBul  = gradesPage._bulletinClasseId
+            if (classeIdBul >= 0) {
+                var cls = schoolingController.classes
+                for (var i = 0; i < cls.length; i++) {
+                    if (cls[i].id === classeIdBul) { classeNomBul = cls[i].nom; break }
+                }
+            }
+
+            // Retrouve le niveau depuis les données de la classe
+            var niveauNomBul = gradesPage.selNiveauNom
+            var niveaux = schoolingController.niveaux
+            if (st.niveauId !== undefined && st.niveauId >= 0) {
+                for (var j = 0; j < niveaux.length; j++) {
+                    if (niveaux[j].id === st.niveauId) { niveauNomBul = niveaux[j].nom; break }
+                }
+            }
+
+            bulletinPreviewPopup.bulletinData     = data
+            bulletinPreviewPopup.studentName      = (st.prenom || "") + " " + (st.nom || "")
+            bulletinPreviewPopup.studentMatricule = st.matricule || ("N°" + st.id)
+            bulletinPreviewPopup.niveauNom        = niveauNomBul
+            bulletinPreviewPopup.classeNom        = classeNomBul
+            bulletinPreviewPopup.anneeScolaire    = gradesPage.selAnneeScolaire
+            bulletinPreviewPopup.eleveId          = st.id
+            bulletinPreviewPopup.open()
+        }
     }
 
     // ── Layout principal ──
@@ -166,8 +207,12 @@ Item {
                 PrimaryButton {
                     text: "Générer les Bulletins"
                     iconName: "file"
-                    enabled: allEntered && selSeanceId >= 0
+                    enabled: selClasseId >= 0
                     opacity: enabled ? 1.0 : 0.45
+                    onClicked: {
+                        schoolingController.loadAllMatieres()
+                        bulletinConfigPopup.open()
+                    }
                 }
             }
         }
@@ -206,13 +251,15 @@ Item {
                             }
                             onCurrentValueChanged: {
                                 if (currentIndex < 0) return
-                                gradesPage.selNiveauId = currentValue
+                                gradesPage.selNiveauId  = currentValue
+                                gradesPage.selNiveauNom = currentText
                                 schoolingController.loadClassesByNiveau(currentValue)
                                 schoolingController.loadMatieresByNiveau(currentValue)
                                 classeCombo.currentIndex   = -1
                                 matiereCombo.currentIndex  = -1
                                 epreuveCombo.currentIndex  = -1
                                 gradesPage.selClasseId  = -1
+                                gradesPage.selClasseNom = ""
                                 gradesPage.selMatiereId = -1
                                 gradesPage.selSeanceId  = -1
                             }
@@ -251,7 +298,8 @@ Item {
                             }
                             onCurrentValueChanged: {
                                 if (currentIndex < 0) return
-                                gradesPage.selClasseId = currentValue
+                                gradesPage.selClasseId  = currentValue
+                                gradesPage.selClasseNom = currentText
                                 epreuveCombo.currentIndex = -1
                                 gradesPage.selSeanceId = -1
                                 if (gradesPage.selMatiereId >= 0)
@@ -825,4 +873,56 @@ Item {
 
         Item { Layout.preferredHeight: 32 }
     }
+
+    // ── Popups bulletin ──────────────────────────────────────────────────────
+    BulletinConfigPopup {
+        id: bulletinConfigPopup
+
+        onBulletinRequested: function(eleveId, classeId, allStudents) {
+            // Stocke les paramètres pour la preview
+            gradesPage._bulletinAllStudents = allStudents
+            gradesPage._bulletinClasseId    = classeId
+
+            if (allStudents) {
+                // Génère pour tous les élèves de la classe
+                var students = studentController.students
+                var classStudents = []
+                for (var i = 0; i < students.length; i++)
+                    if (students[i].classeId === classeId) classStudents.push(students[i])
+
+                if (classStudents.length === 0) return
+                gradesPage._bulletinQueue   = classStudents
+                gradesPage._bulletinQueueIdx = 0
+                // Lance le premier
+                var s = classStudents[0]
+                gradesPage._currentBulletinStudent = s
+                gradesController.loadBulletinData(s.id, classeId)
+            } else {
+                // Un seul élève
+                var st = studentController.students
+                for (var j = 0; j < st.length; j++) {
+                    if (st[j].id === eleveId) {
+                        gradesPage._currentBulletinStudent = st[j]
+                        break
+                    }
+                }
+                gradesPage._bulletinQueue    = []
+                gradesPage._bulletinQueueIdx = 0
+                gradesController.loadBulletinData(eleveId, classeId)
+            }
+            bulletinConfigPopup.close()
+        }
+    }
+
+    BulletinPreviewPopup {
+        id: bulletinPreviewPopup
+    }
+
+    // Propriétés internes pour la gestion de file d'attente
+    property var    _bulletinQueue:           []
+    property int    _bulletinQueueIdx:        0
+    property bool   _bulletinAllStudents:     false
+    property int    _bulletinClasseId:        -1
+    property var    _currentBulletinStudent:  null
+
 }

@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QPair>
+#include <QVariantMap>
 
 #include "common/result.h"
 #include "models/seance.h"
@@ -19,6 +20,9 @@ public:
     Result<bool> saveGrades(const QList<QPair<int, double>>& grades);
     Result<double> calculateAverage(int seanceId);
     Result<double> calculateStudentAverage(int eleveId);
+
+    // Bulletin: grouped grades per matière for a student in a class
+    Result<QVariantMap> buildBulletinData(int eleveId, int classeId);
 
 private:
     IParticipationRepository* m_participationRepo;

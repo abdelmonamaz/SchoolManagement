@@ -8,9 +8,20 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     property string activeTab: "schooling"
-    property string selectedMonth: "Février"
-    property int selectedYear: 2026
+    property int    selectedMonthIndex: 1     // 0 = Janvier … 11 = Décembre
+    property int    selectedYear:       2026
     property string searchTerm: ""
+
+    readonly property var    monthNames: ["Janvier","Février","Mars","Avril","Mai","Juin",
+                                          "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    readonly property string selectedMonth: monthNames[selectedMonthIndex]
+
+    function navigateMonth(delta) {
+        var idx = selectedMonthIndex + delta
+        if (idx < 0)  { idx = 11; selectedYear-- }
+        if (idx > 11) { idx = 0;  selectedYear++ }
+        selectedMonthIndex = idx
+    }
 
     // Modals
     property bool showSchoolingModal: false
@@ -38,66 +49,67 @@ Item {
                 subtitle: "Gestion mensuelle des flux financiers."
             }
 
-            Rectangle {
-                implicitWidth: dateRow.implicitWidth + 8
-                height: 48
-                radius: 20
-                color: Style.bgWhite
-                border.color: Style.borderLight
+            // ── Navigateur mois/année (même style que le calendrier de plannification) ──
+            Row {
+                spacing: 4
 
-                RowLayout {
-                    id: dateRow
-                    anchors.centerIn: parent
-                    spacing: 8
+                // ◀ Mois précédent
+                Rectangle {
+                    width: 32; height: 36; radius: 10
+                    color: prevMonthMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
+                    MouseArea {
+                        id: prevMonthMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor; onClicked: financePage.navigateMonth(-1)
+                    }
+                }
 
-                    ComboBox {
-                        id: monthCombo
-                        model: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-                        currentIndex: 1
-                        onCurrentIndexChanged: selectedMonth = model[currentIndex]
-                        Component.onCompleted: selectedMonth = model[currentIndex]
-                        font.pixelSize: 10
-                        font.weight: Font.Black
-                        background: Rectangle {
-                            implicitWidth: 120
-                            implicitHeight: 36
-                            radius: 12
-                            color: Style.bgPage
-                            border.color: monthCombo.pressed ? Style.primary : Style.borderLight
-                        }
-                        contentItem: Text {
-                            leftPadding: 12
-                            rightPadding: 12
-                            text: monthCombo.displayText
-                            font: monthCombo.font
-                            color: Style.textSecondary
-                            verticalAlignment: Text.AlignVCenter
+                // Pill mois + année (cliquable → MonthYearSelector)
+                Rectangle {
+                    id: pillRect
+                    implicitWidth: monthPillRow.implicitWidth + 20
+                    height: 36; radius: 10
+                    color: monthPicker.show ? Style.bgPage : Style.bgWhite
+                    border.color: monthPicker.show ? Style.primary : Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                    RowLayout {
+                        id: monthPillRow
+                        anchors.centerIn: parent; spacing: 6
+                        IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
+                        Text {
+                            text: financePage.selectedMonth + " " + financePage.selectedYear
+                            font.pixelSize: 10; font.weight: Font.Black
+                            color: Style.textPrimary; font.letterSpacing: 0.5
                         }
                     }
 
-                    ComboBox {
-                        id: yearCombo
-                        model: [2025, 2026, 2027]
-                        currentIndex: 1
-                        onCurrentIndexChanged: selectedYear = model[currentIndex]
-                        Component.onCompleted: selectedYear = model[currentIndex]
-                        font.pixelSize: 10
-                        font.weight: Font.Black
-                        background: Rectangle {
-                            implicitWidth: 80
-                            implicitHeight: 36
-                            radius: 12
-                            color: Style.bgPage
-                            border.color: yearCombo.pressed ? Style.primary : Style.borderLight
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var pos = pillRect.mapToItem(financePage, 0, pillRect.height + 4)
+                            monthPicker.x = Math.min(pos.x, financePage.width - monthPicker.width)
+                            monthPicker.y = pos.y
+                            monthPicker.selectedMonth = financePage.selectedMonthIndex + 1
+                            monthPicker.selectedYear = financePage.selectedYear
+                            monthPicker.show = !monthPicker.show
                         }
-                        contentItem: Text {
-                            leftPadding: 12
-                            rightPadding: 12
-                            text: yearCombo.displayText
-                            font: yearCombo.font
-                            color: Style.textSecondary
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                    }
+                }
+
+                // ▶ Mois suivant
+                Rectangle {
+                    width: 32; height: 36; radius: 10
+                    color: nextMonthMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                    border.color: Style.borderLight
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
+                    MouseArea {
+                        id: nextMonthMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor; onClicked: financePage.navigateMonth(1)
                     }
                 }
             }
@@ -1276,6 +1288,16 @@ Item {
                 onCancel: showExpenseModal = false
                 onConfirm: showExpenseModal = false
             }
+        }
+    }
+
+    // ── MonthYearSelector flottant — enfant direct de financePage, z élevé ──
+    MonthYearSelector {
+        id: monthPicker
+        z: 200
+        onMonthYearChanged: function(month, year) {
+            financePage.selectedMonthIndex = month - 1
+            financePage.selectedYear = year
         }
     }
 

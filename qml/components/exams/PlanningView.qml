@@ -24,11 +24,28 @@ RowLayout {
         return result
     }
 
+    // Calcule le lundi et dimanche de la semaine ISO sélectionnée
+    readonly property string weekDateRange: {
+        var jan4    = new Date(root.selectedWeekYear, 0, 4)
+        var isoDay  = jan4.getDay() === 0 ? 7 : jan4.getDay()   // 1=Lun … 7=Dim
+        var week1Mon = new Date(jan4.getTime() - (isoDay - 1) * 86400000)
+        var mon     = new Date(week1Mon.getTime() + (root.selectedWeek - 1) * 7 * 86400000)
+        var sun     = new Date(mon.getTime() + 6 * 86400000)
+
+        var months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"]
+        function fmt(d) {
+            return (d.getDate() < 10 ? "0" : "") + d.getDate() + " " + months[d.getMonth()]
+        }
+        var suffix = (mon.getFullYear() !== sun.getFullYear())
+                     ? " " + sun.getFullYear() : ""
+        return fmt(mon) + " – " + fmt(sun) + suffix
+    }
+
     AppCard {
         Layout.fillWidth: true
         Layout.preferredWidth: 3
         title: "Planning Hebdomadaire"
-        subtitle: "Visualisation des assignations actives"
+        subtitle: "Visualisation des assignations actives  ·  " + root.weekDateRange
 
         headerAction: Component {
             Row {
