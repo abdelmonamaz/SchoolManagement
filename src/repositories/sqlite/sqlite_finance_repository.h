@@ -48,3 +48,29 @@ public:
 private:
     QString m_connectionName;
 };
+
+class SqliteTarifMensualiteRepository : public ITarifMensualiteRepository {
+public:
+    explicit SqliteTarifMensualiteRepository(const QString& connectionName);
+
+    Result<QList<TarifMensualite>> getAll() override;
+    Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaire) override;
+
+private:
+    QString m_connectionName;
+};
+
+class SqliteDepenseRepository : public IDepenseRepository {
+public:
+    explicit SqliteDepenseRepository(const QString& connectionName);
+
+    Result<QList<Depense>> getAll() override;
+    Result<std::optional<Depense>> getById(int id) override;
+    Result<int>  create(const Depense& entity) override;
+    Result<bool> update(const Depense& entity) override;
+    Result<bool> remove(int id) override;
+    Result<QList<Depense>> getByMonth(int month, int year) override;
+
+private:
+    QString m_connectionName;
+};

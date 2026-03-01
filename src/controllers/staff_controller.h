@@ -62,8 +62,7 @@ public:
 
     // Payments
     Q_INVOKABLE void loadPaymentData(int personnelId, int mois, int annee);
-    Q_INVOKABLE void savePayment(int personnelId, int mois, int annee,
-                                 double sommeDue, double sommePaye);
+    Q_INVOKABLE void savePayment(int personnelId, int mois, int annee, double sommeDue, double sommePaye, const QString& datePaiement, const QString& justificatifPath);
     Q_INVOKABLE void recalculateSommeDue(int personnelId, int mois, int annee);
 
 signals:

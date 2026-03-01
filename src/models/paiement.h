@@ -2,6 +2,7 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QString>
 
 struct PaiementMensualite {
     int id = 0;
@@ -10,6 +11,7 @@ struct PaiementMensualite {
     QDate datePaiement;
     int moisConcerne = 0;
     int anneeConcernee = 0;
+    QString justificatifPath;
 };
 
 struct PaiementMensuelPersonnel {
@@ -20,4 +22,6 @@ struct PaiementMensuelPersonnel {
     double sommeDue = 0.0;         // Montant dû (calculé ou modifié)
     double sommePaye = 0.0;        // Montant réellement payé
     QDateTime dateModification;    // Dernière modification
+    QString datePaiement;          // Date du paiement effectif
+    QString justificatifPath;      // Justificatif optionnel
 };

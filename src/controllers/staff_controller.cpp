@@ -371,16 +371,15 @@ void StaffController::loadPaymentData(int personnelId, int mois, int annee) {
             {"annee", p.annee},
             {"sommeDue", p.sommeDue},
             {"sommePaye", p.sommePaye},
+            {"datePaiement", p.datePaiement},
+            {"justificatifPath", p.justificatifPath},
             {"isNew", false}
         };
     });
 }
 
-void StaffController::savePayment(int personnelId, int mois, int annee,
-                                  double sommeDue, double sommePaye) {
-    setLoading(true);
-    m_worker->submit("Staff.savePayment",
-                     [financeSvc = m_financeService, personnelId, mois, annee, sommeDue, sommePaye]() -> QVariant {
+void StaffController::savePayment(int personnelId, int mois, int annee, double sommeDue, double sommePaye, const QString& datePaiement, const QString& justificatifPath) {
+    m_worker->submit("Staff.savePayment", [financeSvc = m_financeService, personnelId, mois, annee, sommeDue, sommePaye, datePaiement, justificatifPath]() -> QVariant {
         PaiementMensuelPersonnel p;
         p.personnelId = personnelId;
         p.mois = mois;
@@ -388,10 +387,13 @@ void StaffController::savePayment(int personnelId, int mois, int annee,
         p.sommeDue = sommeDue;
         p.sommePaye = sommePaye;
         p.dateModification = QDateTime::currentDateTime();
+        p.datePaiement = datePaiement;
+        p.justificatifPath = justificatifPath;
 
         auto result = financeSvc->savePersonnelPayment(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
+
         return QVariantMap{{"success", true}};
     });
 }

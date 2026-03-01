@@ -12,4 +12,5 @@ struct Inscription {
     bool fraisInscriptionPaye = false;
     double montantInscription = 50.0;
     QString dateInscription;
+    QString justificatifPath;
 };

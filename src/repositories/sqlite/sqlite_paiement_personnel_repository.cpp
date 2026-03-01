@@ -5,7 +5,7 @@
 #include <QVariant>
 
 static constexpr const char* kCols =
-    "id, personnel_id, mois, annee, somme_due, somme_payee, date_modification";
+    "id, personnel_id, mois, annee, somme_due, somme_payee, date_modification, date_paiement, justificatif_path";
 
 static PaiementMensuelPersonnel rowToPaiement(QSqlQuery& q) {
     PaiementMensuelPersonnel p;
@@ -16,6 +16,8 @@ static PaiementMensuelPersonnel rowToPaiement(QSqlQuery& q) {
     p.sommeDue = q.value(4).toDouble();
     p.sommePaye = q.value(5).toDouble();
     p.dateModification = q.value(6).toDateTime();
+    p.datePaiement = q.value(7).toString();
+    p.justificatifPath = q.value(8).toString();
     return p;
 }
 
@@ -64,8 +66,8 @@ Result<int> SqlitePaiementPersonnelRepository::create(const PaiementMensuelPerso
 
     q.prepare(QStringLiteral(
         "INSERT INTO paiements_personnel "
-        "(personnel_id, mois, annee, somme_due, somme_payee, date_modification) "
-        "VALUES (?, ?, ?, ?, ?, ?)"));
+        "(personnel_id, mois, annee, somme_due, somme_payee, date_modification, date_paiement, justificatif_path) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
 
     q.addBindValue(entity.personnelId);
     q.addBindValue(entity.mois);
@@ -73,6 +75,8 @@ Result<int> SqlitePaiementPersonnelRepository::create(const PaiementMensuelPerso
     q.addBindValue(entity.sommeDue);
     q.addBindValue(entity.sommePaye);
     q.addBindValue(entity.dateModification.toString(Qt::ISODate));
+    q.addBindValue(entity.datePaiement);
+    q.addBindValue(entity.justificatifPath);
 
     if (!q.exec()) {
         return Result<int>::error(
@@ -89,7 +93,8 @@ Result<bool> SqlitePaiementPersonnelRepository::update(const PaiementMensuelPers
     q.prepare(QStringLiteral(
         "UPDATE paiements_personnel SET "
         "personnel_id = ?, mois = ?, annee = ?, "
-        "somme_due = ?, somme_payee = ?, date_modification = ? "
+        "somme_due = ?, somme_payee = ?, date_modification = ?, "
+        "date_paiement = ?, justificatif_path = ? "
         "WHERE id = ?"));
 
     q.addBindValue(entity.personnelId);
@@ -98,6 +103,8 @@ Result<bool> SqlitePaiementPersonnelRepository::update(const PaiementMensuelPers
     q.addBindValue(entity.sommeDue);
     q.addBindValue(entity.sommePaye);
     q.addBindValue(entity.dateModification.toString(Qt::ISODate));
+    q.addBindValue(entity.datePaiement);
+    q.addBindValue(entity.justificatifPath);
     q.addBindValue(entity.id);
 
     if (!q.exec()) {
@@ -178,8 +185,8 @@ Result<bool> SqlitePaiementPersonnelRepository::upsert(const PaiementMensuelPers
     // INSERT OR REPLACE (utilise la contrainte UNIQUE sur personnel_id, mois, annee)
     q.prepare(QStringLiteral(
         "INSERT OR REPLACE INTO paiements_personnel "
-        "(personnel_id, mois, annee, somme_due, somme_payee, date_modification) "
-        "VALUES (?, ?, ?, ?, ?, ?)"));
+        "(personnel_id, mois, annee, somme_due, somme_payee, date_modification, date_paiement, justificatif_path) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
 
     q.addBindValue(paiement.personnelId);
     q.addBindValue(paiement.mois);
@@ -187,6 +194,8 @@ Result<bool> SqlitePaiementPersonnelRepository::upsert(const PaiementMensuelPers
     q.addBindValue(paiement.sommeDue);
     q.addBindValue(paiement.sommePaye);
     q.addBindValue(paiement.dateModification.toString(Qt::ISODate));
+    q.addBindValue(paiement.datePaiement);
+    q.addBindValue(paiement.justificatifPath);
 
     if (!q.exec()) {
         return Result<bool>::error(

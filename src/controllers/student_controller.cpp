@@ -17,7 +17,8 @@ static QVariantMap inscriptionToMap(const Inscription& i) {
         {"anneeScolaire", i.anneeScolaire}, {"niveauId", i.niveauId},
         {"resultat", i.resultat}, {"fraisInscriptionPaye", i.fraisInscriptionPaye},
         {"montantInscription", i.montantInscription},
-        {"dateInscription", i.dateInscription}
+        {"dateInscription", i.dateInscription},
+        {"justificatifPath", i.justificatifPath}
     };
 }
 
@@ -64,6 +65,21 @@ void StudentController::loadStudentsByClasse(int classeId) {
     setLoading(true);
     m_worker->submit("Student.loadStudentsByClasse", [svc = m_service, classeId]() -> QVariant {
         auto result = svc->getStudentsByClasse(classeId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& e : result.value()) list.append(eleveToMap(e));
+        return list;
+    });
+}
+
+void StudentController::loadStudentsBySchoolYear(int month, int year) {
+    setLoading(true);
+    QString annee = (month >= 9)
+        ? QString("%1-%2").arg(year).arg(year + 1)
+        : QString("%1-%2").arg(year - 1).arg(year);
+    m_worker->submit("Student.loadStudentsBySchoolYear", [svc = m_service, annee]() -> QVariant {
+        auto result = svc->getStudentsBySchoolYear(annee);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         QVariantList list;
@@ -180,7 +196,8 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
     auto map = result.toMap();
     bool isError = map.contains("error");
 
-    if (queryId == "Student.loadStudents" || queryId == "Student.loadStudentsByClasse" || queryId == "Student.searchStudents") {
+    if (queryId == "Student.loadStudents" || queryId == "Student.loadStudentsByClasse"
+        || queryId == "Student.loadStudentsBySchoolYear" || queryId == "Student.searchStudents") {
         if (isError) setError(map["error"].toString());
         else { m_students = result.toList(); emit studentsChanged(); }
         setLoading(false);
@@ -193,6 +210,11 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
     else if (queryId == "Student.loadEnrollments") {
         if (isError) setError(map["error"].toString());
         else { m_selectedStudentEnrollments = result.toList(); emit selectedStudentEnrollmentsChanged(); }
+        setLoading(false);
+    }
+    else if (queryId == "Student.loadEnrollmentsByYear") {
+        if (isError) setError(map["error"].toString());
+        else { m_enrollmentsByYear = result.toList(); emit enrollmentsByYearChanged(); }
         setLoading(false);
     }
     else if (queryId == "Student.createStudent") {
@@ -285,6 +307,18 @@ void StudentController::loadEnrollments(int studentId) {
     setLoading(true);
     m_worker->submit("Student.loadEnrollments", [svc = m_service, studentId]() -> QVariant {
         auto result = svc->getEnrollmentsForStudent(studentId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& i : result.value()) list.append(inscriptionToMap(i));
+        return list;
+    });
+}
+
+void StudentController::loadEnrollmentsByYear(const QString& anneeScolaire) {
+    setLoading(true);
+    m_worker->submit("Student.loadEnrollmentsByYear", [svc = m_service, anneeScolaire]() -> QVariant {
+        auto result = svc->getEnrollmentsForYear(anneeScolaire);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         QVariantList list;

@@ -53,6 +53,7 @@ qt_add_qml_module(GestionScolaire_Components
         students/StudentRegistrationModal.qml
         students/StudentEditModal.qml
         students/StudentDeleteModal.qml
+        students/EnrollmentEditModal.qml
         exams/PlanningView.qml
         exams/CalendarView.qml
         exams/SessionFormModal.qml

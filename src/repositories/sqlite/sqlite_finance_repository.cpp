@@ -108,48 +108,59 @@ Result<bool> SqliteProjetRepository::remove(int id) {
 SqliteDonateurRepository::SqliteDonateurRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
 
+static const auto kDonateurCols = QStringLiteral(
+    "id, nom, telephone, adresse, type_personne, cin, raison_sociale, matricule_fiscal, representant_legal");
+
+static Donateur rowToDonateur(const QSqlQuery& q) {
+    Donateur d;
+    d.id               = q.value(0).toInt();
+    d.nom              = q.value(1).toString();
+    d.telephone        = q.value(2).toString();
+    d.adresse          = q.value(3).toString();
+    d.typePersonne     = q.value(4).toString();
+    if (d.typePersonne.isEmpty()) d.typePersonne = QStringLiteral("Physique");
+    d.cin              = q.value(5).toString();
+    d.raisonSociale    = q.value(6).toString();
+    d.matriculeFiscal  = q.value(7).toString();
+    d.representantLegal = q.value(8).toString();
+    return d;
+}
+
 Result<QList<Donateur>> SqliteDonateurRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT id, nom, telephone, adresse FROM donateurs"))) {
+    if (!query.exec(QStringLiteral("SELECT %1 FROM donateurs").arg(kDonateurCols))) {
         return Result<QList<Donateur>>::error(query.lastError().text());
     }
     QList<Donateur> list;
-    while (query.next()) {
-        Donateur d;
-        d.id = query.value(0).toInt();
-        d.nom = query.value(1).toString();
-        d.telephone = query.value(2).toString();
-        d.adresse = query.value(3).toString();
-        list.append(d);
-    }
+    while (query.next()) list.append(rowToDonateur(query));
     return Result<QList<Donateur>>::success(list);
 }
 
 Result<std::optional<Donateur>> SqliteDonateurRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, telephone, adresse FROM donateurs WHERE id = ?"));
+    query.prepare(QStringLiteral("SELECT %1 FROM donateurs WHERE id = ?").arg(kDonateurCols));
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<Donateur>>::error(query.lastError().text());
-    if (query.next()) {
-        Donateur d;
-        d.id = query.value(0).toInt();
-        d.nom = query.value(1).toString();
-        d.telephone = query.value(2).toString();
-        d.adresse = query.value(3).toString();
-        return Result<std::optional<Donateur>>::success(d);
-    }
+    if (query.next()) return Result<std::optional<Donateur>>::success(rowToDonateur(query));
     return Result<std::optional<Donateur>>::success(std::nullopt);
 }
 
 Result<int> SqliteDonateurRepository::create(const Donateur& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("INSERT INTO donateurs (nom, telephone, adresse) VALUES (?, ?, ?)"));
+    query.prepare(QStringLiteral(
+        "INSERT INTO donateurs (nom, telephone, adresse, type_personne, cin, raison_sociale, matricule_fiscal, representant_legal)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
+    query.addBindValue(entity.typePersonne.isEmpty() ? QStringLiteral("Physique") : entity.typePersonne);
+    query.addBindValue(entity.cin);
+    query.addBindValue(entity.raisonSociale);
+    query.addBindValue(entity.matriculeFiscal);
+    query.addBindValue(entity.representantLegal);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -157,10 +168,17 @@ Result<int> SqliteDonateurRepository::create(const Donateur& entity) {
 Result<bool> SqliteDonateurRepository::update(const Donateur& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("UPDATE donateurs SET nom=?, telephone=?, adresse=? WHERE id=?"));
+    query.prepare(QStringLiteral(
+        "UPDATE donateurs SET nom=?, telephone=?, adresse=?, type_personne=?, cin=?,"
+        " raison_sociale=?, matricule_fiscal=?, representant_legal=? WHERE id=?"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
+    query.addBindValue(entity.typePersonne);
+    query.addBindValue(entity.cin);
+    query.addBindValue(entity.raisonSociale);
+    query.addBindValue(entity.matriculeFiscal);
+    query.addBindValue(entity.representantLegal);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -181,15 +199,23 @@ Result<bool> SqliteDonateurRepository::remove(int id) {
 
 static Don rowToDon(const QSqlQuery& q) {
     Don d;
-    d.id = q.value(0).toInt();
-    d.donateurId = q.value(1).toInt();
-    d.projetId = q.value(2).toInt();
-    d.montant = q.value(3).toDouble();
-    d.dateDon = QDate::fromString(q.value(4).toString(), Qt::ISODate);
+    d.id                  = q.value(0).toInt();
+    d.donateurId          = q.value(1).toInt();
+    d.projetId            = q.value(2).toInt();
+    d.montant             = q.value(3).toDouble();
+    d.dateDon             = QDate::fromString(q.value(4).toString(), Qt::ISODate);
+    d.natureDon           = q.value(5).toString();
+    d.modePaiement        = q.value(6).toString();
+    d.descriptionMateriel = q.value(7).toString();
+    d.valeurEstimee       = q.value(8).toDouble();
+    d.etatMateriel        = q.value(9).toString();
+    d.justificatifPath    = q.value(10).toString();
     return d;
 }
 
-static const auto kDonCols = QStringLiteral("id, donateur_id, projet_id, montant, date_don");
+static const auto kDonCols = QStringLiteral(
+    "id, donateur_id, projet_id, montant, date_don,"
+    " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path");
 
 SqliteDonRepository::SqliteDonRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
@@ -218,11 +244,21 @@ Result<std::optional<Don>> SqliteDonRepository::getById(int id) {
 Result<int> SqliteDonRepository::create(const Don& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("INSERT INTO dons (donateur_id, projet_id, montant, date_don) VALUES (?, ?, ?, ?)"));
+    query.prepare(QStringLiteral(
+        "INSERT INTO dons (donateur_id, projet_id, montant, date_don,"
+        " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.donateurId);
-    query.addBindValue(entity.projetId);
+    // projet_id : NULL si pas d'affectation (évite la violation de FK avec -1)
+    query.addBindValue(entity.projetId > 0 ? QVariant(entity.projetId) : QVariant());
     query.addBindValue(entity.montant);
-    query.addBindValue(entity.dateDon.toString(Qt::ISODate));
+    query.addBindValue(entity.dateDon.isValid() ? entity.dateDon.toString(Qt::ISODate) : QDate::currentDate().toString(Qt::ISODate));
+    query.addBindValue(entity.natureDon.isEmpty()    ? QStringLiteral("Numéraire") : entity.natureDon);
+    query.addBindValue(entity.modePaiement.isEmpty() ? QStringLiteral("Espèces")   : entity.modePaiement);
+    query.addBindValue(entity.descriptionMateriel);
+    query.addBindValue(entity.valeurEstimee);
+    query.addBindValue(entity.etatMateriel.isEmpty() ? QStringLiteral("Neuf") : entity.etatMateriel);
+    query.addBindValue(entity.justificatifPath);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -230,11 +266,20 @@ Result<int> SqliteDonRepository::create(const Don& entity) {
 Result<bool> SqliteDonRepository::update(const Don& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("UPDATE dons SET donateur_id=?, projet_id=?, montant=?, date_don=? WHERE id=?"));
+    query.prepare(QStringLiteral(
+        "UPDATE dons SET donateur_id=?, projet_id=?, montant=?, date_don=?,"
+        " nature_don=?, mode_paiement=?, description_materiel=?, valeur_estimee=?, etat_materiel=?, justificatif_path=?"
+        " WHERE id=?"));
     query.addBindValue(entity.donateurId);
-    query.addBindValue(entity.projetId);
+    query.addBindValue(entity.projetId > 0 ? QVariant(entity.projetId) : QVariant());
     query.addBindValue(entity.montant);
     query.addBindValue(entity.dateDon.toString(Qt::ISODate));
+    query.addBindValue(entity.natureDon);
+    query.addBindValue(entity.modePaiement);
+    query.addBindValue(entity.descriptionMateriel);
+    query.addBindValue(entity.valeurEstimee);
+    query.addBindValue(entity.etatMateriel);
+    query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -263,9 +308,150 @@ Result<QList<Don>> SqliteDonRepository::getByProjetId(int projetId) {
 Result<double> SqliteDonRepository::getTotalByProjet(int projetId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT COALESCE(SUM(montant), 0) FROM dons WHERE projet_id = ?"));
+    query.prepare(QStringLiteral(
+        "SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END), 0)"
+        " FROM dons WHERE projet_id = ?"));
     query.addBindValue(projetId);
     if (!query.exec()) return Result<double>::error(query.lastError().text());
     query.next();
     return Result<double>::success(query.value(0).toDouble());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SqliteDepenseRepository
+// ═══════════════════════════════════════════════════════════════
+
+static const auto kDepenseCols = QStringLiteral(
+    "id, libelle, montant, date, categorie, justificatif_path, notes");
+
+static Depense rowToDepense(const QSqlQuery& q) {
+    Depense d;
+    d.id               = q.value(0).toInt();
+    d.libelle          = q.value(1).toString();
+    d.montant          = q.value(2).toDouble();
+    d.date             = QDate::fromString(q.value(3).toString(), Qt::ISODate);
+    d.categorie        = q.value(4).toString();
+    d.justificatifPath = q.value(5).toString();
+    d.notes            = q.value(6).toString();
+    return d;
+}
+
+SqliteDepenseRepository::SqliteDepenseRepository(const QString& connectionName)
+    : m_connectionName(connectionName) {}
+
+Result<QList<Depense>> SqliteDepenseRepository::getAll() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    if (!query.exec(QStringLiteral("SELECT %1 FROM depenses ORDER BY date DESC").arg(kDepenseCols)))
+        return Result<QList<Depense>>::error(query.lastError().text());
+    QList<Depense> list;
+    while (query.next()) list.append(rowToDepense(query));
+    return Result<QList<Depense>>::success(list);
+}
+
+Result<std::optional<Depense>> SqliteDepenseRepository::getById(int id) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("SELECT %1 FROM depenses WHERE id = ?").arg(kDepenseCols));
+    query.addBindValue(id);
+    if (!query.exec()) return Result<std::optional<Depense>>::error(query.lastError().text());
+    if (query.next()) return Result<std::optional<Depense>>::success(rowToDepense(query));
+    return Result<std::optional<Depense>>::success(std::nullopt);
+}
+
+Result<int> SqliteDepenseRepository::create(const Depense& entity) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "INSERT INTO depenses (libelle, montant, date, categorie, justificatif_path, notes)"
+        " VALUES (?, ?, ?, ?, ?, ?)"));
+    query.addBindValue(entity.libelle);
+    query.addBindValue(entity.montant);
+    query.addBindValue(entity.date.isValid() ? entity.date.toString(Qt::ISODate)
+                                              : QDate::currentDate().toString(Qt::ISODate));
+    query.addBindValue(entity.categorie.isEmpty() ? QStringLiteral("Autre") : entity.categorie);
+    query.addBindValue(entity.justificatifPath);
+    query.addBindValue(entity.notes);
+    if (!query.exec()) return Result<int>::error(query.lastError().text());
+    return Result<int>::success(query.lastInsertId().toInt());
+}
+
+Result<bool> SqliteDepenseRepository::update(const Depense& entity) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "UPDATE depenses SET libelle=?, montant=?, date=?, categorie=?, justificatif_path=?, notes=?"
+        " WHERE id=?"));
+    query.addBindValue(entity.libelle);
+    query.addBindValue(entity.montant);
+    query.addBindValue(entity.date.isValid() ? entity.date.toString(Qt::ISODate)
+                                              : QDate::currentDate().toString(Qt::ISODate));
+    query.addBindValue(entity.categorie);
+    query.addBindValue(entity.justificatifPath);
+    query.addBindValue(entity.notes);
+    query.addBindValue(entity.id);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteDepenseRepository::remove(int id) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("DELETE FROM depenses WHERE id = ?"));
+    query.addBindValue(id);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<QList<Depense>> SqliteDepenseRepository::getByMonth(int month, int year) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT %1 FROM depenses"
+        " WHERE strftime('%m', date) = ? AND strftime('%Y', date) = ?"
+        " ORDER BY date DESC").arg(kDepenseCols));
+    query.addBindValue(QString::number(month).rightJustified(2, '0'));
+    query.addBindValue(QString::number(year));
+    if (!query.exec()) return Result<QList<Depense>>::error(query.lastError().text());
+    QList<Depense> list;
+    while (query.next()) list.append(rowToDepense(query));
+    return Result<QList<Depense>>::success(list);
+}
+
+// ─── SqliteTarifMensualiteRepository ─────────────────────────────────────────
+
+static TarifMensualite rowToTarif(const QSqlQuery& q) {
+    TarifMensualite t;
+    t.id            = q.value(0).toInt();
+    t.categorie     = q.value(1).toString();
+    t.anneeScolaire = q.value(2).toString();
+    t.montant       = q.value(3).toDouble();
+    return t;
+}
+
+SqliteTarifMensualiteRepository::SqliteTarifMensualiteRepository(const QString& connectionName)
+    : m_connectionName(connectionName) {}
+
+Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getAll() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    if (!query.exec(QStringLiteral(
+            "SELECT id, categorie, annee_scolaire, montant FROM tarifs_mensualites ORDER BY annee_scolaire, categorie")))
+        return Result<QList<TarifMensualite>>::error(query.lastError().text());
+    QList<TarifMensualite> list;
+    while (query.next()) list.append(rowToTarif(query));
+    return Result<QList<TarifMensualite>>::success(list);
+}
+
+Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getByYear(const QString& anneeScolaire) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT id, categorie, annee_scolaire, montant FROM tarifs_mensualites WHERE annee_scolaire = ?"));
+    query.addBindValue(anneeScolaire);
+    if (!query.exec())
+        return Result<QList<TarifMensualite>>::error(query.lastError().text());
+    QList<TarifMensualite> list;
+    while (query.next()) list.append(rowToTarif(query));
+    return Result<QList<TarifMensualite>>::success(list);
 }

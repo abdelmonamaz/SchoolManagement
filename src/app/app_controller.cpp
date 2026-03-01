@@ -88,6 +88,8 @@ void AppController::createRepositories() {
     m_donateurRepo = std::make_unique<SqliteDonateurRepository>(conn);
     m_donRepo = std::make_unique<SqliteDonRepository>(conn);
     m_paiementPersonnelRepo = std::make_unique<SqlitePaiementPersonnelRepository>(conn);
+    m_tarifRepo = std::make_unique<SqliteTarifMensualiteRepository>(conn);
+    m_depenseRepo = std::make_unique<SqliteDepenseRepository>(conn);
 }
 
 void AppController::createServices() {
@@ -109,7 +111,8 @@ void AppController::createServices() {
 
     m_financeService = std::make_unique<FinanceService>(
         m_paiementRepo.get(), m_projetRepo.get(), m_donateurRepo.get(), m_donRepo.get(),
-        m_paiementPersonnelRepo.get());
+        m_paiementPersonnelRepo.get(), m_tarifRepo.get(), m_depenseRepo.get(),
+        m_dbWorker->connectionName());
 
     m_dashboardService = std::make_unique<DashboardService>(
         m_eleveRepo.get(), m_seanceRepo.get(), m_participationRepo.get(), m_matiereRepo.get());

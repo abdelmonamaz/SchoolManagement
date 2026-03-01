@@ -4,7 +4,7 @@ project(GestionScolaire VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Sql LabsPlatform)
 
 # Politiques Qt 6 recommandées
 qt_policy(SET QTP0001 NEW) # Préfixe /qt/qml/
@@ -147,6 +147,7 @@ target_link_libraries(GestionScolaire PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
+    Qt6::LabsPlatform
     GestionScolaire_Components
     GestionScolaire_Pages
 )

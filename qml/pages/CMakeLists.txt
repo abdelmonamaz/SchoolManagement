@@ -8,6 +8,15 @@ qt_add_qml_module(GestionScolaire_Pages
         StudentsPage.qml
         ExamsPage.qml
         FinancePage.qml
+        FinanceSchoolingTab.qml
+        FinanceDonationsTab.qml
+        FinanceJournalTab.qml
+        FinancePaymentModal.qml
+        FinanceEditModals.qml
+        FinanceDonationModal.qml
+        FinanceExpenseModal.qml
+        FinanceExpensesTab.qml
+        FinanceDonateursTab.qml
         SettingsPage.qml
         GradesPage.qml
         AttendancePage.qml

@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1 as Platform
 
 // Popup de gestion des paiements mensuels du personnel
 // Usage:
@@ -15,7 +16,7 @@ import QtQuick.Controls 2.15
 //       modePaie: "Heure" | "Jour" | "Fixe"
 //       joursTravailDefault: bitmask (ex. 31 = Lun-Ven)
 //       valeurBase: taux journalier (si modePaie === "Jour")
-//       onSaveRequested: function(newDue, newPaid) { ... }
+//       onSaveRequested: function(newDue, newPaid, datePaiement, justificatifPath) { ... }
 //       onRecalculateRequested: { ... }
 //   }
 ModalOverlay {
@@ -28,13 +29,17 @@ ModalOverlay {
     property double sommeDue: 0
     property double sommePaye: 0
 
+    // Nouvelles propriétés pour le justificatif
+    property string currentJustif: ""
+    property string currentDatePaiement: ""
+
     // Jour-mode properties
     property string modePaie: "Heure"
     property int joursTravailDefault: 31
     property double valeurBase: 0.0
     property int daysMask: 31   // bitmask courant dans la popup
 
-    signal saveRequested(double newSommeDue, double newSommePaye)
+    signal saveRequested(double newSommeDue, double newSommePaye, string datePaiement, string justificatifPath)
     signal recalculateRequested()
 
     onJoursTravailDefaultChanged: daysMask = joursTravailDefault
@@ -43,6 +48,14 @@ ModalOverlay {
         daysMask = root.joursTravailDefault
         if (root.modePaie === "Jour")
             sommeDueField.text = (countDaysInMonth(daysMask) * root.valeurBase).toFixed(2)
+        
+        // Reset date et justificatif
+        if (root.currentDatePaiement) {
+            payDateField.setDate(root.currentDatePaiement)
+        } else {
+            payDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
+        }
+        payJustifField.text = root.currentJustif || ""
     }
 
     // Compte les occurrences des jours cochés dans le mois courant
@@ -59,6 +72,18 @@ ModalOverlay {
     }
 
     modalWidth: 560
+
+    Platform.FileDialog {
+        id: fileDialog
+        title: "Sélectionner un justificatif"
+        fileMode: Platform.FileDialog.OpenFile
+        nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
+        onAccepted: {
+            var path = fileDialog.file.toString()
+            path = path.replace(/^file:\/\/\//, "").replace(/^file:\/\//, "")
+            payJustifField.text = decodeURIComponent(path)
+        }
+    }
 
     Column {
         width: parent.width
@@ -174,6 +199,45 @@ ModalOverlay {
             }
         }
 
+        // Date de paiement
+        DateField {
+            id: payDateField
+            width: 420
+            anchors.horizontalCenter: parent.horizontalCenter
+            label: "DATE DU PAIEMENT"
+        }
+
+        // Justificatif
+        Column {
+            width: 420
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 6
+            SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+            RowLayout { width: parent.width; spacing: 8
+                Rectangle { Layout.fillWidth: true; height: 44; radius: 12
+                            color: Style.bgPage; border.color: Style.borderLight
+                    TextInput {
+                        id: payJustifField
+                        anchors.fill: parent; anchors.margins: 12
+                        font.pixelSize: 12; font.bold: true; color: Style.textPrimary
+                        clip: true; selectByMouse: true; readOnly: true
+                        Text { visible: !payJustifField.text; text: "Aucun fichier sélectionné"
+                               font: payJustifField.font; color: Style.textTertiary }
+                    }
+                }
+                Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
+                    color: browseHover.containsMouse ? Style.primary : Style.bgPage
+                    border.color: browseHover.containsMouse ? Style.primary : Style.borderLight
+                    Text { anchors.centerIn: parent; text: "…"
+                           font.pixelSize: 16; font.bold: true
+                           color: browseHover.containsMouse ? "white" : Style.textTertiary }
+                    MouseArea { id: browseHover; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: fileDialog.open() }
+                }
+            }
+        }
+
         // Bouton Recalculer
         OutlineButton {
             width: 420
@@ -198,7 +262,9 @@ ModalOverlay {
             onConfirm: {
                 root.saveRequested(
                     parseFloat(sommeDueField.text) || 0,
-                    parseFloat(sommePayeeField.text) || 0
+                    parseFloat(sommePayeeField.text) || 0,
+                    payDateField.dateString !== "" ? payDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
+                    payJustifField.text.trim()
                 )
             }
         }

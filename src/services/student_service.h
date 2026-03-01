@@ -17,6 +17,7 @@ public:
 
     Result<QList<Eleve>> getAllStudents();
     Result<QList<Eleve>> getStudentsByClasse(int classeId);
+    Result<QList<Eleve>> getStudentsBySchoolYear(const QString& anneeScolaire);
     Result<std::optional<Eleve>> getStudentById(int id);
     Result<int> createStudent(const QString& nom, const QString& prenom, const QString& sexe,
                               const QString& telephone, const QString& adresse,
@@ -27,6 +28,7 @@ public:
     Result<bool> deleteStudent(int id);
     Result<int> getTotalCount();
     Result<QList<Eleve>> searchByName(const QString& query);
+
     Result<bool> unassignStudentsFromClasse(int classeId);
     Result<bool> removeStudentFromClasse(int studentId);
     Result<bool> assignToClasse(int studentId, int classeId);
@@ -36,9 +38,12 @@ public:
     Result<int> enrollStudent(const Inscription& inscription);
     Result<bool> updateEnrollment(const Inscription& inscription);
     Result<QList<Inscription>> getEnrollmentsForStudent(int studentId);
+    Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire);
     Result<bool> deleteEnrollment(int enrollmentId);
 
 private:
     IEleveRepository* m_eleveRepo;
     IClasseRepository* m_classeRepo;
 };
+
+

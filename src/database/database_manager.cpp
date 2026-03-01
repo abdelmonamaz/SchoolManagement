@@ -144,7 +144,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  resultat TEXT DEFAULT 'En cours',"
             "  frais_inscription_paye INTEGER DEFAULT 0,"
             "  montant_inscription REAL DEFAULT 50.0,"
-            "  date_inscription TEXT DEFAULT (date('now'))"
+            "  date_inscription TEXT DEFAULT (date('now')),"
+            "  justificatif_path TEXT"
             ")"),
 
         // ── Matières ──
@@ -202,7 +203,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  montant_paye REAL NOT NULL,"
             "  date_paiement TEXT DEFAULT (date('now')),"
             "  mois_concerne INTEGER NOT NULL,"
-            "  annee_concernee INTEGER NOT NULL"
+            "  annee_concernee INTEGER NOT NULL,"
+            "  justificatif_path TEXT"
             ")"),
 
         // ── Paiements personnel ──
@@ -215,6 +217,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  somme_due REAL NOT NULL DEFAULT 0.0,"
             "  somme_payee REAL NOT NULL DEFAULT 0.0,"
             "  date_modification TEXT NOT NULL,"
+            "  date_paiement TEXT,"
+            "  justificatif_path TEXT,"
             "  UNIQUE(personnel_id, mois, annee)"
             ")"),
 
@@ -245,6 +249,28 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  projet_id INTEGER REFERENCES projets(id),"
             "  montant REAL NOT NULL,"
             "  date_don TEXT DEFAULT (date('now'))"
+            ")"),
+
+        // ── Dépenses ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS depenses ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  libelle TEXT NOT NULL,"
+            "  montant REAL NOT NULL,"
+            "  date TEXT DEFAULT (date('now')),"
+            "  categorie TEXT DEFAULT 'Autre',"
+            "  justificatif_path TEXT,"
+            "  notes TEXT"
+            ")"),
+
+        // ── Tarifs mensualités (par catégorie et année scolaire) ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS tarifs_mensualites ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  categorie TEXT NOT NULL,"
+            "  annee_scolaire TEXT NOT NULL,"
+            "  montant REAL NOT NULL DEFAULT 0.0,"
+            "  UNIQUE(categorie, annee_scolaire)"
             ")"),
 
         // ── Cours (sous-table de séances) ──
@@ -480,7 +506,8 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "  resultat TEXT DEFAULT 'En cours',"
             "  frais_inscription_paye INTEGER DEFAULT 0,"
             "  montant_inscription REAL DEFAULT 50.0,"
-            "  date_inscription TEXT DEFAULT (date('now'))"
+            "  date_inscription TEXT DEFAULT (date('now')),"
+            "  justificatif_path TEXT"
             ")"));
         qInfo() << "[DatabaseManager] Migration 13: created inscriptions_eleves table";
     }
@@ -520,6 +547,125 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         execStatement(db, QStringLiteral(
             "ALTER TABLE contrats ADD COLUMN jours_travail INTEGER DEFAULT 31"));
         qInfo() << "[DatabaseManager] Migration 17: added column contrats.jours_travail";
+    }
+
+    // Migration 19 : champs étendus donateurs (Décret-loi 2011-88 Tunisie)
+    if (!columnExists(QStringLiteral("donateurs"), QStringLiteral("type_personne"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE donateurs ADD COLUMN type_personne TEXT DEFAULT 'Physique'"));
+        qInfo() << "[DatabaseManager] Migration 19a: added donateurs.type_personne";
+    }
+    if (!columnExists(QStringLiteral("donateurs"), QStringLiteral("cin"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE donateurs ADD COLUMN cin TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19b: added donateurs.cin";
+    }
+    if (!columnExists(QStringLiteral("donateurs"), QStringLiteral("raison_sociale"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE donateurs ADD COLUMN raison_sociale TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19c: added donateurs.raison_sociale";
+    }
+    if (!columnExists(QStringLiteral("donateurs"), QStringLiteral("matricule_fiscal"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE donateurs ADD COLUMN matricule_fiscal TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19d: added donateurs.matricule_fiscal";
+    }
+    if (!columnExists(QStringLiteral("donateurs"), QStringLiteral("representant_legal"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE donateurs ADD COLUMN representant_legal TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19e: added donateurs.representant_legal";
+    }
+    // Migration 19 : champs étendus dons (nature + justificatif)
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("nature_don"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN nature_don TEXT DEFAULT 'Numéraire'"));
+        qInfo() << "[DatabaseManager] Migration 19f: added dons.nature_don";
+    }
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("mode_paiement"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN mode_paiement TEXT DEFAULT 'Espèces'"));
+        qInfo() << "[DatabaseManager] Migration 19g: added dons.mode_paiement";
+    }
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("description_materiel"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN description_materiel TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19h: added dons.description_materiel";
+    }
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("valeur_estimee"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN valeur_estimee REAL DEFAULT 0.0"));
+        qInfo() << "[DatabaseManager] Migration 19i: added dons.valeur_estimee";
+    }
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("etat_materiel"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN etat_materiel TEXT DEFAULT 'Neuf'"));
+        qInfo() << "[DatabaseManager] Migration 19j: added dons.etat_materiel";
+    }
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("justificatif_path"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE dons ADD COLUMN justificatif_path TEXT"));
+        qInfo() << "[DatabaseManager] Migration 19k: added dons.justificatif_path";
+    }
+
+    // Migration 20 : ajout du justificatif pour les paiements
+    if (!columnExists(QStringLiteral("paiements_mensualites"), QStringLiteral("justificatif_path"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE paiements_mensualites ADD COLUMN justificatif_path TEXT"));
+        qInfo() << "[DatabaseManager] Migration 20: added paiements_mensualites.justificatif_path";
+    }
+
+    // Migration 21 : ajout du justificatif pour les inscriptions
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("justificatif_path"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE inscriptions_eleves ADD COLUMN justificatif_path TEXT"));
+        qInfo() << "[DatabaseManager] Migration 21: added inscriptions_eleves.justificatif_path";
+    }
+
+    // Migration 22 : ajout de date_paiement et justificatif_path pour paiements_personnel
+    if (!columnExists(QStringLiteral("paiements_personnel"), QStringLiteral("date_paiement"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE paiements_personnel ADD COLUMN date_paiement TEXT"));
+        qInfo() << "[DatabaseManager] Migration 22a: added paiements_personnel.date_paiement";
+    }
+    if (!columnExists(QStringLiteral("paiements_personnel"), QStringLiteral("justificatif_path"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE paiements_personnel ADD COLUMN justificatif_path TEXT"));
+        qInfo() << "[DatabaseManager] Migration 22b: added paiements_personnel.justificatif_path";
+    }
+
+    // Migration 18 : création de la table tarifs_mensualites + données initiales
+    if (!tableExists(QStringLiteral("tarifs_mensualites"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS tarifs_mensualites ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  categorie TEXT NOT NULL,"
+            "  annee_scolaire TEXT NOT NULL,"
+            "  montant REAL NOT NULL DEFAULT 0.0,"
+            "  UNIQUE(categorie, annee_scolaire)"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 18: created table tarifs_mensualites";
+    }
+    // Migration 20 : création de la table depenses
+    if (!tableExists(QStringLiteral("depenses"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS depenses ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  libelle TEXT NOT NULL,"
+            "  montant REAL NOT NULL,"
+            "  date TEXT DEFAULT (date('now')),"
+            "  categorie TEXT DEFAULT 'Autre',"
+            "  justificatif_path TEXT,"
+            "  notes TEXT"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 20: created table depenses";
+    }
+
+    // Insérer les tarifs par défaut pour les années scolaires courantes (idempotent)
+    {
+        QSqlQuery ins(db);
+        ins.prepare(QStringLiteral(
+            "INSERT OR IGNORE INTO tarifs_mensualites (categorie, annee_scolaire, montant) VALUES (?, ?, ?)"));
+        const QList<std::tuple<QString,QString,double>> defaults = {
+            {"Jeune",  "2023-2024", 150.0},
+            {"Adulte", "2023-2024", 250.0},
+            {"Jeune",  "2024-2025", 150.0},
+            {"Adulte", "2024-2025", 250.0},
+            {"Jeune",  "2025-2026", 150.0},
+            {"Adulte", "2025-2026", 250.0},
+            {"Jeune",  "2026-2027", 150.0},
+            {"Adulte", "2026-2027", 250.0},
+        };
+        for (const auto& [cat, annee, montant] : defaults) {
+            ins.addBindValue(cat);
+            ins.addBindValue(annee);
+            ins.addBindValue(montant);
+            ins.exec();
+        }
     }
 }
 

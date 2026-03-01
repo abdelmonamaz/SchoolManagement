@@ -87,6 +87,16 @@ Item {
             if (data.sommePaye !== undefined) {
                 paymentPopup.sommePaye = data.sommePaye
             }
+            if (data.datePaiement !== undefined) {
+                paymentPopup.currentDatePaiement = data.datePaiement
+            } else {
+                paymentPopup.currentDatePaiement = ""
+            }
+            if (data.justificatifPath !== undefined) {
+                paymentPopup.currentJustif = data.justificatifPath
+            } else {
+                paymentPopup.currentJustif = ""
+            }
         }
         function onContratHistoriqueLoaded(contrats) {
             contratHistoryPopup.contrats = contrats
@@ -426,10 +436,10 @@ Item {
         joursTravailDefault: selectedPersonnelData ? (selectedPersonnelData.joursTravail || 31) : 31
         valeurBase: selectedPersonnelData ? (selectedPersonnelData.valeurBase || 0) : 0
 
-        onSaveRequested: function(newSommeDue, newSommePaye) {
+        onSaveRequested: function(newSommeDue, newSommePaye, datePaiement, justificatifPath) {
             staffController.savePayment(
                 personnelId, selectedMonth, selectedYear,
-                newSommeDue, newSommePaye
+                newSommeDue, newSommePaye, datePaiement, justificatifPath
             )
         }
 

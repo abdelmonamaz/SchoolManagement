@@ -1,8 +1,7 @@
 #pragma once
 
-#include <QString>
-
 #include "repositories/ieleve_repository.h"
+#include <QString>
 
 class SqliteEleveRepository : public IEleveRepository {
 public:
@@ -15,7 +14,9 @@ public:
     Result<bool> remove(int id) override;
 
     Result<QList<Eleve>> getByClasseId(int classeId) override;
+    Result<QList<Eleve>> getBySchoolYear(const QString& anneeScolaire) override;
     Result<int> countAll() override;
+
     Result<bool> unassignClasse(int classeId) override;
     Result<bool> removeFromClasse(int studentId) override;
     Result<bool> assignToClasse(int studentId, int classeId) override;
@@ -26,8 +27,10 @@ public:
     Result<bool> updateEnrollment(const Inscription& inscription) override;
     Result<QList<Inscription>> getEnrollmentsByStudentId(int studentId) override;
     Result<std::optional<Inscription>> getEnrollmentByYear(int studentId, const QString& anneeScolaire) override;
+    Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire) override;
     Result<bool> deleteEnrollment(int enrollmentId) override;
 
 private:
     QString m_connectionName;
 };
+

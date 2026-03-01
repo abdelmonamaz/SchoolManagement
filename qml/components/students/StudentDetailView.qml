@@ -19,12 +19,17 @@ ColumnLayout {
         target: studentController
         function onOperationFailed(err) {
             if (newEnrollmentPopup.opened) newErrorMsg.text = err;
-            if (editEnrollmentPopup.opened) editErrorMsg.text = err;
         }
         function onOperationSucceeded(msg) {
             if (msg === "Nouvelle année inscrite") newEnrollmentPopup.close();
-            if (msg === "Inscription mise à jour") editEnrollmentPopup.close();
+            if (msg === "Inscription mise à jour") editEnrollmentModal.show = false;
         }
+    }
+
+    EnrollmentEditModal {
+        id: editEnrollmentModal
+        student: root.student
+        niveaux: root.niveaux
     }
 
     // Back button
@@ -230,8 +235,8 @@ ColumnLayout {
                                         IconButton {
                                             iconName: "edit"; iconSize: 16
                                             onClicked: {
-                                                editEnrollmentPopup.enrollmentData = modelData
-                                                editEnrollmentPopup.open()
+                                                editEnrollmentModal.enrollmentData = modelData
+                                                editEnrollmentModal.show = true
                                             }
                                         }
                                         IconButton {
@@ -391,161 +396,9 @@ ColumnLayout {
                             niveauId: root.niveaux[levelCombo.currentIndex].id,
                             resultat: "En cours",
                             fraisInscriptionPaye: newEnrollmentPopup.isPaid,
-                            montantInscription: parseFloat(feeField.text)
-                        })
-                    }
-                }
-            }
-        }
-    }
-
-    // Edit Enrollment Popup
-    Popup {
-        id: editEnrollmentPopup
-        parent: Overlay.overlay; anchors.centerIn: parent
-        width: 500; height: 480; modal: true; padding: 0
-        background: Rectangle { radius: 24; color: Style.bgWhite }
-
-        property var enrollmentData: null
-        property var anneeScolaireOptions: []
-        property bool isPaid: false
-
-        onOpened: {
-            editErrorMsg.text = ""
-            var date = new Date()
-            var year = date.getFullYear()
-            var baseYear = date.getMonth() < 8 ? year - 1 : year
-            anneeScolaireOptions = [
-                (baseYear - 2) + "-" + (baseYear - 1),
-                (baseYear - 1) + "-" + baseYear,
-                baseYear + "-" + (baseYear + 1),
-                (baseYear + 1) + "-" + (baseYear + 2),
-                (baseYear + 2) + "-" + (baseYear + 3)
-            ]
-
-            if (enrollmentData) {
-                var foundYear = false
-                for (var j = 0; j < anneeScolaireOptions.length; j++) {
-                    if (anneeScolaireOptions[j] === enrollmentData.anneeScolaire) {
-                        editYearCombo.currentIndex = j
-                        foundYear = true
-                        break
-                    }
-                }
-                if (!foundYear) {
-                    // Add it if it's an older/future year not in the default list
-                    anneeScolaireOptions.unshift(enrollmentData.anneeScolaire)
-                    editYearCombo.currentIndex = 0
-                }
-
-                for (var i = 0; i < root.niveaux.length; i++) {
-                    if (root.niveaux[i].id === enrollmentData.niveauId) {
-                        editLevelCombo.currentIndex = i
-                        break
-                    }
-                }
-                editResultField.text = enrollmentData.resultat || "En cours"
-                editFeeField.text = enrollmentData.montantInscription.toString()
-                isPaid = enrollmentData.fraisInscriptionPaye
-            }
-        }
-        
-        contentItem: ColumnLayout {
-            anchors.fill: parent; anchors.margins: 24; spacing: 20
-            Text { text: "Modifier l'Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
-            
-            Text {
-                id: editErrorMsg
-                visible: text !== ""
-                color: Style.errorColor
-                font.pixelSize: 13
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-            }
-
-            RowLayout {
-                spacing: 16
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "ANNÉE SCOLAIRE" }
-                    Rectangle {
-                        Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: editYearCombo; anchors.fill: parent; anchors.margins: 2
-                            model: editEnrollmentPopup.anneeScolaireOptions
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                text: editYearCombo.displayText; font.pixelSize: 13; font.bold: true
-                                color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                            }
-                        }
-                    }
-                }
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "NIVEAU" }
-                    Rectangle {
-                        Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: editLevelCombo; anchors.fill: parent; anchors.margins: 2
-                            model: root.niveaux; textRole: "nom"
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                text: editLevelCombo.displayText; font.pixelSize: 13; font.bold: true
-                                color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                            }
-                        }
-                    }
-                }
-            }
-
-            FormField { id: editResultField; Layout.fillWidth: true; label: "RÉSULTAT" }
-            
-            RowLayout {
-                spacing: 16
-                FormField { id: editFeeField; Layout.fillWidth: true; label: "FRAIS (DT)" }
-                Column {
-                    spacing: 6
-                    SectionLabel { text: "STATUT DU PAIEMENT" }
-                    Row {
-                        spacing: 12
-                        Rectangle {
-                            width: 50; height: 26; radius: 13
-                            color: editEnrollmentPopup.isPaid ? Style.successColor : Style.bgTertiary
-                            Rectangle {
-                                x: editEnrollmentPopup.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                color: "#FFFFFF"
-                                Behavior on x { NumberAnimation { duration: 150 } }
-                            }
-                            MouseArea { anchors.fill: parent; onClicked: editEnrollmentPopup.isPaid = !editEnrollmentPopup.isPaid }
-                        }
-                        Text { 
-                            text: editEnrollmentPopup.isPaid ? "PAYÉ" : "NON PAYÉ"
-                            font.pixelSize: 12; font.weight: Font.Black
-                            color: editEnrollmentPopup.isPaid ? Style.successColor : Style.textTertiary
-                        }
-                    }
-                }
-            }
-            
-            RowLayout {
-                Layout.fillWidth: true; spacing: 16
-                OutlineButton {
-                    Layout.fillWidth: true; text: "Annuler"
-                    onClicked: editEnrollmentPopup.close()
-                }
-                PrimaryButton {
-                    Layout.fillWidth: true; text: "Mettre à jour"
-                    onClicked: {
-                        studentController.updateEnrollment(editEnrollmentPopup.enrollmentData.id, {
-                            eleveId: root.student.id,
-                            anneeScolaire: editYearCombo.currentText,
-                            niveauId: root.niveaux[editLevelCombo.currentIndex].id,
-                            resultat: editResultField.text,
-                            fraisInscriptionPaye: editEnrollmentPopup.isPaid,
-                            montantInscription: parseFloat(editFeeField.text)
+                            montantInscription: parseFloat(feeField.text),
+                            dateInscription: Qt.formatDate(new Date(), "yyyy-MM-dd"),
+                            justificatifPath: ""
                         })
                     }
                 }

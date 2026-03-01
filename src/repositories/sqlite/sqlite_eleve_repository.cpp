@@ -109,6 +109,23 @@ Result<bool> SqliteEleveRepository::remove(int id) {
     return Result<bool>::success(true);
 }
 
+Result<QList<Eleve>> SqliteEleveRepository::getBySchoolYear(const QString& anneeScolaire) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT DISTINCT e.id, e.nom, e.prenom, e.sexe, e.telephone, e.adresse, "
+        "e.date_naissance, e.nom_parent, e.tel_parent, e.commentaire, e.categorie, e.classe_id "
+        "FROM eleves e "
+        "JOIN inscriptions_eleves i ON e.id = i.eleve_id "
+        "WHERE i.annee_scolaire = ? "
+        "ORDER BY e.nom, e.prenom"));
+    query.addBindValue(anneeScolaire);
+    if (!query.exec()) return Result<QList<Eleve>>::error(query.lastError().text());
+    QList<Eleve> list;
+    while (query.next()) list.append(rowToEleve(query));
+    return Result<QList<Eleve>>::success(list);
+}
+
 Result<QList<Eleve>> SqliteEleveRepository::getByClasseId(int classeId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
@@ -200,14 +217,16 @@ Result<int> SqliteEleveRepository::createEnrollment(const Inscription& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO inscriptions_eleves (eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription)"
-        " VALUES (?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO inscriptions_eleves (eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription, justificatif_path)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.eleveId);
     query.addBindValue(entity.anneeScolaire);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.resultat);
     query.addBindValue(entity.fraisInscriptionPaye ? 1 : 0);
     query.addBindValue(entity.montantInscription);
+    query.addBindValue(entity.dateInscription.isEmpty() ? QDate::currentDate().toString(Qt::ISODate) : entity.dateInscription);
+    query.addBindValue(entity.justificatifPath);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -216,12 +235,14 @@ Result<bool> SqliteEleveRepository::updateEnrollment(const Inscription& entity) 
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE inscriptions_eleves SET annee_scolaire=?, niveau_id=?, resultat=?, frais_inscription_paye=?, montant_inscription=? WHERE id=?"));
+        "UPDATE inscriptions_eleves SET annee_scolaire=?, niveau_id=?, resultat=?, frais_inscription_paye=?, montant_inscription=?, date_inscription=?, justificatif_path=? WHERE id=?"));
     query.addBindValue(entity.anneeScolaire);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.resultat);
     query.addBindValue(entity.fraisInscriptionPaye ? 1 : 0);
     query.addBindValue(entity.montantInscription);
+    query.addBindValue(entity.dateInscription.isEmpty() ? QDate::currentDate().toString(Qt::ISODate) : entity.dateInscription);
+    query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -230,7 +251,7 @@ Result<bool> SqliteEleveRepository::updateEnrollment(const Inscription& entity) 
 Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsByStudentId(int studentId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription FROM inscriptions_eleves WHERE eleve_id = ? ORDER BY date_inscription DESC"));
+    query.prepare(QStringLiteral("SELECT id, eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription, justificatif_path FROM inscriptions_eleves WHERE eleve_id = ? ORDER BY date_inscription DESC"));
     query.addBindValue(studentId);
     if (!query.exec()) return Result<QList<Inscription>>::error(query.lastError().text());
     QList<Inscription> list;
@@ -244,6 +265,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsByStudentId(int 
         i.fraisInscriptionPaye = query.value(5).toInt() != 0;
         i.montantInscription = query.value(6).toDouble();
         i.dateInscription = query.value(7).toString();
+        i.justificatifPath = query.value(8).toString();
         list.append(i);
     }
     return Result<QList<Inscription>>::success(list);
@@ -252,7 +274,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsByStudentId(int 
 Result<std::optional<Inscription>> SqliteEleveRepository::getEnrollmentByYear(int studentId, const QString& anneeScolaire) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription FROM inscriptions_eleves WHERE eleve_id = ? AND annee_scolaire = ?"));
+    query.prepare(QStringLiteral("SELECT id, eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription, justificatif_path FROM inscriptions_eleves WHERE eleve_id = ? AND annee_scolaire = ?"));
     query.addBindValue(studentId);
     query.addBindValue(anneeScolaire);
     if (!query.exec()) return Result<std::optional<Inscription>>::error(query.lastError().text());
@@ -266,9 +288,33 @@ Result<std::optional<Inscription>> SqliteEleveRepository::getEnrollmentByYear(in
         i.fraisInscriptionPaye = query.value(5).toInt() != 0;
         i.montantInscription = query.value(6).toDouble();
         i.dateInscription = query.value(7).toString();
+        i.justificatifPath = query.value(8).toString();
         return Result<std::optional<Inscription>>::success(i);
     }
     return Result<std::optional<Inscription>>::success(std::nullopt);
+}
+
+Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForYear(const QString& anneeScolaire) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral("SELECT id, eleve_id, annee_scolaire, niveau_id, resultat, frais_inscription_paye, montant_inscription, date_inscription, justificatif_path FROM inscriptions_eleves WHERE annee_scolaire = ?"));
+    query.addBindValue(anneeScolaire);
+    if (!query.exec()) return Result<QList<Inscription>>::error(query.lastError().text());
+    QList<Inscription> list;
+    while (query.next()) {
+        Inscription i;
+        i.id = query.value(0).toInt();
+        i.eleveId = query.value(1).toInt();
+        i.anneeScolaire = query.value(2).toString();
+        i.niveauId = query.value(3).toInt();
+        i.resultat = query.value(4).toString();
+        i.fraisInscriptionPaye = query.value(5).toInt() != 0;
+        i.montantInscription = query.value(6).toDouble();
+        i.dateInscription = query.value(7).toString();
+        i.justificatifPath = query.value(8).toString();
+        list.append(i);
+    }
+    return Result<QList<Inscription>>::success(list);
 }
 
 Result<bool> SqliteEleveRepository::deleteEnrollment(int enrollmentId) {

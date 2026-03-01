@@ -16,6 +16,7 @@ public:
 
     Result<QList<PaiementMensualite>> getByMonth(int month, int year) override;
     Result<QList<PaiementMensualite>> getByEleveId(int eleveId) override;
+    Result<bool> deleteByEleveAndMonth(int eleveId, int month, int year) override;
 
 private:
     QString m_connectionName;

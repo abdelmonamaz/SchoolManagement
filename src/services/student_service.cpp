@@ -34,6 +34,10 @@ Result<QList<Inscription>> StudentService::getEnrollmentsForStudent(int studentI
     return m_eleveRepo->getEnrollmentsByStudentId(studentId);
 }
 
+Result<QList<Inscription>> StudentService::getEnrollmentsForYear(const QString& anneeScolaire) {
+    return m_eleveRepo->getEnrollmentsForYear(anneeScolaire);
+}
+
 Result<bool> StudentService::deleteEnrollment(int enrollmentId) {
     return m_eleveRepo->deleteEnrollment(enrollmentId);
 }
@@ -46,6 +50,11 @@ Result<QList<Eleve>> StudentService::getAllStudents()
 Result<QList<Eleve>> StudentService::getStudentsByClasse(int classeId)
 {
     return m_eleveRepo->getByClasseId(classeId);
+}
+
+Result<QList<Eleve>> StudentService::getStudentsBySchoolYear(const QString& anneeScolaire)
+{
+    return m_eleveRepo->getBySchoolYear(anneeScolaire);
 }
 
 Result<std::optional<Eleve>> StudentService::getStudentById(int id)
@@ -145,3 +154,4 @@ Result<QList<Eleve>> StudentService::searchByName(const QString& query)
 
     return Result<QList<Eleve>>::success(std::move(filtered));
 }
+
