@@ -25,7 +25,7 @@ SqlitePaiementRepository::SqlitePaiementRepository(const QString& connectionName
 Result<QList<PaiementMensualite>> SqlitePaiementRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT %1 FROM paiements_mensualites").arg(kCols))) {
+    if (!query.exec(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE valide = 1").arg(kCols))) {
         return Result<QList<PaiementMensualite>>::error(query.lastError().text());
     }
     QList<PaiementMensualite> list;
@@ -36,7 +36,7 @@ Result<QList<PaiementMensualite>> SqlitePaiementRepository::getAll() {
 Result<std::optional<PaiementMensualite>> SqlitePaiementRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE id = ?").arg(kCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE id = ? AND valide = 1").arg(kCols));
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<PaiementMensualite>>::error(query.lastError().text());
     if (query.next()) return Result<std::optional<PaiementMensualite>>::success(rowToPaiement(query));
@@ -64,7 +64,7 @@ Result<bool> SqlitePaiementRepository::update(const PaiementMensualite& entity) 
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "UPDATE paiements_mensualites SET eleve_id=?, montant_paye=?, date_paiement=?, "
-        "mois_concerne=?, annee_concernee=?, justificatif_path=? WHERE id=?"));
+        "mois_concerne=?, annee_concernee=?, justificatif_path=? , date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(entity.eleveId);
     query.addBindValue(entity.montantPaye);
     query.addBindValue(entity.datePaiement.toString(Qt::ISODate));
@@ -79,7 +79,7 @@ Result<bool> SqlitePaiementRepository::update(const PaiementMensualite& entity) 
 Result<bool> SqlitePaiementRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("DELETE FROM paiements_mensualites WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE paiements_mensualites SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -88,7 +88,7 @@ Result<bool> SqlitePaiementRepository::remove(int id) {
 Result<QList<PaiementMensualite>> SqlitePaiementRepository::getByMonth(int month, int year) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE mois_concerne = ? AND annee_concernee = ?").arg(kCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE mois_concerne = ? AND annee_concernee = ? AND valide = 1").arg(kCols));
     query.addBindValue(month);
     query.addBindValue(year);
     if (!query.exec()) return Result<QList<PaiementMensualite>>::error(query.lastError().text());
@@ -100,7 +100,7 @@ Result<QList<PaiementMensualite>> SqlitePaiementRepository::getByMonth(int month
 Result<QList<PaiementMensualite>> SqlitePaiementRepository::getByEleveId(int eleveId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE eleve_id = ?").arg(kCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM paiements_mensualites WHERE eleve_id = ? AND valide = 1").arg(kCols));
     query.addBindValue(eleveId);
     if (!query.exec()) return Result<QList<PaiementMensualite>>::error(query.lastError().text());
     QList<PaiementMensualite> list;
@@ -112,7 +112,7 @@ Result<bool> SqlitePaiementRepository::deleteByEleveAndMonth(int eleveId, int mo
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "DELETE FROM paiements_mensualites WHERE eleve_id = ? AND mois_concerne = ? AND annee_concernee = ?"));
+        "UPDATE paiements_mensualites SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE eleve_id = ? AND mois_concerne = ? AND annee_concernee = ?"));
     query.addBindValue(eleveId);
     query.addBindValue(month);
     query.addBindValue(year);

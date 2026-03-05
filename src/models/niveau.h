@@ -24,6 +24,12 @@ struct Matiere {
 struct MatiereExamen {
     int id = 0;
     int matiereId = 0;
+    int typeExamenId = 0;
+    QString titre; // Fetched from TypeExamen via JOIN
+};
+
+struct TypeExamen {
+    int id = 0;
     QString titre;
 };
 

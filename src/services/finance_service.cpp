@@ -110,24 +110,37 @@ Result<bool> FinanceService::deletePayment(int id)
 
 Result<QList<Projet>> FinanceService::getAllProjets()
 {
-    return m_projetRepo->getAll();
+    auto result = m_projetRepo->getAll();
+    if (result.isOk()) {
+        QList<Projet> projets = result.value();
+        for (int i = 0; i < projets.size(); ++i) {
+            auto donResult = m_donRepo->getByProjetId(projets[i].id);
+            if (donResult.isOk()) {
+                double total = 0.0;
+                for (const auto& don : donResult.value()) {
+                    if (don.natureDon == "Nature") {
+                        total += don.valeurEstimee;
+                    } else {
+                        total += don.montant;
+                    }
+                }
+                projets[i].totalDons = total;
+            }
+        }
+        return Result<QList<Projet>>::success(projets);
+    }
+    return result;
 }
 
-Result<int> FinanceService::createProjet(const QString& nom, const QString& desc, double objectif)
+Result<int> FinanceService::createProjet(const Projet& projet)
 {
-    if (nom.trimmed().isEmpty()) {
+    if (projet.nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom du projet ne peut pas etre vide.");
     }
-    if (objectif <= 0.0) {
-        return Result<int>::error("L'objectif financier doit etre superieur a zero.");
+    if (projet.objectifFinancier <= 0.0) {
+        return Result<int>::error("L'objectif financier doit etre superieur a 0.");
     }
-
-    Projet p;
-    p.nom = nom.trimmed();
-    p.description = desc.trimmed();
-    p.objectifFinancier = objectif;
-    p.statut = GS::StatutProjet::EnCours;
-    return m_projetRepo->create(p);
+    return m_projetRepo->create(projet);
 }
 
 Result<bool> FinanceService::updateProjet(const Projet& projet)

@@ -30,7 +30,7 @@ Result<QList<PaiementMensuelPersonnel>> SqlitePaiementPersonnelRepository::getAl
     QSqlDatabase db = QSqlDatabase::database(m_connectionName);
     QSqlQuery q(db);
 
-    if (!q.exec(QStringLiteral("SELECT %1 FROM paiements_personnel").arg(kCols))) {
+    if (!q.exec(QStringLiteral("SELECT %1 FROM paiements_personnel WHERE valide = 1").arg(kCols))) {
         return Result<QList<PaiementMensuelPersonnel>>::error(
             QStringLiteral("Erreur SELECT paiements_personnel : ") + q.lastError().text());
     }
@@ -46,7 +46,7 @@ Result<std::optional<PaiementMensuelPersonnel>> SqlitePaiementPersonnelRepositor
     QSqlDatabase db = QSqlDatabase::database(m_connectionName);
     QSqlQuery q(db);
 
-    q.prepare(QStringLiteral("SELECT %1 FROM paiements_personnel WHERE id = ?").arg(kCols));
+    q.prepare(QStringLiteral("SELECT %1 FROM paiements_personnel WHERE id = ? AND valide = 1").arg(kCols));
     q.addBindValue(id);
 
     if (!q.exec()) {
@@ -119,7 +119,7 @@ Result<bool> SqlitePaiementPersonnelRepository::remove(int id) {
     QSqlDatabase db = QSqlDatabase::database(m_connectionName);
     QSqlQuery q(db);
 
-    q.prepare(QStringLiteral("DELETE FROM paiements_personnel WHERE id = ?"));
+    q.prepare(QStringLiteral("UPDATE paiements_personnel SET valide = 0, date_invalidation = datetime('now') WHERE id = ?"));
     q.addBindValue(id);
 
     if (!q.exec()) {
@@ -137,7 +137,7 @@ SqlitePaiementPersonnelRepository::getByPersonnelAndMonth(int personnelId, int m
 
     q.prepare(QStringLiteral(
         "SELECT %1 FROM paiements_personnel "
-        "WHERE personnel_id = ? AND mois = ? AND annee = ?").arg(kCols));
+        "WHERE valide = 1 AND personnel_id = ? AND mois = ? AND annee = ?").arg(kCols));
 
     q.addBindValue(personnelId);
     q.addBindValue(mois);
@@ -161,7 +161,7 @@ SqlitePaiementPersonnelRepository::getByMonth(int mois, int annee) {
 
     q.prepare(QStringLiteral(
         "SELECT %1 FROM paiements_personnel "
-        "WHERE mois = ? AND annee = ?").arg(kCols));
+        "WHERE valide = 1 AND mois = ? AND annee = ?").arg(kCols));
 
     q.addBindValue(mois);
     q.addBindValue(annee);

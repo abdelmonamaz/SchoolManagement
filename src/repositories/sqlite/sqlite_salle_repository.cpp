@@ -13,7 +13,7 @@ Result<QList<Salle>> SqliteSalleRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom, capacite_chaises, equipement FROM salles")) {
+    if (!query.exec("SELECT id, nom, capacite_chaises, equipement FROM salles WHERE valide = 1")) {
         return Result<QList<Salle>>::error(query.lastError().text());
     }
 
@@ -33,7 +33,7 @@ Result<std::optional<Salle>> SqliteSalleRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, capacite_chaises, equipement FROM salles WHERE id = ?");
+    query.prepare("SELECT id, nom, capacite_chaises, equipement FROM salles WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -71,7 +71,7 @@ Result<bool> SqliteSalleRepository::update(const Salle& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE salles SET nom = ?, capacite_chaises = ?, equipement = ? WHERE id = ?");
+    query.prepare("UPDATE salles SET nom = ?, capacite_chaises = ?, equipement = ? , date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.capaciteChaises);
     query.addBindValue(entity.equipement);
@@ -87,7 +87,7 @@ Result<bool> SqliteSalleRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("DELETE FROM salles WHERE id = ?");
+    query.prepare("UPDATE salles SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {

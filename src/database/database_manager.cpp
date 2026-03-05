@@ -45,7 +45,6 @@ void DatabaseManager::createSchema(const QString& connectionName)
     }
 
     createTables(db);
-    seedInitialData(db);
 }
 
 // ---------------------------------------------------------------------------
@@ -160,10 +159,15 @@ void DatabaseManager::createTables(QSqlDatabase& db)
 
         // ── Évaluations configurables par matière ──
         QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS type_examen ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  titre TEXT NOT NULL UNIQUE"
+            ")"),
+        QStringLiteral(
             "CREATE TABLE IF NOT EXISTS matiere_examens ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  matiere_id INTEGER NOT NULL REFERENCES matieres(id) ON DELETE CASCADE,"
-            "  titre TEXT NOT NULL"
+            "  type_examen_id INTEGER NOT NULL REFERENCES type_examen(id) ON DELETE CASCADE"
             ")"),
 
         // ── Équipements ──
@@ -229,7 +233,9 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  nom TEXT NOT NULL,"
             "  description TEXT,"
             "  objectif_financier REAL,"
-            "  statut TEXT DEFAULT 'En cours'"
+            "  statut TEXT DEFAULT 'En cours',"
+            "  date_debut TEXT,"
+            "  date_fin TEXT"
             ")"),
 
         // ── Donateurs ──
@@ -493,6 +499,9 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
     if (!columnExists(QStringLiteral("eleves"), QStringLiteral("commentaire"))) {
         execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN commentaire TEXT"));
     }
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("categorie"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN categorie TEXT DEFAULT 'Jeune'"));
+    }
     qInfo() << "[DatabaseManager] Migration 12: added new columns to eleves";
 
     // Migration 13 : création de la table inscriptions_eleves si elle n'existe pas (déjà fait dans createTables mais pour la sécurité)
@@ -532,15 +541,60 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
     }
 
     // Migration 16 : création de la table matiere_examens
-    if (!tableExists(QStringLiteral("matiere_examens"))) {
+    // Migration 24 : création de la table type_examen et adaptation de matiere_examens
+    if (!tableExists(QStringLiteral("type_examen"))) {
         execStatement(db, QStringLiteral(
-            "CREATE TABLE IF NOT EXISTS matiere_examens ("
+            "CREATE TABLE IF NOT EXISTS type_examen ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "  matiere_id INTEGER NOT NULL REFERENCES matieres(id) ON DELETE CASCADE,"
-            "  titre TEXT NOT NULL"
+            "  titre TEXT NOT NULL UNIQUE"
             ")"));
-        qInfo() << "[DatabaseManager] Migration 16: created table matiere_examens";
+        qInfo() << "[DatabaseManager] Migration 24a: created table type_examen";
+        
+        // Mettre à jour matiere_examens pour utiliser type_examen_id si elle existait avant
+        if (tableExists(QStringLiteral("matiere_examens"))) {
+            if (columnExists(QStringLiteral("matiere_examens"), QStringLiteral("titre"))) {
+                // Créer les types existants
+                execStatement(db, QStringLiteral("INSERT OR IGNORE INTO type_examen (titre) SELECT DISTINCT titre FROM matiere_examens"));
+                
+                // Ajouter la nouvelle colonne
+                execStatement(db, QStringLiteral("ALTER TABLE matiere_examens ADD COLUMN type_examen_id INTEGER REFERENCES type_examen(id)"));
+                
+                // Mettre à jour la colonne
+                execStatement(db, QStringLiteral("UPDATE matiere_examens SET type_examen_id = (SELECT id FROM type_examen WHERE type_examen.titre = matiere_examens.titre)"));
+            }
+        } else {
+            execStatement(db, QStringLiteral(
+                "CREATE TABLE IF NOT EXISTS matiere_examens ("
+                "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "  matiere_id INTEGER NOT NULL REFERENCES matieres(id) ON DELETE CASCADE,"
+                "  type_examen_id INTEGER NOT NULL REFERENCES type_examen(id) ON DELETE CASCADE"
+                ")"));
+        }
+        qInfo() << "[DatabaseManager] Migration 24b: adapted matiere_examens";
     }
+
+    // Migration 25 : Ajout global des colonnes de soft-delete et audit (valide, date_modification, etc.)
+    QStringList tablesToUpdate = {
+        "salles", "niveaux", "classes", "personnel", "eleves", "matieres", 
+        "type_examen", "matiere_examens", "equipements", "seances", "participations",
+        "paiements_mensualites", "paiements_personnel", "projets", "donateurs", "dons",
+        "depenses", "tarifs_mensualites", "contrats", "inscriptions_eleves"
+    };
+
+    for (const QString& table : tablesToUpdate) {
+        if (tableExists(table)) {
+            if (!columnExists(table, "valide")) {
+                execStatement(db, QString("ALTER TABLE %1 ADD COLUMN valide INTEGER DEFAULT 1").arg(table));
+            }
+            if (!columnExists(table, "date_modification")) {
+                execStatement(db, QString("ALTER TABLE %1 ADD COLUMN date_modification TEXT").arg(table));
+            }
+            if (!columnExists(table, "date_invalidation")) {
+                execStatement(db, QString("ALTER TABLE %1 ADD COLUMN date_invalidation TEXT").arg(table));
+            }
+        }
+    }
+    qInfo() << "[DatabaseManager] Migration 25: checked audit columns for all tables.";
 
     // Migration 17 : ajout de jours_travail dans contrats (bitmask Lun-Ven, défaut 31)
     if (!columnExists(QStringLiteral("contrats"), QStringLiteral("jours_travail"))) {
@@ -618,6 +672,16 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         qInfo() << "[DatabaseManager] Migration 22b: added paiements_personnel.justificatif_path";
     }
 
+    // Migration 23 : ajout de date_debut et date_fin dans projets
+    if (!columnExists(QStringLiteral("projets"), QStringLiteral("date_debut"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE projets ADD COLUMN date_debut TEXT"));
+        qInfo() << "[DatabaseManager] Migration 23a: added projets.date_debut";
+    }
+    if (!columnExists(QStringLiteral("projets"), QStringLiteral("date_fin"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE projets ADD COLUMN date_fin TEXT"));
+        qInfo() << "[DatabaseManager] Migration 23b: added projets.date_fin";
+    }
+
     // Migration 18 : création de la table tarifs_mensualites + données initiales
     if (!tableExists(QStringLiteral("tarifs_mensualites"))) {
         execStatement(db, QStringLiteral(
@@ -669,65 +733,3 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
     }
 }
 
-void DatabaseManager::seedInitialData(QSqlDatabase& db)
-{
-    // Guard: only seed when the niveaux table is empty.
-    QSqlQuery check(db);
-    check.exec(QStringLiteral("SELECT COUNT(*) FROM niveaux"));
-    if (check.next() && check.value(0).toInt() > 0)
-        return;
-
-    qInfo() << "[DatabaseManager] Seeding initial reference data...";
-
-    // ── Niveaux ──
-    for (int i = 1; i <= 5; ++i) {
-        execStatement(db,
-            QStringLiteral("INSERT INTO niveaux (nom) VALUES ('Niveau %1')").arg(i));
-    }
-
-    // ── Salles ──
-    const QStringList salles {
-        QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle A1', 30, 'Tableau Blanc, Projecteur')"),
-        QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle A2', 25, 'Tableau Blanc, WiFi')"),
-        QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Salle B1', 40, 'Tableau Digital, Projecteur, Système Audio')"),
-        QStringLiteral("INSERT INTO salles (nom, capacite_chaises, equipement) "
-                        "VALUES ('Labo Sciences', 20, 'Tableau Blanc, WiFi')"),
-    };
-    for (const auto& sql : salles)
-        execStatement(db, sql);
-
-    // ── Classes (a few per level) ──
-    const QStringList classes {
-        // Niveau 1
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('1A', 1)"),
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('1B', 1)"),
-        // Niveau 2
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('2A', 2)"),
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('2B', 2)"),
-        // Niveau 3
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('3A', 3)"),
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('3B', 3)"),
-        // Niveau 4
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('4A', 4)"),
-        // Niveau 5
-        QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES ('5A', 5)"),
-    };
-    for (const auto& sql : classes)
-        execStatement(db, sql);
-
-    // ── Équipements ──
-    const QStringList equipements {
-        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Projecteur')"),
-        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Tableau Blanc')"),
-        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Tableau Digital')"),
-        QStringLiteral("INSERT INTO equipements (nom) VALUES ('WiFi')"),
-        QStringLiteral("INSERT INTO equipements (nom) VALUES ('Système Audio')"),
-    };
-    for (const auto& sql : equipements)
-        execStatement(db, sql);
-
-    qInfo() << "[DatabaseManager] Seed data inserted.";
-}

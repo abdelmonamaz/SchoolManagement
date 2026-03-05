@@ -28,6 +28,15 @@ Item {
     property bool   payOverwrite:        false
     property bool   showSchoolingModal:  false
     property bool   showDonationModal:   false
+    property bool   showEditDonModal:    false
+    property var    editingDon:          null
+    property var    pendingDon:          null
+    property string pendingDonNom:       ""
+
+    property bool   showProjectModal:    false
+    property bool   showEditProjectModal:false
+    property var    editingProject:      null
+
     property bool   showExpenseModal:    false
     property bool   showDeleteModal:     false
     property bool   showEditModal:       false
@@ -44,11 +53,6 @@ Item {
     property string editingEleveNom:      ""
     property double editingCurrentAmount: 0.0
     property double editingNewAmount:     0.0
-
-    property string pendingDonNom:    ""
-    property var    pendingDon:       null
-    property var    editingDon:           null
-    property bool   showEditDonModal:     false
 
     property var    editingDepense:       null
     property bool   showEditExpenseModal: false
@@ -281,18 +285,15 @@ Item {
         // ─── Filter bar ───────────────────────────────────────────────────────
         RowLayout {
             Layout.fillWidth: true; spacing: 16
-            visible: activeTab !== "journal" && activeTab !== "donateurs"
+            visible: activeTab === "schooling" || activeTab === "expenses"
             SearchField { Layout.fillWidth: true; placeholder: "Rechercher…"; onTextChanged: searchTerm = text }
             PrimaryButton {
-                text: activeTab === "schooling" ? "Nouveau Paiement"
-                    : activeTab === "donations"  ? "Nouveau Don" : "Nouveau Frais"
+                text: activeTab === "schooling" ? "Nouveau Paiement" : "Nouveau Frais"
                 iconName: "plus"
                 onClicked: {
                     if (activeTab === "schooling") {
                         financePage.payingEleveId = -1; financePage.payingEleveNom = ""
                         financePage.payingMontantReste = 0; showSchoolingModal = true
-                    } else if (activeTab === "donations") {
-                        showDonationModal = true
                     } else {
                         showExpenseModal  = true
                     }
@@ -344,6 +345,7 @@ Item {
                 Text { id: delText; anchors.fill: parent; anchors.margins: 14
                     text: "Supprimer " + (deleteType === "payment" ? "le paiement"
                                        : deleteType === "depense" ? "la dépense"
+                                       : deleteType === "projet" ? "le projet"
                                        : "le don") + " <b>" + deleteItemName + "</b> ?"
                     font.pixelSize: 13; font.weight: Font.Medium; color: Style.errorColor
                     wrapMode: Text.WordWrap; textFormat: Text.RichText; lineHeight: 1.5 }
@@ -356,6 +358,8 @@ Item {
                         financeController.deletePayment(financePage.deleteItemId)
                     else if (financePage.deleteType === "depense")
                         financeController.deleteDepense(financePage.deleteItemId)
+                    else if (financePage.deleteType === "projet")
+                        financeController.deleteProjet(financePage.deleteItemId)
                     else if (financePage.deleteType === "don")
                         financeController.deleteDon(financePage.deleteItemId)
                     showDeleteModal = false
@@ -363,6 +367,8 @@ Item {
             }
         }
     }
+
+    FinanceProjectModal { page: financePage }
 
     // ── Month/year picker (floating) ──────────────────────────────────────────
     MonthYearSelector {

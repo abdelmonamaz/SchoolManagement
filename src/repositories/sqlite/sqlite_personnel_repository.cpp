@@ -10,7 +10,7 @@ SqlitePersonnelRepository::SqlitePersonnelRepository(const QString& connectionNa
 Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel"))) {
+    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel WHERE valide = 1"))) {
         return Result<QList<Personnel>>::error(query.lastError().text());
     }
 
@@ -31,7 +31,7 @@ Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
 Result<std::optional<Personnel>> SqlitePersonnelRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel WHERE id = ?"));
+    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel WHERE id = ? AND valide = 1"));
     query.addBindValue(id);
     if (!query.exec()) {
         return Result<std::optional<Personnel>>::error(query.lastError().text());
@@ -74,7 +74,7 @@ Result<bool> SqlitePersonnelRepository::update(const Personnel& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE personnel SET nom=?, prenom=?, telephone=?, adresse=?, sexe=? WHERE id=?"));
+        "UPDATE personnel SET nom=?, prenom=?, telephone=?, adresse=?, sexe=? , date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
     query.addBindValue(entity.telephone);
@@ -90,7 +90,7 @@ Result<bool> SqlitePersonnelRepository::update(const Personnel& entity) {
 Result<bool> SqlitePersonnelRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("DELETE FROM personnel WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE personnel SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) {
         return Result<bool>::error(query.lastError().text());

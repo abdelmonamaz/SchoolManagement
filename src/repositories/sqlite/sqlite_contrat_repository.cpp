@@ -29,7 +29,7 @@ Result<QList<Contrat>> SqliteContratRepository::getByPersonnelId(int personnelId
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT id, personnel_id, poste, specialite, mode_paie, valeur_base, date_debut, date_fin, jours_travail "
-        "FROM contrats WHERE personnel_id = ? ORDER BY date_debut DESC"));
+        "FROM contrats WHERE valide = 1 AND personnel_id = ? ORDER BY date_debut DESC"));
     query.addBindValue(personnelId);
     if (!query.exec())
         return Result<QList<Contrat>>::error(query.lastError().text());
@@ -46,7 +46,7 @@ Result<std::optional<Contrat>> SqliteContratRepository::getActiveContrat(int per
     query.prepare(QStringLiteral(
         "SELECT id, personnel_id, poste, specialite, mode_paie, valeur_base, date_debut, date_fin, jours_travail "
         "FROM contrats "
-        "WHERE personnel_id = ? AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
+        "WHERE valide = 1 AND personnel_id = ? AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
         "ORDER BY date_debut DESC LIMIT 1"));
     query.addBindValue(personnelId);
     query.addBindValue(date.toString(Qt::ISODate));
@@ -65,7 +65,7 @@ Result<QList<Contrat>> SqliteContratRepository::getActiveContrats(const QDate& d
     query.prepare(QStringLiteral(
         "SELECT id, personnel_id, poste, specialite, mode_paie, valeur_base, date_debut, date_fin, jours_travail "
         "FROM contrats "
-        "WHERE date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
+        "WHERE valide = 1 AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
         "ORDER BY personnel_id, date_debut DESC"));
     query.addBindValue(date.toString(Qt::ISODate));
     query.addBindValue(date.toString(Qt::ISODate));
@@ -85,7 +85,7 @@ Result<QList<Contrat>> SqliteContratRepository::getContratsForPeriod(const QDate
     query.prepare(QStringLiteral(
         "SELECT id, personnel_id, poste, specialite, mode_paie, valeur_base, date_debut, date_fin, jours_travail "
         "FROM contrats "
-        "WHERE date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
+        "WHERE valide = 1 AND date_debut <= ? AND (date_fin IS NULL OR date_fin >= ?) "
         "ORDER BY personnel_id, date_debut DESC"));
     query.addBindValue(to.toString(Qt::ISODate));
     query.addBindValue(from.toString(Qt::ISODate));
@@ -122,7 +122,7 @@ Result<bool> SqliteContratRepository::update(const Contrat& contrat) {
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "UPDATE contrats SET poste=?, specialite=?, mode_paie=?, valeur_base=?, date_debut=?, date_fin=?, jours_travail=? "
-        "WHERE id=?"));
+        ", date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(contrat.poste);
     query.addBindValue(contrat.specialite);
     query.addBindValue(contrat.modePaie);
@@ -139,7 +139,7 @@ Result<bool> SqliteContratRepository::update(const Contrat& contrat) {
 Result<bool> SqliteContratRepository::remove(int contratId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("DELETE FROM contrats WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE contrats SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(contratId);
     if (!query.exec())
         return Result<bool>::error(query.lastError().text());
@@ -149,7 +149,7 @@ Result<bool> SqliteContratRepository::remove(int contratId) {
 Result<bool> SqliteContratRepository::closeContrat(int contratId, const QDate& dateFin) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("UPDATE contrats SET date_fin = ? WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE contrats SET date_fin = ? , date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(dateFin.toString(Qt::ISODate));
     query.addBindValue(contratId);
     if (!query.exec())
@@ -164,7 +164,7 @@ Result<bool> SqliteContratRepository::hasOverlap(int personnelId, const QDate& d
     // For open-ended contracts (date_fin IS NULL), treat them as extending to infinity
     QString sql = QStringLiteral(
         "SELECT COUNT(*) FROM contrats "
-        "WHERE personnel_id = ? AND id != ? "
+        "WHERE valide = 1 AND personnel_id = ? AND id != ? "
         "AND date_debut <= ? "
         "AND (date_fin IS NULL OR date_fin >= ?)");
     query.prepare(sql);
@@ -182,7 +182,7 @@ Result<bool> SqliteContratRepository::hasOverlap(int personnelId, const QDate& d
 Result<int> SqliteContratRepository::countByPersonnelId(int personnelId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT COUNT(*) FROM contrats WHERE personnel_id = ?"));
+    query.prepare(QStringLiteral("SELECT COUNT(*) FROM contrats WHERE personnel_id = ? AND valide = 1"));
     query.addBindValue(personnelId);
     if (!query.exec() || !query.next())
         return Result<int>::error(query.lastError().text());

@@ -32,6 +32,11 @@ public:
     virtual Result<QList<MatiereExamen>> getByMatiereId(int matiereId) = 0;
 };
 
+class ITypeExamenRepository : public IRepository<TypeExamen> {
+public:
+    ~ITypeExamenRepository() override = default;
+};
+
 class IEquipementRepository : public IRepository<Equipement> {
 public:
     ~IEquipementRepository() override = default;

@@ -27,7 +27,10 @@ static QVariantMap projetToMap(const Projet& p) {
     return {
         {"id", p.id}, {"nom", p.nom}, {"description", p.description},
         {"objectifFinancier", p.objectifFinancier},
-        {"statut", statutProjetToString(p.statut)}
+        {"statut", statutProjetToString(p.statut)},
+        {"dateDebut", p.dateDebut.isValid() ? p.dateDebut.toString(Qt::ISODate) : ""},
+        {"dateFin", p.dateFin.isValid() ? p.dateFin.toString(Qt::ISODate) : ""},
+        {"totalDons", p.totalDons}
     };
 }
 
@@ -165,10 +168,18 @@ void FinanceController::loadProjets() {
 
 void FinanceController::createProjet(const QVariantMap& data) {
     m_worker->submit("Finance.createProjet", [svc = m_service, data]() -> QVariant {
-        auto result = svc->createProjet(
-            data.value("nom").toString(),
-            data.value("description").toString(),
-            data.value("objectifFinancier").toDouble());
+        Projet p;
+        p.nom = data.value("nom").toString();
+        p.description = data.value("description").toString();
+        p.objectifFinancier = data.value("objectifFinancier").toDouble();
+        p.statut = GS::StatutProjet::EnCours; // default
+        if (data.contains("dateDebut")) {
+            p.dateDebut = QDate::fromString(data.value("dateDebut").toString(), Qt::ISODate);
+        }
+        if (data.contains("dateFin")) {
+            p.dateFin = QDate::fromString(data.value("dateFin").toString(), Qt::ISODate);
+        }
+        auto result = svc->createProjet(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -186,6 +197,12 @@ void FinanceController::updateProjet(int id, const QVariantMap& data) {
         if (statut == QStringLiteral("Terminé")) p.statut = GS::StatutProjet::Termine;
         else if (statut == QStringLiteral("En pause")) p.statut = GS::StatutProjet::EnPause;
         else p.statut = GS::StatutProjet::EnCours;
+        if (data.contains("dateDebut")) {
+            p.dateDebut = QDate::fromString(data.value("dateDebut").toString(), Qt::ISODate);
+        }
+        if (data.contains("dateFin")) {
+            p.dateFin = QDate::fromString(data.value("dateFin").toString(), Qt::ISODate);
+        }
         auto result = svc->updateProjet(p);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -541,15 +558,15 @@ void FinanceController::onQueryCompleted(const QString& queryId, const QVariant&
     }
     else if (queryId == "Finance.recordDon") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { loadAllDons(); emit operationSucceeded("Don enregistré"); }
+        else { loadAllDons(); loadProjets(); emit operationSucceeded("Don enregistré"); }
     }
     else if (queryId == "Finance.updateDon") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { loadAllDons(); emit operationSucceeded("Don modifié"); }
+        else { loadAllDons(); loadProjets(); emit operationSucceeded("Don mis à jour"); }
     }
     else if (queryId == "Finance.deleteDon") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { loadAllDons(); emit operationSucceeded("Don supprimé"); }
+        else { loadAllDons(); loadProjets(); emit operationSucceeded("Don supprimé"); }
     }
     // Dépenses
     else if (queryId == "Finance.loadDepensesByMonth") {

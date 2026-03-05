@@ -42,6 +42,7 @@ qt_add_qml_module(GestionScolaire_Components
         schooling/NiveauModals.qml
         schooling/MatiereDeleteModal.qml
         schooling/MatiereEditModal.qml
+        schooling/TypeExamenModal.qml
         schooling/ClassModals.qml
         schooling/ClassStudentsPopup.qml
         schooling/RoomModals.qml

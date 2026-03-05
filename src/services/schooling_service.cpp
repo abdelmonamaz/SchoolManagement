@@ -5,11 +5,13 @@
 
 SchoolingService::SchoolingService(INiveauRepository* niveauRepo, IClasseRepository* classeRepo,
                                    IMatiereRepository* matiereRepo, IMatiereExamenRepository* matiereExamenRepo,
+                                   ITypeExamenRepository* typeExamenRepo,
                                    ISalleRepository* salleRepo, IEquipementRepository* equipementRepo)
     : m_niveauRepo(niveauRepo)
     , m_classeRepo(classeRepo)
     , m_matiereRepo(matiereRepo)
     , m_matiereExamenRepo(matiereExamenRepo)
+    , m_typeExamenRepo(typeExamenRepo)
     , m_salleRepo(salleRepo)
     , m_equipementRepo(equipementRepo)
 {
@@ -142,29 +144,60 @@ Result<QList<MatiereExamen>> SchoolingService::getExamensByMatiere(int matiereId
     return m_matiereExamenRepo->getByMatiereId(matiereId);
 }
 
-Result<int> SchoolingService::createMatiereExamen(int matiereId, const QString& titre)
+Result<int> SchoolingService::createMatiereExamen(int matiereId, int typeExamenId)
 {
-    if (titre.trimmed().isEmpty())
-        return Result<int>::error("Le titre de l'évaluation ne peut pas être vide.");
-    MatiereExamen e;
-    e.matiereId = matiereId;
-    e.titre = titre.trimmed();
-    return m_matiereExamenRepo->create(e);
+    if (matiereId <= 0) return Result<int>::error("ID matiere invalide.");
+    if (typeExamenId <= 0) return Result<int>::error("ID type examen invalide.");
+
+    MatiereExamen me;
+    me.matiereId = matiereId;
+    me.typeExamenId = typeExamenId;
+    return m_matiereExamenRepo->create(me);
 }
 
-Result<bool> SchoolingService::updateMatiereExamen(int id, const QString& titre)
+Result<bool> SchoolingService::updateMatiereExamen(int id, int typeExamenId)
 {
-    if (titre.trimmed().isEmpty())
-        return Result<bool>::error("Le titre de l'évaluation ne peut pas être vide.");
-    MatiereExamen e;
-    e.id = id;
-    e.titre = titre.trimmed();
-    return m_matiereExamenRepo->update(e);
+    if (id <= 0) return Result<bool>::error("ID examen invalide.");
+    if (typeExamenId <= 0) return Result<bool>::error("ID type examen invalide.");
+
+    MatiereExamen me;
+    me.id = id;
+    me.typeExamenId = typeExamenId;
+    return m_matiereExamenRepo->update(me);
 }
 
 Result<bool> SchoolingService::deleteMatiereExamen(int id)
 {
     return m_matiereExamenRepo->remove(id);
+}
+
+// --- TypeExamens ---
+
+Result<QList<TypeExamen>> SchoolingService::getAllTypeExamens()
+{
+    return m_typeExamenRepo->getAll();
+}
+
+Result<int> SchoolingService::createTypeExamen(const QString& titre)
+{
+    if (titre.trimmed().isEmpty()) return Result<int>::error("Le titre ne peut pas etre vide.");
+    TypeExamen te;
+    te.titre = titre.trimmed();
+    return m_typeExamenRepo->create(te);
+}
+
+Result<bool> SchoolingService::updateTypeExamen(int id, const QString& titre)
+{
+    if (titre.trimmed().isEmpty()) return Result<bool>::error("Le titre ne peut pas etre vide.");
+    TypeExamen te;
+    te.id = id;
+    te.titre = titre.trimmed();
+    return m_typeExamenRepo->update(te);
+}
+
+Result<bool> SchoolingService::deleteTypeExamen(int id)
+{
+    return m_typeExamenRepo->remove(id);
 }
 
 // --- Salles ---

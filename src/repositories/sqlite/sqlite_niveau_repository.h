@@ -65,3 +65,17 @@ public:
 private:
     QString m_connectionName;
 };
+
+class SqliteTypeExamenRepository : public ITypeExamenRepository {
+public:
+    explicit SqliteTypeExamenRepository(QString connectionName);
+
+    Result<QList<TypeExamen>> getAll() override;
+    Result<std::optional<TypeExamen>> getById(int id) override;
+    Result<int> create(const TypeExamen& entity) override;
+    Result<bool> update(const TypeExamen& entity) override;
+    Result<bool> remove(int id) override;
+
+private:
+    QString m_connectionName;
+};

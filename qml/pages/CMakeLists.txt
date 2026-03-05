@@ -14,6 +14,7 @@ qt_add_qml_module(GestionScolaire_Pages
         FinancePaymentModal.qml
         FinanceEditModals.qml
         FinanceDonationModal.qml
+        FinanceProjectModal.qml
         FinanceExpenseModal.qml
         FinanceExpensesTab.qml
         FinanceDonateursTab.qml

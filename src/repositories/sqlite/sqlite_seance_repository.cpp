@@ -85,7 +85,8 @@ static const auto kSeanceSelect = QStringLiteral(
     "FROM seances s "
     "LEFT JOIN cours c ON c.seance_id = s.id "
     "LEFT JOIN examens e ON e.seance_id = s.id "
-    "LEFT JOIN events ev ON ev.seance_id = s.id");
+    "LEFT JOIN events ev ON ev.seance_id = s.id "
+    "WHERE s.valide = 1");
 
 SqliteSeanceRepository::SqliteSeanceRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
@@ -104,7 +105,7 @@ Result<QList<Seance>> SqliteSeanceRepository::getAll() {
 Result<std::optional<Seance>> SqliteSeanceRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" WHERE s.id = ?"));
+    query.prepare(kSeanceSelect + QStringLiteral(" AND s.id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<Seance>>::error(query.lastError().text());
     if (query.next()) return Result<std::optional<Seance>>::success(rowToSeance(query));
@@ -182,7 +183,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
     // 1. Update base seance
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "UPDATE seances SET salle_id=?, date_heure_debut=?, duree_minutes=?, type_seance=? WHERE id=?"));
+        "UPDATE seances SET salle_id=?, date_heure_debut=?, duree_minutes=?, type_seance=? , date_modification = datetime('now') WHERE id=?"));
     q.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
     q.addBindValue(entity.dateHeureDebut.toString(Qt::ISODate));
     q.addBindValue(entity.dureeMinutes);
@@ -198,7 +199,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
     switch (entity.typeSeance) {
         case GS::CategorieSeance::Cours:
             sub.prepare(QStringLiteral(
-                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? WHERE seance_id=?"));
+                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? , date_modification = datetime('now') WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.profId);
             sub.addBindValue(entity.classeId);
@@ -206,7 +207,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
             break;
         case GS::CategorieSeance::Examen:
             sub.prepare(QStringLiteral(
-                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? WHERE seance_id=?"));
+                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? , date_modification = datetime('now') WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.classeId);
             sub.addBindValue(entity.titre);
@@ -215,7 +216,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
             break;
         case GS::CategorieSeance::Evenement:
             sub.prepare(QStringLiteral(
-                "UPDATE events SET titre=?, salle_id=?, descriptif=? WHERE seance_id=?"));
+                "UPDATE events SET titre=?, salle_id=?, descriptif=? , date_modification = datetime('now') WHERE seance_id=?"));
             sub.addBindValue(entity.titre);
             sub.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
             sub.addBindValue(entity.descriptif.isEmpty() ? QVariant() : entity.descriptif);
@@ -238,7 +239,7 @@ Result<bool> SqliteSeanceRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     // CASCADE deletes the sub-table row automatically
-    query.prepare(QStringLiteral("DELETE FROM seances WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -247,7 +248,7 @@ Result<bool> SqliteSeanceRepository::remove(int id) {
 Result<bool> SqliteSeanceRepository::setPresenceValide(int seanceId, bool valide) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("UPDATE seances SET presence_valide = ? WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE seances SET presence_valide = ? , date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(valide ? 1 : 0);
     query.addBindValue(seanceId);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
@@ -257,7 +258,7 @@ Result<bool> SqliteSeanceRepository::setPresenceValide(int seanceId, bool valide
 Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& from, const QDateTime& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" WHERE s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
+    query.prepare(kSeanceSelect + QStringLiteral(" AND s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
     query.addBindValue(from.toString(Qt::ISODate));
     query.addBindValue(to.toString(Qt::ISODate));
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
@@ -269,7 +270,7 @@ Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& fr
 Result<QList<Seance>> SqliteSeanceRepository::getByClasseId(int classeId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" WHERE c.classe_id = ? OR e.classe_id = ?"));
+    query.prepare(kSeanceSelect + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"));
     query.addBindValue(classeId);
     query.addBindValue(classeId);
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
@@ -287,7 +288,7 @@ Result<int> SqliteSeanceRepository::getTotalMinutesByProf(int profId, const QDat
         "FROM seances s "
         "LEFT JOIN cours c ON c.seance_id = s.id "
         "LEFT JOIN examens e ON e.seance_id = s.id "
-        "WHERE (c.prof_id = ? OR e.prof_id = ?) "
+        "WHERE s.valide = 1 AND (c.prof_id = ? OR e.prof_id = ?) "
         "AND date(s.date_heure_debut) BETWEEN ? AND ?"));
     query.addBindValue(profId);
     query.addBindValue(profId);
@@ -319,7 +320,7 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
             "LEFT JOIN cours c ON c.seance_id = s.id "
             "LEFT JOIN examens e ON e.seance_id = s.id "
             "LEFT JOIN personnel p ON p.id = COALESCE(c.prof_id, e.prof_id) "
-            "WHERE COALESCE(c.prof_id, e.prof_id) = ? "
+            "WHERE s.valide = 1 AND COALESCE(c.prof_id, e.prof_id) = ? "
             "AND s.id != ? "
             "AND datetime(s.date_heure_debut) < ? "
             "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
@@ -348,7 +349,7 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
             "SELECT s.id, s.date_heure_debut, sa.nom "
             "FROM seances s "
             "LEFT JOIN salles sa ON sa.id = s.salle_id "
-            "WHERE s.salle_id = ? "
+            "WHERE s.valide = 1 AND s.salle_id = ? "
             "AND s.id != ? "
             "AND datetime(s.date_heure_debut) < ? "
             "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
@@ -377,7 +378,7 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
             "LEFT JOIN cours c ON c.seance_id = s.id "
             "LEFT JOIN examens e ON e.seance_id = s.id "
             "LEFT JOIN classes cl ON cl.id = COALESCE(c.classe_id, e.classe_id) "
-            "WHERE COALESCE(c.classe_id, e.classe_id) = ? "
+            "WHERE s.valide = 1 AND COALESCE(c.classe_id, e.classe_id) = ? "
             "AND s.id != ? "
             "AND datetime(s.date_heure_debut) < ? "
             "AND datetime(s.date_heure_debut, '+' || CAST(s.duree_minutes AS TEXT) || ' minutes') > ? "
@@ -413,7 +414,7 @@ SqliteParticipationRepository::SqliteParticipationRepository(const QString& conn
 Result<QList<Participation>> SqliteParticipationRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT %1 FROM participations").arg(kParticipationCols))) {
+    if (!query.exec(QStringLiteral("SELECT %1 FROM participations WHERE valide = 1").arg(kParticipationCols))) {
         return Result<QList<Participation>>::error(query.lastError().text());
     }
     QList<Participation> list;
@@ -424,7 +425,7 @@ Result<QList<Participation>> SqliteParticipationRepository::getAll() {
 Result<std::optional<Participation>> SqliteParticipationRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE id = ?").arg(kParticipationCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE id = ? AND valide = 1").arg(kParticipationCols));
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<Participation>>::error(query.lastError().text());
     if (query.next()) return Result<std::optional<Participation>>::success(rowToParticipation(query));
@@ -450,7 +451,7 @@ Result<bool> SqliteParticipationRepository::update(const Participation& entity) 
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE participations SET seance_id=?, eleve_id=?, statut=?, note=?, est_invite=? WHERE id=?"));
+        "UPDATE participations SET seance_id=?, eleve_id=?, statut=?, note=?, est_invite=? , date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(entity.seanceId);
     query.addBindValue(entity.eleveId);
     query.addBindValue(typePresenceToString(entity.statut));
@@ -465,7 +466,7 @@ Result<bool> SqliteParticipationRepository::update(const Participation& entity) 
 Result<bool> SqliteParticipationRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("DELETE FROM participations WHERE id = ?"));
+    query.prepare(QStringLiteral("UPDATE participations SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -474,7 +475,7 @@ Result<bool> SqliteParticipationRepository::remove(int id) {
 Result<QList<Participation>> SqliteParticipationRepository::getBySeanceId(int seanceId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE seance_id = ?").arg(kParticipationCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE seance_id = ? AND valide = 1").arg(kParticipationCols));
     query.addBindValue(seanceId);
     if (!query.exec()) return Result<QList<Participation>>::error(query.lastError().text());
     QList<Participation> list;
@@ -485,7 +486,7 @@ Result<QList<Participation>> SqliteParticipationRepository::getBySeanceId(int se
 Result<QList<Participation>> SqliteParticipationRepository::getByEleveId(int eleveId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE eleve_id = ?").arg(kParticipationCols));
+    query.prepare(QStringLiteral("SELECT %1 FROM participations WHERE eleve_id = ? AND valide = 1").arg(kParticipationCols));
     query.addBindValue(eleveId);
     if (!query.exec()) return Result<QList<Participation>>::error(query.lastError().text());
     QList<Participation> list;

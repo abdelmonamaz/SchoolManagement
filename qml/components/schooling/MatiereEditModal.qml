@@ -31,7 +31,8 @@ ModalOverlay {
             nomInput.text           = initialNom
             nbSeancesInput.text     = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
             dureeInput.text         = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
-            newExamenInput.text     = ""
+            newExamenCombo.editText = ""
+            newExamenCombo.currentIndex = -1
             showConfirm             = false
             pendingSaveData         = null
         }
@@ -277,14 +278,36 @@ ModalOverlay {
                     Rectangle {
                         Layout.fillWidth: true; height: 44; radius: 12
                         color: Style.bgPage
-                        border.color: newExamenInput.activeFocus ? Style.primary : Style.borderLight
-                        HoverHandler { cursorShape: Qt.IBeamCursor }
-                        TextInput {
-                            id: newExamenInput
-                            anchors.fill: parent; anchors.margins: 12
-                            font.pixelSize: 13; color: Style.textPrimary; selectByMouse: true
-                            Text { visible: !parent.text; text: "Titre de l'évaluation..."; font: parent.font; color: Style.textTertiary }
-                            Keys.onReturnPressed: addExamenBtn.doAdd()
+                        border.color: newExamenCombo.activeFocus ? Style.primary : Style.borderLight
+                        
+                        ComboBox {
+                            id: newExamenCombo
+                            anchors.fill: parent; anchors.margins: 4
+                            model: schoolingController.typeExamens
+                            textRole: "titre"
+                            valueRole: "id"
+                            editable: true
+                            currentIndex: -1
+                            
+                            background: Rectangle { color: "transparent" }
+                            contentItem: TextInput {
+                                leftPadding: 8; rightPadding: 8
+                                verticalAlignment: Text.AlignVCenter
+                                text: newExamenCombo.editText
+                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                selectByMouse: true
+                                Keys.onReturnPressed: addExamenBtn.doAdd()
+                                Text { 
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 8
+                                    visible: !parent.text
+                                    text: "Choisir ou saisir..."
+                                    font: parent.font; color: Style.textTertiary 
+                                }
+                            }
+                            
+                            Component.onCompleted: schoolingController.loadTypeExamens()
                         }
                     }
 
@@ -296,10 +319,11 @@ ModalOverlay {
                         Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse ? "#FFFFFF" : Style.primary }
 
                         function doAdd() {
-                            var t = newExamenInput.text.trim()
+                            var t = newExamenCombo.editText.trim()
                             if (t && root.editingMatiereId > 0) {
-                                schoolingController.createMatiereExamen(root.editingMatiereId, t)
-                                newExamenInput.text = ""
+                                schoolingController.createTypeAndMatiereExamen(root.editingMatiereId, t)
+                                newExamenCombo.editText = ""
+                                newExamenCombo.currentIndex = -1
                             }
                         }
 
@@ -309,9 +333,25 @@ ModalOverlay {
                             onClicked: addExamenBtn.doAdd()
                         }
                     }
+                    
+                    Rectangle {
+                        width: 44; height: 44; radius: 12
+                        color: gearMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                        border.color: Style.borderLight
+                        IconLabel { anchors.centerIn: parent; iconName: "settings"; iconSize: 18; iconColor: Style.textSecondary }
+                        MouseArea {
+                            id: gearMa; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: typeExamenModal.show = true
+                        }
+                    }
                 }
             }
         }
+    }
+    
+    TypeExamenModal {
+        id: typeExamenModal
     }
 
     // ─── Footer ───

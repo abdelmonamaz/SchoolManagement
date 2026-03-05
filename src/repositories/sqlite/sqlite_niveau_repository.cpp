@@ -15,7 +15,7 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom FROM niveaux")) {
+    if (!query.exec("SELECT id, nom FROM niveaux WHERE valide = 1")) {
         return Result<QList<Niveau>>::error(query.lastError().text());
     }
 
@@ -33,7 +33,7 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom FROM niveaux WHERE id = ?");
+    query.prepare("SELECT id, nom FROM niveaux WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -65,7 +65,7 @@ Result<bool> SqliteNiveauRepository::update(const Niveau& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE niveaux SET nom = ? WHERE id = ?");
+    query.prepare("UPDATE niveaux SET nom = ? , date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.id);
 
@@ -79,7 +79,7 @@ Result<bool> SqliteNiveauRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("DELETE FROM niveaux WHERE id = ?");
+    query.prepare("UPDATE niveaux SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -98,7 +98,7 @@ Result<QList<Classe>> SqliteClasseRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom, niveau_id FROM classes")) {
+    if (!query.exec("SELECT id, nom, niveau_id FROM classes WHERE valide = 1")) {
         return Result<QList<Classe>>::error(query.lastError().text());
     }
 
@@ -117,7 +117,7 @@ Result<std::optional<Classe>> SqliteClasseRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id FROM classes WHERE id = ?");
+    query.prepare("SELECT id, nom, niveau_id FROM classes WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -151,7 +151,7 @@ Result<bool> SqliteClasseRepository::update(const Classe& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE classes SET nom = ?, niveau_id = ? WHERE id = ?");
+    query.prepare("UPDATE classes SET nom = ?, niveau_id = ? , date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.id);
@@ -166,7 +166,7 @@ Result<bool> SqliteClasseRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("DELETE FROM classes WHERE id = ?");
+    query.prepare("UPDATE classes SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -179,7 +179,7 @@ Result<QList<Classe>> SqliteClasseRepository::getByNiveauId(int niveauId)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id FROM classes WHERE niveau_id = ?");
+    query.prepare("SELECT id, nom, niveau_id FROM classes WHERE niveau_id = ? AND valide = 1");
     query.addBindValue(niveauId);
 
     if (!query.exec()) {
@@ -207,7 +207,7 @@ Result<QList<Matiere>> SqliteMatiereRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres")) {
+    if (!query.exec("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE valide = 1")) {
         return Result<QList<Matiere>>::error(query.lastError().text());
     }
 
@@ -228,7 +228,7 @@ Result<std::optional<Matiere>> SqliteMatiereRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE id = ?");
+    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -266,7 +266,7 @@ Result<bool> SqliteMatiereRepository::update(const Matiere& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE matieres SET nom = ?, niveau_id = ?, nombre_seances = ?, duree_seance_minutes = ? WHERE id = ?");
+    query.prepare("UPDATE matieres SET nom = ?, niveau_id = ?, nombre_seances = ?, duree_seance_minutes = ? , date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.nombreSeances);
@@ -283,7 +283,7 @@ Result<bool> SqliteMatiereRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("DELETE FROM matieres WHERE id = ?");
+    query.prepare("UPDATE matieres SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -296,7 +296,7 @@ Result<QList<Matiere>> SqliteMatiereRepository::getByNiveauId(int niveauId)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE niveau_id = ?");
+    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE niveau_id = ? AND valide = 1");
     query.addBindValue(niveauId);
 
     if (!query.exec()) {
@@ -325,11 +325,16 @@ Result<QList<MatiereExamen>> SqliteMatiereExamenRepository::getAll()
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec("SELECT id, matiere_id, titre FROM matiere_examens ORDER BY id"))
+    QString sql = "SELECT me.id, me.matiere_id, me.type_examen_id, te.titre "
+                  "FROM matiere_examens me "
+                  "JOIN type_examen te ON me.type_examen_id = te.id "
+                  "WHERE me.valide = 1 "
+                  "ORDER BY me.id";
+    if (!query.exec(sql))
         return Result<QList<MatiereExamen>>::error(query.lastError().text());
     QList<MatiereExamen> list;
     while (query.next())
-        list.append({ .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .titre = query.value(2).toString() });
+        list.append({ .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .typeExamenId = query.value(2).toInt(), .titre = query.value(3).toString() });
     return Result<QList<MatiereExamen>>::success(std::move(list));
 }
 
@@ -337,12 +342,15 @@ Result<std::optional<MatiereExamen>> SqliteMatiereExamenRepository::getById(int 
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, matiere_id, titre FROM matiere_examens WHERE id = ?");
+    query.prepare("SELECT me.id, me.matiere_id, me.type_examen_id, te.titre "
+                  "FROM matiere_examens me "
+                  "JOIN type_examen te ON me.type_examen_id = te.id "
+                  "WHERE me.id = ? AND me.valide = 1");
     query.addBindValue(id);
     if (!query.exec()) return Result<std::optional<MatiereExamen>>::error(query.lastError().text());
     if (!query.next()) return Result<std::optional<MatiereExamen>>::success(std::nullopt);
     return Result<std::optional<MatiereExamen>>::success(MatiereExamen{
-        .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .titre = query.value(2).toString()
+        .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .typeExamenId = query.value(2).toInt(), .titre = query.value(3).toString()
     });
 }
 
@@ -350,9 +358,9 @@ Result<int> SqliteMatiereExamenRepository::create(const MatiereExamen& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("INSERT INTO matiere_examens (matiere_id, titre) VALUES (?, ?)");
+    query.prepare("INSERT INTO matiere_examens (matiere_id, type_examen_id) VALUES (?, ?)");
     query.addBindValue(entity.matiereId);
-    query.addBindValue(entity.titre);
+    query.addBindValue(entity.typeExamenId);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -361,8 +369,8 @@ Result<bool> SqliteMatiereExamenRepository::update(const MatiereExamen& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE matiere_examens SET titre = ? WHERE id = ?");
-    query.addBindValue(entity.titre);
+    query.prepare("UPDATE matiere_examens SET type_examen_id = ?, date_modification = datetime('now') WHERE id = ?");
+    query.addBindValue(entity.typeExamenId);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -372,7 +380,7 @@ Result<bool> SqliteMatiereExamenRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("DELETE FROM matiere_examens WHERE id = ?");
+    query.prepare("UPDATE matiere_examens SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -382,11 +390,75 @@ Result<QList<MatiereExamen>> SqliteMatiereExamenRepository::getByMatiereId(int m
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, matiere_id, titre FROM matiere_examens WHERE matiere_id = ? ORDER BY id");
+    query.prepare("SELECT me.id, me.matiere_id, me.type_examen_id, te.titre "
+                  "FROM matiere_examens me "
+                  "JOIN type_examen te ON me.type_examen_id = te.id "
+                  "WHERE me.matiere_id = ? AND me.valide = 1 ORDER BY me.id");
     query.addBindValue(matiereId);
     if (!query.exec()) return Result<QList<MatiereExamen>>::error(query.lastError().text());
     QList<MatiereExamen> list;
     while (query.next())
-        list.append({ .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .titre = query.value(2).toString() });
+        list.append({ .id = query.value(0).toInt(), .matiereId = query.value(1).toInt(), .typeExamenId = query.value(2).toInt(), .titre = query.value(3).toString() });
     return Result<QList<MatiereExamen>>::success(std::move(list));
+}
+
+// --- SqliteTypeExamenRepository ---
+
+SqliteTypeExamenRepository::SqliteTypeExamenRepository(QString connectionName)
+    : m_connectionName(std::move(connectionName)) {}
+
+Result<QList<TypeExamen>> SqliteTypeExamenRepository::getAll()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    if (!query.exec("SELECT id, titre FROM type_examen WHERE valide = 1 ORDER BY titre"))
+        return Result<QList<TypeExamen>>::error(query.lastError().text());
+    QList<TypeExamen> list;
+    while (query.next())
+        list.append({ .id = query.value(0).toInt(), .titre = query.value(1).toString() });
+    return Result<QList<TypeExamen>>::success(std::move(list));
+}
+
+Result<std::optional<TypeExamen>> SqliteTypeExamenRepository::getById(int id)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare("SELECT id, titre FROM type_examen WHERE id = ? AND valide = 1");
+    query.addBindValue(id);
+    if (!query.exec()) return Result<std::optional<TypeExamen>>::error(query.lastError().text());
+    if (!query.next()) return Result<std::optional<TypeExamen>>::success(std::nullopt);
+    return Result<std::optional<TypeExamen>>::success(TypeExamen{
+        .id = query.value(0).toInt(), .titre = query.value(1).toString()
+    });
+}
+
+Result<int> SqliteTypeExamenRepository::create(const TypeExamen& entity)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare("INSERT INTO type_examen (titre) VALUES (?)");
+    query.addBindValue(entity.titre);
+    if (!query.exec()) return Result<int>::error(query.lastError().text());
+    return Result<int>::success(query.lastInsertId().toInt());
+}
+
+Result<bool> SqliteTypeExamenRepository::update(const TypeExamen& entity)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare("UPDATE type_examen SET titre = ?, date_modification = datetime('now') WHERE id = ?");
+    query.addBindValue(entity.titre);
+    query.addBindValue(entity.id);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteTypeExamenRepository::remove(int id)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare("UPDATE type_examen SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
 }

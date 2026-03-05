@@ -18,6 +18,9 @@ struct Projet {
     QString description;
     double objectifFinancier = 0.0;
     GS::StatutProjet statut = GS::StatutProjet::EnCours;
+    QDate dateDebut;
+    QDate dateFin;
+    double totalDons = 0.0;
 };
 
 struct Donateur {

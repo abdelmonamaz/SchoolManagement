@@ -35,7 +35,7 @@ public:
 
     // Projets & Dons
     Result<QList<Projet>> getAllProjets();
-    Result<int>  createProjet(const QString& nom, const QString& desc, double objectif);
+    Result<int>  createProjet(const Projet& projet);
     Result<bool> updateProjet(const Projet& projet);
     Result<bool> deleteProjet(int id);
 
