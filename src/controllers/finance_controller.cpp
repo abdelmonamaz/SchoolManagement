@@ -300,6 +300,14 @@ void FinanceController::updateDon(int id, const QVariantMap& data) {
     });
 }
 
+void FinanceController::deleteDon(int id) {
+    m_worker->submit("Finance.deleteDon", [svc = m_service, id]() -> QVariant {
+        auto result = svc->deleteDon(id);
+        if (!result.isOk()) return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
 // ─── Dépenses ───
 
 static QVariantMap depenseToMap(const Depense& d) {
@@ -538,6 +546,10 @@ void FinanceController::onQueryCompleted(const QString& queryId, const QVariant&
     else if (queryId == "Finance.updateDon") {
         if (isError) emit operationFailed(map["error"].toString());
         else { loadAllDons(); emit operationSucceeded("Don modifié"); }
+    }
+    else if (queryId == "Finance.deleteDon") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { loadAllDons(); emit operationSucceeded("Don supprimé"); }
     }
     // Dépenses
     else if (queryId == "Finance.loadDepensesByMonth") {

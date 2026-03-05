@@ -341,7 +341,7 @@ ApplicationWindow {
 
                     DashboardPage  { id: dashboardPage;  width: parent.width; opacity: root.currentPage === "dashboard"  ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     SchoolingPage  { id: schoolingPage;  width: parent.width; opacity: root.currentPage === "schooling"  ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
-                    AttendancePage { id: attendancePageInst; width: parent.width; opacity: root.currentPage === "attendance" ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
+                    AttendancePage { id: attendancePage; width: parent.width; opacity: root.currentPage === "attendance" ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     StudentsPage   { id: studentsPage;   width: parent.width; opacity: root.currentPage === "students"   ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     StaffPage      { id: staffPage;      width: parent.width; opacity: root.currentPage === "staff"      ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     ExamsPage      { id: examsPage;      width: parent.width; opacity: root.currentPage === "exams"      ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }

@@ -196,6 +196,11 @@ Result<bool> FinanceService::updateDon(int id, const Don& don)
     return m_donRepo->update(d);
 }
 
+Result<bool> FinanceService::deleteDon(int id)
+{
+    return m_donRepo->remove(id);
+}
+
 Result<double> FinanceService::getProjetTotalDons(int projetId)
 {
     return m_donRepo->getTotalByProjet(projetId);

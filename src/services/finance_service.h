@@ -46,6 +46,7 @@ public:
     Result<QList<Don>> getDonsByProjet(int projetId);
     Result<int>    recordDon(const Don& don);
     Result<bool>   updateDon(int id, const Don& don);
+    Result<bool>   deleteDon(int id);
     Result<double> getProjetTotalDons(int projetId);
 
     // Dépenses

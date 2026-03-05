@@ -20,5 +20,6 @@ qt_add_qml_module(GestionScolaire_Pages
         SettingsPage.qml
         GradesPage.qml
         AttendancePage.qml
+        AttendanceModals.qml
         StaffPage.qml
 )

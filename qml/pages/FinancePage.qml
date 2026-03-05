@@ -356,6 +356,8 @@ Item {
                         financeController.deletePayment(financePage.deleteItemId)
                     else if (financePage.deleteType === "depense")
                         financeController.deleteDepense(financePage.deleteItemId)
+                    else if (financePage.deleteType === "don")
+                        financeController.deleteDon(financePage.deleteItemId)
                     showDeleteModal = false
                 }
             }

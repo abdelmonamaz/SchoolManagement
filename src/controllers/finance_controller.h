@@ -57,6 +57,7 @@ public:
     Q_INVOKABLE void loadDonsByProjet(int projetId);
     Q_INVOKABLE void recordDon(const QVariantMap& data);
     Q_INVOKABLE void updateDon(int id, const QVariantMap& data);
+    Q_INVOKABLE void deleteDon(int id);
 
     // Dépenses
     Q_INVOKABLE void loadDepensesByMonth(int month, int year);
