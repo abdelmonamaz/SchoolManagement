@@ -74,6 +74,10 @@ Item {
             showModal = false
             showPaymentPopup = false
             reloadData()
+            // Si l'opération est un paiement (ou autre action affectant les finances), on recharge le journal
+            financeController.loadPersonnelPaymentsForJournal(displayMonth, displayYear)
+            financeController.loadAnnualBalance(displayYear)
+            financeController.loadTotalBalance()
         }
         function onOperationFailed(err) {
             console.warn("StaffPage error:", err)
