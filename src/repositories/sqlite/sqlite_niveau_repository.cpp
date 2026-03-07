@@ -15,7 +15,7 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom FROM niveaux WHERE valide = 1")) {
+    if (!query.exec("SELECT id, nom, COALESCE(parent_level_id, 0) FROM niveaux WHERE valide = 1 ORDER BY id")) {
         return Result<QList<Niveau>>::error(query.lastError().text());
     }
 
@@ -23,7 +23,8 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     while (query.next()) {
         list.append({
             .id = query.value(0).toInt(),
-            .nom = query.value(1).toString()
+            .nom = query.value(1).toString(),
+            .parentLevelId = query.value(2).toInt()
         });
     }
     return Result<QList<Niveau>>::success(std::move(list));
@@ -33,7 +34,7 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom FROM niveaux WHERE id = ? AND valide = 1");
+    query.prepare("SELECT id, nom, COALESCE(parent_level_id, 0) FROM niveaux WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -44,7 +45,8 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
     }
     return Result<std::optional<Niveau>>::success(Niveau{
         .id = query.value(0).toInt(),
-        .nom = query.value(1).toString()
+        .nom = query.value(1).toString(),
+        .parentLevelId = query.value(2).toInt()
     });
 }
 
@@ -52,8 +54,14 @@ Result<int> SqliteNiveauRepository::create(const Niveau& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("INSERT INTO niveaux (nom) VALUES (?)");
-    query.addBindValue(entity.nom);
+    if (entity.parentLevelId > 0) {
+        query.prepare("INSERT INTO niveaux (nom, parent_level_id) VALUES (?, ?)");
+        query.addBindValue(entity.nom);
+        query.addBindValue(entity.parentLevelId);
+    } else {
+        query.prepare("INSERT INTO niveaux (nom) VALUES (?)");
+        query.addBindValue(entity.nom);
+    }
 
     if (!query.exec()) {
         return Result<int>::error(query.lastError().text());
@@ -65,8 +73,10 @@ Result<bool> SqliteNiveauRepository::update(const Niveau& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE niveaux SET nom = ? , date_modification = datetime('now') WHERE id = ?");
+    query.prepare("UPDATE niveaux SET nom = ?, parent_level_id = NULLIF(?, 0), "
+                  "date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
+    query.addBindValue(entity.parentLevelId);
     query.addBindValue(entity.id);
 
     if (!query.exec()) {

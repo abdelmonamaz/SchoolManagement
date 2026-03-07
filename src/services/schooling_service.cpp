@@ -24,7 +24,7 @@ Result<QList<Niveau>> SchoolingService::getAllNiveaux()
     return m_niveauRepo->getAll();
 }
 
-Result<int> SchoolingService::createNiveau(const QString& nom)
+Result<int> SchoolingService::createNiveau(const QString& nom, int parentLevelId)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom du niveau ne peut pas etre vide.");
@@ -32,10 +32,11 @@ Result<int> SchoolingService::createNiveau(const QString& nom)
 
     Niveau n;
     n.nom = nom.trimmed();
+    n.parentLevelId = parentLevelId;
     return m_niveauRepo->create(n);
 }
 
-Result<bool> SchoolingService::updateNiveau(int id, const QString& nom)
+Result<bool> SchoolingService::updateNiveau(int id, const QString& nom, int parentLevelId)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<bool>::error("Le nom du niveau ne peut pas etre vide.");
@@ -44,6 +45,7 @@ Result<bool> SchoolingService::updateNiveau(int id, const QString& nom)
     Niveau n;
     n.id = id;
     n.nom = nom.trimmed();
+    n.parentLevelId = parentLevelId;
     return m_niveauRepo->update(n);
 }
 

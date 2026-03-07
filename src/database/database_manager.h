@@ -35,9 +35,6 @@ private:
     /** Creates every application table (IF NOT EXISTS). */
     static void createTables(QSqlDatabase& db);
 
-    /** Inserts default reference rows (niveaux, salles, classes). */
-    static void seedInitialData(QSqlDatabase& db);
-
     /** Applies incremental column additions on an existing database (idempotent). */
     static void runMigrations(QSqlDatabase& db);
 };

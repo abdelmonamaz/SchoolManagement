@@ -94,6 +94,8 @@ add_library(GS_Services STATIC
     src/services/dashboard_service.cpp
 
     # Controllers
+    src/controllers/setup_controller.h
+    src/controllers/setup_controller.cpp
     src/controllers/schooling_controller.h
     src/controllers/schooling_controller.cpp
     src/controllers/student_controller.h
@@ -112,7 +114,7 @@ add_library(GS_Services STATIC
     src/controllers/dashboard_controller.cpp
 )
 
-target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui)
+target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql)
 
 # ═══════════════════════════════════════════════════════════════
 # Exécutable principal

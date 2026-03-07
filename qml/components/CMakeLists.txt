@@ -61,4 +61,5 @@ qt_add_qml_module(GestionScolaire_Components
         exams/SessionDetailModal.qml
         BulletinConfigPopup.qml
         BulletinPreviewPopup.qml
+        SetupWizardModal.qml
 )

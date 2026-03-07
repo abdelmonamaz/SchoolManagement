@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import QtQuick.Controls 2.15
 import UI.Components
 
 Item {
@@ -92,164 +93,268 @@ Item {
         // ─── Configuration des Tarifs ───
         AppCard {
             Layout.fillWidth: true
-            title: "Configuration des Tarifs (Mensualités)"
-            subtitle: "Définissez les frais de scolarité par défaut pour la génération automatique."
+            title: "Configuration des Tarifs"
+            subtitle: "Tarifs mensuels et frais d'inscription de l'année scolaire active."
 
             Column {
                 width: parent.width
                 spacing: 24
 
-                // Grid with 2 tarif cards
+                // ── Mensualités ──
+                Text {
+                    text: "MENSUALITÉS"
+                    font.pixelSize: 10; font.weight: Font.Black
+                    color: Style.textTertiary; font.letterSpacing: 1
+                }
+
                 GridLayout {
                     width: parent.width
                     columns: 2
                     columnSpacing: 24
-                    rowSpacing: 24
+                    rowSpacing: 0
 
-                    // Tarif Enfant
+                    // Tarif Jeune (mensuel)
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: childCol.implicitHeight + 48
                         radius: 24
                         color: Style.chartBlueLight
-                        border.color: "#BFDBFE"
-                        border.width: 1
+                        border.color: "#BFDBFE"; border.width: 1
 
                         Column {
                             id: childCol
-                            anchors.fill: parent
-                            anchors.margins: 24
+                            anchors.fill: parent; anchors.margins: 24
                             spacing: 12
 
                             Text {
-                                text: "TARIF ENFANT"
-                                font.pixelSize: 10
-                                font.weight: Font.Black
-                                color: Style.chartBlue
-                                font.letterSpacing: 2
+                                text: "TARIF JEUNE (mensuel)"
+                                font.pixelSize: 10; font.weight: Font.Black
+                                color: Style.chartBlue; font.letterSpacing: 2
                             }
 
                             RowLayout {
-                                width: parent.width
-                                spacing: 8
+                                width: parent.width; spacing: 8
 
-                                Rectangle {
+                                TextField {
+                                    id: tarifJeuneInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    radius: 12
-                                    color: "#FFFFFF"
-                                    border.color: "#BFDBFE"
-                                    border.width: 1
-
-                                    TextInput {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 16
-                                        anchors.rightMargin: 16
-                                        text: "150"
-                                        font.pixelSize: 16
-                                        font.weight: Font.Black
-                                        color: Style.chartBlue
-                                        verticalAlignment: TextInput.AlignVCenter
+                                    text: (setupController.activeTarifs.tarifJeune || 150).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.chartBlue
+                                    selectByMouse: true
+                                    leftPadding: 16; rightPadding: 8
+                                    topPadding: 0; bottomPadding: 0
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,5}(\.\d{0,2})?$/
+                                    }
+                                    background: Rectangle {
+                                        radius: 12; color: "#FFFFFF"
+                                        border.width: parent.activeFocus ? 2 : 1
+                                        border.color: parent.activeFocus ? Style.primary
+                                                    : parent.hovered ? "#93C5FD" : "#BFDBFE"
+                                        Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text {
-                                    text: "DT"
-                                    font.pixelSize: 16
-                                    font.weight: Font.Black
-                                    color: Style.chartBlue
-                                }
+                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: Style.chartBlue }
                             }
                         }
                     }
 
-                    // Tarif Adulte
+                    // Tarif Adulte (mensuel)
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: adultCol.implicitHeight + 48
                         radius: 24
-                        color: "#FEF3C7"
-                        border.color: "#FCD34D"
-                        border.width: 1
+                        color: "#FEF3C7"; border.color: "#FCD34D"; border.width: 1
 
                         Column {
                             id: adultCol
-                            anchors.fill: parent
-                            anchors.margins: 24
+                            anchors.fill: parent; anchors.margins: 24
                             spacing: 12
 
                             Text {
-                                text: "TARIF ADULTE"
-                                font.pixelSize: 10
-                                font.weight: Font.Black
-                                color: "#D97706"
-                                font.letterSpacing: 2
+                                text: "TARIF ADULTE (mensuel)"
+                                font.pixelSize: 10; font.weight: Font.Black
+                                color: "#D97706"; font.letterSpacing: 2
                             }
 
                             RowLayout {
-                                width: parent.width
-                                spacing: 8
+                                width: parent.width; spacing: 8
 
-                                Rectangle {
+                                TextField {
+                                    id: tarifAdulteInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    radius: 12
-                                    color: "#FFFFFF"
-                                    border.color: "#FCD34D"
-                                    border.width: 1
-
-                                    TextInput {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 16
-                                        anchors.rightMargin: 16
-                                        text: "250"
-                                        font.pixelSize: 16
-                                        font.weight: Font.Black
-                                        color: "#D97706"
-                                        verticalAlignment: TextInput.AlignVCenter
+                                    text: (setupController.activeTarifs.tarifAdulte || 250).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: "#D97706"
+                                    selectByMouse: true
+                                    leftPadding: 16; rightPadding: 8
+                                    topPadding: 0; bottomPadding: 0
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,5}(\.\d{0,2})?$/
+                                    }
+                                    background: Rectangle {
+                                        radius: 12; color: "#FFFFFF"
+                                        border.width: parent.activeFocus ? 2 : 1
+                                        border.color: parent.activeFocus ? Style.primary
+                                                    : parent.hovered ? "#FDE68A" : "#FCD34D"
+                                        Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text {
-                                    text: "DT"
-                                    font.pixelSize: 16
-                                    font.weight: Font.Black
-                                    color: "#D97706"
-                                }
+                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: "#D97706" }
                             }
                         }
                     }
                 }
 
-                // Info box
-                Rectangle {
+                // ── Frais d'inscription ──
+                Text {
+                    text: "FRAIS D'INSCRIPTION (unique)"
+                    font.pixelSize: 10; font.weight: Font.Black
+                    color: Style.textTertiary; font.letterSpacing: 1
+                }
+
+                GridLayout {
                     width: parent.width
-                    implicitHeight: infoRow.implicitHeight + 32
-                    radius: 16
-                    color: Style.bgPage
-                    border.color: Style.borderLight
-                    border.width: 1
+                    columns: 2
+                    columnSpacing: 24
+                    rowSpacing: 0
 
-                    RowLayout {
-                        id: infoRow
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 12
+                    // Frais Jeune
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: fraisJCol.implicitHeight + 48
+                        radius: 24
+                        color: Style.successBg; border.color: Style.successBorder; border.width: 1
 
-                        IconLabel {
-                            iconName: "info"
-                            iconSize: 18
-                            iconColor: Style.textSecondary
+                        Column {
+                            id: fraisJCol
+                            anchors.fill: parent; anchors.margins: 24
+                            spacing: 12
+
+                            Text {
+                                text: "FRAIS JEUNE"
+                                font.pixelSize: 10; font.weight: Font.Black
+                                color: Style.successColor; font.letterSpacing: 2
+                            }
+
+                            RowLayout {
+                                width: parent.width; spacing: 8
+
+                                TextField {
+                                    id: fraisJeuneInput
+                                    Layout.fillWidth: true
+                                    height: 48
+                                    text: (setupController.activeTarifs.fraisInscriptionJeune || 50).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.successColor
+                                    selectByMouse: true
+                                    leftPadding: 16; rightPadding: 8
+                                    topPadding: 0; bottomPadding: 0
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,5}(\.\d{0,2})?$/
+                                    }
+                                    background: Rectangle {
+                                        radius: 12; color: "#FFFFFF"
+                                        border.width: parent.activeFocus ? 2 : 1
+                                        border.color: parent.activeFocus ? Style.primary
+                                                    : parent.hovered ? Style.successColor : Style.successBorder
+                                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                                    }
+                                }
+
+                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: Style.successColor }
+                            }
                         }
+                    }
 
-                        Text {
-                            Layout.fillWidth: true
-                            text: "CES TARIFS SERONT APPLIQUÉS LORS DE LA GÉNÉRATION AUTOMATIQUE DU GRAND LIVRE MENSUEL DANS LE MENU FINANCE."
-                            font.pixelSize: 10
-                            font.weight: Font.Bold
-                            color: Style.textSecondary
-                            wrapMode: Text.WordWrap
-                            lineHeight: 1.5
+                    // Frais Adulte
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: fraisACol.implicitHeight + 48
+                        radius: 24
+                        color: "#FDF4FF"; border.color: "#E9D5FF"; border.width: 1
+
+                        Column {
+                            id: fraisACol
+                            anchors.fill: parent; anchors.margins: 24
+                            spacing: 12
+
+                            Text {
+                                text: "FRAIS ADULTE"
+                                font.pixelSize: 10; font.weight: Font.Black
+                                color: "#7C3AED"; font.letterSpacing: 2
+                            }
+
+                            RowLayout {
+                                width: parent.width; spacing: 8
+
+                                TextField {
+                                    id: fraisAdulteInput
+                                    Layout.fillWidth: true
+                                    height: 48
+                                    text: (setupController.activeTarifs.fraisInscriptionAdulte || 50).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: "#7C3AED"
+                                    selectByMouse: true
+                                    leftPadding: 16; rightPadding: 8
+                                    topPadding: 0; bottomPadding: 0
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,5}(\.\d{0,2})?$/
+                                    }
+                                    background: Rectangle {
+                                        radius: 12; color: "#FFFFFF"
+                                        border.width: parent.activeFocus ? 2 : 1
+                                        border.color: parent.activeFocus ? Style.primary
+                                                    : parent.hovered ? "#C4B5FD" : "#E9D5FF"
+                                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                                    }
+                                }
+
+                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: "#7C3AED" }
+                            }
+                        }
+                    }
+                }
+
+                // Info + bouton Enregistrer
+                RowLayout {
+                    width: parent.width; spacing: 16
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: infoRow.implicitHeight + 24
+                        radius: 16; color: Style.bgPage
+                        border.color: Style.borderLight; border.width: 1
+
+                        RowLayout {
+                            id: infoRow
+                            anchors.fill: parent; anchors.margins: 14; spacing: 10
+
+                            IconLabel { iconName: "info"; iconSize: 16; iconColor: Style.textSecondary }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Ces tarifs s'appliquent lors de la génération du grand livre mensuel et sont pré-remplis à l'inscription."
+                                font.pixelSize: 10; font.weight: Font.Bold
+                                color: Style.textSecondary; wrapMode: Text.WordWrap; lineHeight: 1.5
+                            }
+                        }
+                    }
+
+                    PrimaryButton {
+                        text: "Enregistrer les tarifs"
+                        onClicked: {
+                            setupController.updateTarifs({
+                                tarifJeune:             parseFloat(tarifJeuneInput.text)  || 0,
+                                tarifAdulte:            parseFloat(tarifAdulteInput.text) || 0,
+                                fraisInscriptionJeune:  parseFloat(fraisJeuneInput.text)  || 0,
+                                fraisInscriptionAdulte: parseFloat(fraisAdulteInput.text) || 0
+                            })
                         }
                     }
                 }
@@ -270,20 +375,12 @@ Item {
                     width: parent.width
                     spacing: 20
 
-                    RowLayout {
-                        width: parent.width; spacing: 16
-
-                        FormField {
-                            Layout.fillWidth: true
-                            label: "NOM DE L'ÉCOLE"
-                            text: "Ez-Zaytouna"
-                        }
-
-                        FormField {
-                            Layout.fillWidth: true
-                            label: "TYPE"
-                            text: "Primaire / Secondaire"
-                        }
+                    FormField {
+                        id: nomEcoleField
+                        width: parent.width
+                        label: "NOM DE L'ASSOCIATION"
+                        placeholder: "ex: Ez-Zaytouna"
+                        text: setupController.associationData.nomAssociation || ""
                     }
 
                     Column {
@@ -293,8 +390,9 @@ Item {
                             width: parent.width; height: 80; radius: 12
                             color: Style.bgPage; border.color: Style.borderLight
                             TextEdit {
+                                id: adresseEdit
                                 anchors.fill: parent; anchors.margins: 12
-                                text: "123 Rue de la Science, Casablanca, Maroc"
+                                text: setupController.associationData.adresse || ""
                                 font.pixelSize: 13; font.bold: true
                                 color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
@@ -302,7 +400,17 @@ Item {
                         }
                     }
 
-                    PrimaryButton { text: "Enregistrer les modifications" }
+                    PrimaryButton {
+                        text: "Enregistrer les modifications"
+                        onClicked: {
+                            setupController.saveAssociation({
+                                nomAssociation: nomEcoleField.text.trim(),
+                                adresse:        adresseEdit.text.trim(),
+                                exerciceDebut:  setupController.associationData.exerciceDebut || "01-01",
+                                exerciceFin:    setupController.associationData.exerciceFin   || "12-31"
+                            })
+                        }
+                    }
                 }
             }
 

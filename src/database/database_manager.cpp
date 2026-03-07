@@ -731,5 +731,66 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             ins.exec();
         }
     }
+
+    // ── Migration 26 : table de configuration de l'association ──
+    if (!tableExists(QStringLiteral("association_config"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS association_config ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  nom_association TEXT NOT NULL DEFAULT 'Ez-Zaytouna',"
+            "  adresse TEXT,"
+            "  exercice_debut TEXT DEFAULT '01-01',"
+            "  exercice_fin TEXT DEFAULT '12-31',"
+            "  app_initialized INTEGER DEFAULT 0,"
+            "  date_modification TEXT"
+            ")"));
+        execStatement(db, QStringLiteral(
+            "INSERT INTO association_config (nom_association, app_initialized) "
+            "VALUES ('Ez-Zaytouna', 0)"));
+        qInfo() << "[DatabaseManager] Migration 26: created table association_config";
+    }
+
+    // ── Migration 27 : table annees_scolaires (remplace le champ TEXT annee_scolaire) ──
+    if (!tableExists(QStringLiteral("annees_scolaires"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS annees_scolaires ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  libelle TEXT NOT NULL,"
+            "  date_debut TEXT,"
+            "  date_fin TEXT,"
+            "  tarif_jeune REAL DEFAULT 0.0,"
+            "  tarif_adulte REAL DEFAULT 0.0,"
+            "  frais_inscription_jeune REAL DEFAULT 0.0,"
+            "  frais_inscription_adulte REAL DEFAULT 0.0,"
+            "  statut TEXT DEFAULT 'Active',"
+            "  valide INTEGER DEFAULT 1,"
+            "  date_modification TEXT,"
+            "  date_invalidation TEXT,"
+            "  UNIQUE(libelle)"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 27: created table annees_scolaires";
+    }
+
+    // ── Migration 28 : table de liaison niveaux <-> annees_scolaires ──
+    if (!tableExists(QStringLiteral("niveaux_actifs_par_annee"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS niveaux_actifs_par_annee ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  annee_scolaire_id INTEGER NOT NULL REFERENCES annees_scolaires(id) ON DELETE CASCADE,"
+            "  niveau_id INTEGER NOT NULL REFERENCES niveaux(id) ON DELETE CASCADE,"
+            "  valide INTEGER DEFAULT 1,"
+            "  date_modification TEXT,"
+            "  date_invalidation TEXT,"
+            "  UNIQUE(annee_scolaire_id, niveau_id)"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 28: created table niveaux_actifs_par_annee";
+    }
+
+    // ── Migration 29 : ajout de parent_level_id dans niveaux (hiérarchie) ──
+    if (!columnExists(QStringLiteral("niveaux"), QStringLiteral("parent_level_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE niveaux ADD COLUMN parent_level_id INTEGER REFERENCES niveaux(id)"));
+        qInfo() << "[DatabaseManager] Migration 29: added column niveaux.parent_level_id";
+    }
 }
 

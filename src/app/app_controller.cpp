@@ -30,6 +30,7 @@
 #include "services/dashboard_service.h"
 
 // Controllers
+#include "controllers/setup_controller.h"
 #include "controllers/schooling_controller.h"
 #include "controllers/student_controller.h"
 #include "controllers/staff_controller.h"
@@ -58,9 +59,9 @@ AppController::~AppController() {
 void AppController::setupDatabase() {
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(dataDir);
-    QString dbPath = dataDir + "/gestion_scolaire.db";
+    m_dbPath = dataDir + "/gestion_scolaire.db";
 
-    m_dbWorker = std::make_unique<DatabaseWorker>(dbPath);
+    m_dbWorker = std::make_unique<DatabaseWorker>(m_dbPath);
 
     // Wait synchronously for the worker thread to initialise the DB
     QEventLoop loop;
@@ -121,6 +122,7 @@ void AppController::createServices() {
 
 void AppController::createControllers() {
     auto* w = m_dbWorker.get();
+    m_setupController = std::make_unique<SetupController>(m_dbPath, this);
     m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
     m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);
@@ -136,6 +138,7 @@ void AppController::createControllers() {
 
 void AppController::registerWithQml(QQmlApplicationEngine& engine) {
     auto* ctx = engine.rootContext();
+    ctx->setContextProperty("setupController", m_setupController.get());
     ctx->setContextProperty("schoolingController", m_schoolingController.get());
     ctx->setContextProperty("studentController", m_studentController.get());
     ctx->setContextProperty("staffController", m_staffController.get());

@@ -23,8 +23,24 @@ Popup {
     property double inscriptionFee: 50.0
     property bool isPaid: false
 
+    // Renvoie le frais d'inscription selon la catégorie (depuis les paramètres)
+    function defaultFeeForCategorie(cat) {
+        var t = setupController.activeTarifs
+        if (cat === "Adulte") return t.fraisInscriptionAdulte || 50.0
+        return t.fraisInscriptionJeune || 50.0
+    }
+
     signal createRequested(var data)
     signal closeRequested()
+
+    // Met à jour le frais automatiquement quand la catégorie de l'élève change
+    Connections {
+        target: birthDateField
+        function onCategorieChanged() {
+            if (birthDateField.categorie !== "")
+                root.inscriptionFee = root.defaultFeeForCategorie(birthDateField.categorie)
+        }
+    }
 
     onOpened: {
         var date = new Date()
@@ -37,6 +53,8 @@ Popup {
             (baseYear + 2) + "-" + (baseYear + 3)
         ]
         selectedAnneeScolaire = anneeScolaireOptions[0]
+        // Pré-remplir avec le frais Jeune par défaut
+        root.inscriptionFee = root.defaultFeeForCategorie("Jeune")
         nameField.inputItem.forceActiveFocus()
     }
 

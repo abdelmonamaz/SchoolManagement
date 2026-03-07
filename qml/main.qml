@@ -22,6 +22,26 @@ ApplicationWindow {
     property bool showNotifications: false
     property int pendingStudentId: 0
 
+    // ─── Wizard de Mise en Marche ───
+    SetupWizardModal {
+        id: setupWizard
+    }
+
+    Connections {
+        target: setupController
+        function onIsInitializedChanged() {
+            if (!setupController.isInitialized) {
+                setupWizard.open()
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        if (!setupController.isInitialized) {
+            setupWizard.open()
+        }
+    }
+
     // ─── Font Loading ───
     FontLoader { id: fontRegular; source: "qrc:/qt/qml//GestionScolaire/fonts/Inter-Regular.ttf" }
     FontLoader { id: fontMedium; source: "qrc:/qt/qml//GestionScolaire/fonts/Inter-Medium.ttf" }
@@ -240,7 +260,7 @@ ApplicationWindow {
                             anchors.right: parent.right
                         }
                         Text {
-                            text: "2025 - 2026"
+                            text: setupController.activeTarifs.libelle || "—"
                             font.pixelSize: 13
                             font.bold: true
                             color: Style.primary

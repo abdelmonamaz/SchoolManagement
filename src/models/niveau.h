@@ -5,6 +5,7 @@
 struct Niveau {
     int id = 0;
     QString nom;
+    int parentLevelId = 0; // 0 = niveau terminal (diplômé) ou racine
 };
 
 struct Classe {

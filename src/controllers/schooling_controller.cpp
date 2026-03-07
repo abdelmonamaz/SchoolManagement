@@ -3,7 +3,7 @@
 #include "database/database_worker.h"
 
 static QVariantMap niveauToMap(const Niveau& n) {
-    return {{"id", n.id}, {"nom", n.nom}};
+    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}};
 }
 
 static QVariantMap classeToMap(const Classe& c) {
@@ -131,7 +131,7 @@ void SchoolingController::loadEquipements() {
 
 void SchoolingController::createNiveau(const QString& nom) {
     m_worker->submit("Schooling.createNiveau", [svc = m_service, nom]() -> QVariant {
-        auto result = svc->createNiveau(nom);
+        auto result = svc->createNiveau(nom, 0);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -140,7 +140,7 @@ void SchoolingController::createNiveau(const QString& nom) {
 
 void SchoolingController::updateNiveau(int id, const QString& nom) {
     m_worker->submit("Schooling.updateNiveau", [svc = m_service, id, nom]() -> QVariant {
-        auto result = svc->updateNiveau(id, nom);
+        auto result = svc->updateNiveau(id, nom, 0);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
