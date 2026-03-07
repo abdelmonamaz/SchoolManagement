@@ -14,9 +14,13 @@ Item {
     property bool showEditModal: false
     property int deletingStudentId: -1
     property bool showDeleteStudentConfirm: false
+    // Enrollment edit from list
+    property var  pendingEnrollmentData: null
+    property int  pendingEnrollmentEditStudentId: -1
 
     Component.onCompleted: {
         studentController.loadStudents()
+        studentController.loadSchoolYears()
         schoolingController.loadNiveaux()
         schoolingController.loadAllClasses()
         checkPendingStudent()
@@ -34,6 +38,7 @@ Item {
             console.log("Success:", msg)
             showRegistrationModal = false
             showEditModal = false
+            listEnrollmentEditModal.show = false
             studentController.loadStudents()
         }
         function onOperationFailed(err) {
@@ -43,8 +48,22 @@ Item {
         function onStudentsChanged() {
             if (showDetail && selectedIdx >= 0)
                 studentController.selectStudent(selectedIdx)
-            // Navigation depuis SchoolingPage (bouton Visualiser) — fallback si pas encore traité
             checkPendingStudent()
+        }
+        // Quand les inscriptions d'un élève sont chargées, ouvrir la modale si en attente
+        function onSelectedStudentEnrollmentsChanged() {
+            if (studentsPage.pendingEnrollmentEditStudentId < 0) return
+            studentsPage.pendingEnrollmentEditStudentId = -1
+            var enrollments = studentController.selectedStudentEnrollments
+            if (enrollments.length === 0) return
+            var activeYear = setupController.activeTarifs ? (setupController.activeTarifs.libelle || "") : ""
+            var found = null
+            for (var i = 0; i < enrollments.length; i++) {
+                if (enrollments[i].anneeScolaire === activeYear) { found = enrollments[i]; break }
+            }
+            if (!found) found = enrollments[0]
+            studentsPage.pendingEnrollmentData = found
+            listEnrollmentEditModal.show = true
         }
     }
 
@@ -117,6 +136,10 @@ Item {
                         studentsPage.selectedIdx = index
                         studentsPage.showEditModal = true
                     }
+                    onEnrollmentEditClicked: (studentIdx, studentId) => {
+                        studentsPage.pendingEnrollmentEditStudentId = studentId
+                        studentController.selectStudent(studentIdx)
+                    }
                     onStudentDeleteClicked: (studentId) => {
                         studentsPage.deletingStudentId = studentId
                         studentsPage.showDeleteStudentConfirm = true
@@ -161,6 +184,14 @@ Item {
             showEditModal = false
         }
         onCloseRequested: showEditModal = false
+    }
+
+    // ─── Enrollment Edit Modal (from list view) ───
+    EnrollmentEditModal {
+        id: listEnrollmentEditModal
+        student: studentController.selectedStudent
+        niveaux: schoolingController.niveaux
+        enrollmentData: studentsPage.pendingEnrollmentData
     }
 
     // ─── Delete Confirmation ───

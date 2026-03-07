@@ -16,5 +16,11 @@ struct Eleve {
     QString telParent;
     QString commentaire;
     GS::TypePublic categorie = GS::TypePublic::Jeune;
-    int classeId = 0;
+    QString cinEleve;
+    QString cinParent;
+    // Populated by repository when loading lists (LEFT JOIN on active school year inscription)
+    bool inscritAnneeActive   = false;
+    bool fraisPayeAnneeActive = false;
+    int  classeId             = 0;
+    int  niveauId             = 0;
 };

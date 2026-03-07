@@ -19,7 +19,6 @@ Popup {
     property string selectedSexe: "M"
     property int selectedNiveauId: 0
     property string selectedAnneeScolaire: ""
-    property var anneeScolaireOptions: []
     property double inscriptionFee: 50.0
     property bool isPaid: false
 
@@ -43,16 +42,8 @@ Popup {
     }
 
     onOpened: {
-        var date = new Date()
-        var year = date.getFullYear()
-        // If we are before September, consider the current school year to be (year-1)-(year). Otherwise, year-(year+1)
-        var baseYear = date.getMonth() < 8 ? year - 1 : year
-        anneeScolaireOptions = [
-            baseYear + "-" + (baseYear + 1),
-            (baseYear + 1) + "-" + (baseYear + 2),
-            (baseYear + 2) + "-" + (baseYear + 3)
-        ]
-        selectedAnneeScolaire = anneeScolaireOptions[0]
+        // Utiliser l'année scolaire active depuis les paramètres
+        selectedAnneeScolaire = setupController.activeTarifs.libelle || ""
         // Pré-remplir avec le frais Jeune par défaut
         root.inscriptionFee = root.defaultFeeForCategorie("Jeune")
         nameField.inputItem.forceActiveFocus()
@@ -267,10 +258,32 @@ Popup {
                             Layout.preferredWidth: 1
                             label: "TÉLÉPHONE PARENT"
                             placeholder: "XX XXX XXX"
+                            nextTabItem: cinEleveField.inputItem
                             prevTabItem: parentNameField.inputItem
                             validator: RegularExpressionValidator {
                                 regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
                             }
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 16
+                        FormField {
+                            id: cinEleveField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            label: "CIN ÉLÈVE (optionnel)"
+                            placeholder: "ex: 12345678"
+                            nextTabItem: cinParentField.inputItem
+                            prevTabItem: parentPhoneField.inputItem
+                        }
+                        FormField {
+                            id: cinParentField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            label: "CIN PARENT (optionnel)"
+                            placeholder: "ex: 12345678"
+                            prevTabItem: cinEleveField.inputItem
                         }
                     }
 
@@ -321,21 +334,20 @@ Popup {
                             SectionLabel { text: "ANNÉE SCOLAIRE" }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
-                                color: Style.bgPage; border.color: Style.borderLight
-                                ComboBox {
-                                    id: anneeCombo
-                                    anchors.fill: parent; anchors.margins: 2
-                                    model: root.anneeScolaireOptions
-                                    currentIndex: 0 // Defaults to current base year
-                                    
-                                    background: Rectangle { color: "transparent" }
-                                    contentItem: Text {
-                                        text: anneeCombo.displayText
-                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                color: Style.primaryBg; border.color: Style.primary; border.width: 1
+                                Row {
+                                    anchors.fill: parent; anchors.leftMargin: 12; spacing: 6
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: root.selectedAnneeScolaire || "—"
+                                        font.pixelSize: 14; font.weight: Font.Black; color: Style.primary
                                     }
-
-                                    onActivated: root.selectedAnneeScolaire = currentText
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "· Année active"
+                                        font.pixelSize: 10; font.weight: Font.Bold; color: Style.primary; opacity: 0.7
+                                    }
                                 }
                             }
                         }
@@ -497,7 +509,9 @@ Popup {
                                     telParent: parentPhoneField.text,
                                     commentaire: commentField.text,
                                     categorie: birthDateField.categorie,
-                                    
+                                    cinEleve: cinEleveField.text,
+                                    cinParent: cinParentField.text,
+
                                     // Enrollment
                                     anneeScolaire: root.selectedAnneeScolaire,
                                     niveauId: root.selectedNiveauId,
@@ -511,6 +525,8 @@ Popup {
                                 addressField.text = ""
                                 parentNameField.text = ""
                                 parentPhoneField.text = ""
+                                cinEleveField.text = ""
+                                cinParentField.text = ""
                                 commentField.text = ""
                                 birthDateField.clear()
                                 root.currentStep = 1

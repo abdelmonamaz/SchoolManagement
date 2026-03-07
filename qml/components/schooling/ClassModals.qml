@@ -14,6 +14,7 @@ Item {
     required property int deletingClasseId
     required property string selectedNiveauNom
     required property int selectedNiveauId
+    required property string activeAnneeScolaire
 
     // Students passed from parent to see existing assignments
     property var allStudents: studentController.students
@@ -29,30 +30,12 @@ Item {
     property var initiallyAssignedIds: []
     property var selectedSexe: "all"
     property var selectedCategorie: "all"
-    property string selectedAnneeScolaire: ""
-    property var anneeScolaireOptions: []
+    property string selectedAnneeScolaire: root.activeAnneeScolaire
     property string searchText: ""
     property string qteText: "15"
     property string localClassNameText: ""
     property var pendingEditData: null
     property bool showEditConfirm: false
-
-    Component.onCompleted: initAnneeScolaire()
-
-    function initAnneeScolaire() {
-        var date = new Date()
-        var year = date.getFullYear()
-        var baseYear = date.getMonth() < 8 ? year - 1 : year
-        anneeScolaireOptions = [
-            "Sélectionner...",
-            (baseYear - 2) + "-" + (baseYear - 1),
-            (baseYear - 1) + "-" + baseYear,
-            baseYear + "-" + (baseYear + 1),
-            (baseYear + 1) + "-" + (baseYear + 2),
-            (baseYear + 2) + "-" + (baseYear + 3)
-        ]
-        selectedAnneeScolaire = anneeScolaireOptions[0]
-    }
 
     function initEditState() {
         currentAssignedStudents = []
@@ -71,7 +54,7 @@ Item {
     function resetFilters() {
         selectedSexe = "all"
         selectedCategorie = "all"
-        if (anneeScolaireOptions.length > 0) selectedAnneeScolaire = anneeScolaireOptions[0]
+        selectedAnneeScolaire = root.activeAnneeScolaire
         searchText = ""
         qteText = "15"
     }
@@ -82,7 +65,6 @@ Item {
             currentAssignedStudents = []
             initiallyAssignedIds = []
             localClassNameText = ""
-            reloadUnassigned()
         }
     }
 
@@ -91,12 +73,11 @@ Item {
             resetFilters()
             initEditState()
             localClassNameText = root.editingClass.nom
-            reloadUnassigned()
         }
     }
 
     function reloadUnassigned() {
-        studentController.loadUnassignedStudents(root.selectedNiveauId, selectedAnneeScolaire, selectedSexe, selectedCategorie)
+        studentController.loadUnassignedStudents(root.selectedNiveauId, selectedSexe, selectedCategorie)
     }
 
     // Assign multiple randomly
@@ -205,20 +186,13 @@ Item {
                         SectionLabel { text: "ANNÉE SCOLAIRE" }
                         Rectangle {
                             width: parent.width; height: 40; radius: 10
-                            color: Style.bgPage; border.color: Style.borderLight
-                            ComboBox {
-                                id: anneeCombo; anchors.fill: parent; anchors.margins: 2
-                                model: root.anneeScolaireOptions
-                                currentIndex: Math.max(0, root.anneeScolaireOptions.indexOf(root.selectedAnneeScolaire))
-                                background: Rectangle { color: "transparent" }
-                                contentItem: Text {
-                                    text: anneeCombo.displayText; font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                                    verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                                }
-                                onActivated: function(index) {
-                                    root.selectedAnneeScolaire = root.anneeScolaireOptions[index]
-                                    root.reloadUnassigned()
-                                }
+                            color: Style.bgSecondary; border.color: Style.borderLight
+                            Text {
+                                anchors.fill: parent; anchors.leftMargin: 12
+                                text: root.activeAnneeScolaire || "—"
+                                font.pixelSize: 13; font.bold: true
+                                color: Style.textSecondary
+                                verticalAlignment: Text.AlignVCenter
                             }
                         }
                     }
@@ -521,7 +495,8 @@ Item {
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         visible: root.showCreate || root.showEdit
-        
+
+        onOpened: root.reloadUnassigned()
         onClosed: root.closeRequested()
         
         background: Rectangle {

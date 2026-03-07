@@ -163,6 +163,22 @@ ColumnLayout {
 
                     Separator { Layout.fillWidth: true }
 
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 16
+                        Column {
+                            Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
+                            SectionLabel { text: "CIN ÉLÈVE" }
+                            Text { text: root.student.cinEleve || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
+                        }
+                        Column {
+                            Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
+                            SectionLabel { text: "CIN PARENT" }
+                            Text { text: root.student.cinParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
+                        }
+                    }
+
+                    Separator { Layout.fillWidth: true }
+
                     Column {
                         Layout.fillWidth: true; spacing: 4
                         SectionLabel { text: "COMMENTAIRES ET NOTES" }

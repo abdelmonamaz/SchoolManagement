@@ -42,6 +42,10 @@ Result<bool> StudentService::deleteEnrollment(int enrollmentId) {
     return m_eleveRepo->deleteEnrollment(enrollmentId);
 }
 
+Result<QVariantList> StudentService::loadSchoolYears() {
+    return m_eleveRepo->getSchoolYears();
+}
+
 Result<QList<Eleve>> StudentService::getAllStudents()
 {
     return m_eleveRepo->getAll();
@@ -66,7 +70,8 @@ Result<int> StudentService::createStudent(const QString& nom, const QString& pre
                                            const QString& telephone, const QString& adresse,
                                            const QString& dateNaissance, const QString& nomParent,
                                            const QString& telParent, const QString& commentaire,
-                                           GS::TypePublic categorie, int classeId)
+                                           GS::TypePublic categorie,
+                                           const QString& cinEleve, const QString& cinParent)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom de l'eleve ne peut pas etre vide.");
@@ -86,7 +91,8 @@ Result<int> StudentService::createStudent(const QString& nom, const QString& pre
     e.telParent = telParent.trimmed();
     e.commentaire = commentaire.trimmed();
     e.categorie = categorie;
-    e.classeId = classeId;
+    e.cinEleve = cinEleve.trimmed();
+    e.cinParent = cinParent.trimmed();
     return m_eleveRepo->create(e);
 }
 
@@ -127,9 +133,9 @@ Result<bool> StudentService::assignToClasse(int studentId, int classeId)
     return m_eleveRepo->assignToClasse(studentId, classeId);
 }
 
-Result<QList<Eleve>> StudentService::getUnassignedStudents(int niveauId, const QString& anneeScolaire, const QString& sexe, const QString& categorie)
+Result<QList<Eleve>> StudentService::getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie)
 {
-    return m_eleveRepo->getUnassignedStudents(niveauId, anneeScolaire, sexe, categorie);
+    return m_eleveRepo->getUnassignedStudents(niveauId, sexe, categorie);
 }
 
 Result<QList<Eleve>> StudentService::searchByName(const QString& query)

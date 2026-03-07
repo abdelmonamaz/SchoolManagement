@@ -28,10 +28,15 @@ Popup {
     implicitHeight: contentContainer.implicitHeight
     modal: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    visible: show
 
-    onVisibleChanged: {
-        if (!visible && show) close()
+    onShowChanged: {
+        if (show) open()
+        else      visible = false
+    }
+
+    // Quand le Popup se ferme (clic extérieur / Echap), notifier le parent
+    onClosed: {
+        if (show) close()
     }
 
     background: Rectangle {

@@ -14,7 +14,10 @@ static GS::TypePublic stringToTypePublic(const QString& s) {
 static QVariantMap inscriptionToMap(const Inscription& i) {
     return {
         {"id", i.id}, {"eleveId", i.eleveId},
-        {"anneeScolaire", i.anneeScolaire}, {"niveauId", i.niveauId},
+        {"anneeScolaire", i.anneeScolaire},
+        {"annee_scolaire_id", i.annee_scolaire_id},
+        {"niveauId", i.niveauId},
+        {"classeId", i.classeId},
         {"resultat", i.resultat}, {"fraisInscriptionPaye", i.fraisInscriptionPaye},
         {"montantInscription", i.montantInscription},
         {"dateInscription", i.dateInscription},
@@ -30,7 +33,11 @@ static QVariantMap eleveToMap(const Eleve& e) {
         {"dateNaissance", e.dateNaissance},
         {"nomParent", e.nomParent}, {"telParent", e.telParent},
         {"commentaire", e.commentaire},
-        {"categorie", typePublicToString(e.categorie)}, {"classeId", e.classeId}
+        {"categorie", typePublicToString(e.categorie)}, {"classeId", e.classeId},
+        {"cinEleve", e.cinEleve}, {"cinParent", e.cinParent},
+        {"inscritAnneeActive", e.inscritAnneeActive},
+        {"fraisPayeAnneeActive", e.fraisPayeAnneeActive},
+        {"niveauId", e.niveauId}
     };
 }
 
@@ -88,10 +95,10 @@ void StudentController::loadStudentsBySchoolYear(int month, int year) {
     });
 }
 
-void StudentController::loadUnassignedStudents(int niveauId, const QString& anneeScolaire, const QString& sexe, const QString& categorie) {
+void StudentController::loadUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) {
     setLoading(true);
-    m_worker->submit("Student.loadUnassignedStudents", [svc = m_service, niveauId, anneeScolaire, sexe, categorie]() -> QVariant {
-        auto result = svc->getUnassignedStudents(niveauId, anneeScolaire, sexe, categorie);
+    m_worker->submit("Student.loadUnassignedStudents", [svc = m_service, niveauId, sexe, categorie]() -> QVariant {
+        auto result = svc->getUnassignedStudents(niveauId, sexe, categorie);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         QVariantList list;
@@ -125,7 +132,8 @@ void StudentController::createStudent(const QVariantMap& data) {
             data.value("telParent").toString(),
             data.value("commentaire").toString(),
             stringToTypePublic(data.value("categorie").toString()),
-            data.value("classeId").toInt());
+            data.value("cinEleve").toString(),
+            data.value("cinParent").toString());
         
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -161,7 +169,8 @@ void StudentController::updateStudent(int id, const QVariantMap& data) {
         e.telParent = data.value("telParent").toString();
         e.commentaire = data.value("commentaire").toString();
         e.categorie = stringToTypePublic(data.value("categorie").toString());
-        e.classeId = data.value("classeId").toInt();
+        e.cinEleve = data.value("cinEleve").toString();
+        e.cinParent = data.value("cinParent").toString();
         auto result = svc->updateStudent(e);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -237,10 +246,14 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
     }
     else if (queryId == "Student.deleteEnrollment") {
         if (isError) emit operationFailed(map["error"].toString());
-        else { 
-            emit operationSucceeded("Inscription supprimée"); 
+        else {
+            emit operationSucceeded("Inscription supprimée");
             if (m_selectedStudent.contains("id")) loadEnrollments(m_selectedStudent["id"].toInt());
         }
+    }
+    else if (queryId == "Student.loadSchoolYears") {
+        if (!isError) { m_schoolYears = result.toList(); emit schoolYearsChanged(); }
+        setLoading(false);
     }
     else if (queryId == "Student.updateStudent") {
         if (isError) emit operationFailed(map["error"].toString());
@@ -350,10 +363,13 @@ void StudentController::updateEnrollment(int enrollmentId, const QVariantMap& da
         i.id = enrollmentId;
         i.eleveId = data.value("eleveId").toInt();
         i.anneeScolaire = data.value("anneeScolaire").toString();
+        i.annee_scolaire_id = data.value("annee_scolaire_id").toInt();
         i.niveauId = data.value("niveauId").toInt();
         i.resultat = data.value("resultat").toString();
         i.fraisInscriptionPaye = data.value("fraisInscriptionPaye").toBool();
         i.montantInscription = data.value("montantInscription").toDouble();
+        i.dateInscription = data.value("dateInscription").toString();
+        i.justificatifPath = data.value("justificatifPath").toString();
 
         auto result = svc->updateEnrollment(i);
         if (!result.isOk())
@@ -368,6 +384,15 @@ void StudentController::deleteEnrollment(int enrollmentId) {
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
+    });
+}
+
+void StudentController::loadSchoolYears() {
+    m_worker->submit("Student.loadSchoolYears", [svc = m_service]() -> QVariant {
+        auto result = svc->loadSchoolYears();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return result.value();
     });
 }
 

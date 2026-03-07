@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QString>
+#include <QVariantList>
 #include <optional>
 
 #include "common/result.h"
@@ -23,7 +24,9 @@ public:
                               const QString& telephone, const QString& adresse,
                               const QString& dateNaissance, const QString& nomParent,
                               const QString& telParent, const QString& commentaire,
-                              GS::TypePublic categorie, int classeId);
+                              GS::TypePublic categorie,
+                              const QString& cinEleve = QString(),
+                              const QString& cinParent = QString());
     Result<bool> updateStudent(const Eleve& eleve);
     Result<bool> deleteStudent(int id);
     Result<int> getTotalCount();
@@ -32,7 +35,7 @@ public:
     Result<bool> unassignStudentsFromClasse(int classeId);
     Result<bool> removeStudentFromClasse(int studentId);
     Result<bool> assignToClasse(int studentId, int classeId);
-    Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& anneeScolaire, const QString& sexe, const QString& categorie);
+    Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie);
 
     // Enrollments
     Result<int> enrollStudent(const Inscription& inscription);
@@ -40,6 +43,7 @@ public:
     Result<QList<Inscription>> getEnrollmentsForStudent(int studentId);
     Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire);
     Result<bool> deleteEnrollment(int enrollmentId);
+    Result<QVariantList> loadSchoolYears();
 
 private:
     IEleveRepository* m_eleveRepo;

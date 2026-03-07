@@ -33,6 +33,8 @@ Popup {
         editAddressField.text = root.student.adresse || ""
         editParentNameField.text = root.student.nomParent || ""
         editParentPhoneField.text = root.student.telParent || ""
+        editCinEleveField.text = root.student.cinEleve || ""
+        editCinParentField.text = root.student.cinParent || ""
         editCommentField.text = root.student.commentaire || ""
         editDateField.setDate(root.student.dateNaissance || "")
 
@@ -144,7 +146,14 @@ Popup {
                     Layout.fillWidth: true
                     spacing: 16
                     FormField { id: editParentNameField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "NOM DU PARENT"; nextTabItem: editParentPhoneField.inputItem; prevTabItem: editAddressField.inputItem }
-                    FormField { id: editParentPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "TÉLÉPHONE PARENT"; prevTabItem: editParentNameField.inputItem }
+                    FormField { id: editParentPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "TÉLÉPHONE PARENT"; nextTabItem: editCinEleveField.inputItem; prevTabItem: editParentNameField.inputItem }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
+                    FormField { id: editCinEleveField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "CIN ÉLÈVE (optionnel)"; placeholder: "ex: 12345678"; nextTabItem: editCinParentField.inputItem; prevTabItem: editParentPhoneField.inputItem }
+                    FormField { id: editCinParentField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "CIN PARENT (optionnel)"; placeholder: "ex: 12345678"; prevTabItem: editCinEleveField.inputItem }
                 }
 
                 ColumnLayout {
@@ -185,7 +194,9 @@ Popup {
                         telParent: editParentPhoneField.text,
                         commentaire: editCommentField.text,
                         categorie: editDateField.categorie,
-                        classeId: root.selectedEditClasseId
+                        classeId: root.selectedEditClasseId,
+                        cinEleve: editCinEleveField.text,
+                        cinParent: editCinParentField.text
                     })
                 }
             }

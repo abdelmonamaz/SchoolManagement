@@ -792,5 +792,44 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "ALTER TABLE niveaux ADD COLUMN parent_level_id INTEGER REFERENCES niveaux(id)"));
         qInfo() << "[DatabaseManager] Migration 29: added column niveaux.parent_level_id";
     }
+
+    // ── Migration 30 : ajout de cin_eleve et cin_parent dans eleves ──
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("cin_eleve"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN cin_eleve TEXT"));
+        qInfo() << "[DatabaseManager] Migration 30a: added column eleves.cin_eleve";
+    }
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("cin_parent"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE eleves ADD COLUMN cin_parent TEXT"));
+        qInfo() << "[DatabaseManager] Migration 30b: added column eleves.cin_parent";
+    }
+
+    // ── Migration 31 : ajout de annee_scolaire_id et classe_id dans inscriptions_eleves ──
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("annee_scolaire_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE inscriptions_eleves ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
+        // Populate annee_scolaire_id from existing annee_scolaire text
+        execStatement(db, QStringLiteral(
+            "UPDATE inscriptions_eleves SET annee_scolaire_id = ("
+            "  SELECT a.id FROM annees_scolaires a WHERE a.libelle = inscriptions_eleves.annee_scolaire AND a.valide = 1 LIMIT 1"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 31a: added column inscriptions_eleves.annee_scolaire_id";
+    }
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("classe_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE inscriptions_eleves ADD COLUMN classe_id INTEGER REFERENCES classes(id)"));
+        // Migrate existing class assignment from eleves.classe_id to active-year inscription
+        execStatement(db, QStringLiteral(
+            "UPDATE inscriptions_eleves SET classe_id = ("
+            "  SELECT e.classe_id FROM eleves e WHERE e.id = inscriptions_eleves.eleve_id AND e.classe_id IS NOT NULL"
+            ") WHERE annee_scolaire = (SELECT libelle FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"
+            " AND valide = 1"));
+        qInfo() << "[DatabaseManager] Migration 31b: added column inscriptions_eleves.classe_id";
+    }
+
+    // ── Migration 32 : suppression de inscriptions_eleves.annee_scolaire (remplacé par annee_scolaire_id) ──
+    if (columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("annee_scolaire"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE inscriptions_eleves DROP COLUMN annee_scolaire"));
+        qInfo() << "[DatabaseManager] Migration 32: dropped column inscriptions_eleves.annee_scolaire";
+    }
 }
 

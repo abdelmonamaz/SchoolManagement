@@ -9,10 +9,8 @@ ModalOverlay {
     
     property var student: null
     property var niveaux: []
-    
     // Internal state for the current enrollment being edited
     property var enrollmentData: null
-    property var anneeScolaireOptions: []
     property bool isPaid: false
     property string currentJustif: ""
 
@@ -22,45 +20,19 @@ ModalOverlay {
     onClose: {
         root.show = false
         editErrorMsg.text = ""
-        enrollmentData = null
     }
 
     onShowChanged: {
         if (!show) return
         editErrorMsg.text = ""
-        var date = new Date()
-        var year = date.getFullYear()
-        var baseYear = date.getMonth() < 8 ? year - 1 : year
-        anneeScolaireOptions = [
-            (baseYear - 2) + "-" + (baseYear - 1),
-            (baseYear - 1) + "-" + baseYear,
-            baseYear + "-" + (baseYear + 1),
-            (baseYear + 1) + "-" + (baseYear + 2),
-            (baseYear + 2) + "-" + (baseYear + 3)
-        ]
 
         if (enrollmentData) {
-            var foundYear = false
-            for (var j = 0; j < anneeScolaireOptions.length; j++) {
-                if (anneeScolaireOptions[j] === enrollmentData.anneeScolaire) {
-                    editYearCombo.currentIndex = j
-                    foundYear = true
-                    break
-                }
-            }
-            if (!foundYear) {
-                // Add it if it's an older/future year not in the default list
-                anneeScolaireOptions.unshift(enrollmentData.anneeScolaire)
-                editYearCombo.currentIndex = 0
-            }
-
             for (var i = 0; i < root.niveaux.length; i++) {
                 if (root.niveaux[i].id === enrollmentData.niveauId) {
                     editLevelCombo.currentIndex = i
                     break
                 }
             }
-            editResultField.text = enrollmentData.resultat || "En cours"
             editFeeField.text = enrollmentData.montantInscription.toString()
             isPaid = enrollmentData.fraisInscriptionPaye
             currentJustif = enrollmentData.justificatifPath || ""
@@ -99,7 +71,7 @@ ModalOverlay {
                        font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium
                        elide: Text.ElideRight; width: parent.width }
             }
-            IconButton { iconName: "close"; iconSize: 18; onClicked: root.onClose() }
+            IconButton { iconName: "close"; iconSize: 18; onClicked: root.close() }
         }
 
         Separator { width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter }
@@ -125,15 +97,14 @@ ModalOverlay {
                     SectionLabel { text: "ANNÉE SCOLAIRE" }
                     Rectangle {
                         Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: editYearCombo; anchors.fill: parent; anchors.margins: 2
-                            model: root.anneeScolaireOptions
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                text: editYearCombo.displayText; font.pixelSize: 13; font.bold: true
-                                color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                            }
+                        color: Style.bgSecondary; border.color: Style.borderLight
+                        Text {
+                            anchors.fill: parent; anchors.leftMargin: 12
+                            text: (root.enrollmentData && root.enrollmentData.anneeScolaire)
+                                  ? root.enrollmentData.anneeScolaire
+                                  : (setupController.activeTarifs ? setupController.activeTarifs.libelle : "")
+                            font.pixelSize: 13; font.bold: true
+                            color: Style.textSecondary; verticalAlignment: Text.AlignVCenter
                         }
                     }
                 }
@@ -156,8 +127,6 @@ ModalOverlay {
                 }
             }
 
-            FormField { id: editResultField; width: parent.width; label: "RÉSULTAT" }
-            
             RowLayout {
                 width: parent.width; spacing: 16
                 FormField { id: editFeeField; Layout.fillWidth: true; label: "FRAIS (DT)" }
@@ -219,20 +188,60 @@ ModalOverlay {
                 }
             }
             
+            // Désinscrire / Inscrire — full width
+            Rectangle {
+                width: parent.width; height: 44; radius: 12
+                readonly property bool isEnrolled: root.student && root.student.inscritAnneeActive
+                color: actionMa.containsMouse
+                       ? (isEnrolled ? Style.errorColor : Style.successColor)
+                       : "transparent"
+                border.color: isEnrolled ? Style.errorColor : Style.successColor; border.width: 1
+                Text {
+                    anchors.centerIn: parent
+                    text: parent.isEnrolled ? "Désinscrire" : "Inscrire"
+                    font.pixelSize: 13; font.weight: Font.Bold
+                    color: actionMa.containsMouse ? "#FFFFFF"
+                           : (parent.isEnrolled ? Style.errorColor : Style.successColor)
+                }
+                MouseArea {
+                    id: actionMa; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (parent.isEnrolled) {
+                            if (root.enrollmentData)
+                                studentController.deleteEnrollment(root.enrollmentData.id)
+                        } else {
+                            studentController.enrollStudent({
+                                eleveId: root.student.id,
+                                anneeScolaire: setupController.activeTarifs ? setupController.activeTarifs.libelle : "",
+                                annee_scolaire_id: setupController.activeTarifs ? setupController.activeTarifs.id : 0,
+                                niveauId: root.niveaux.length > 0 ? root.niveaux[editLevelCombo.currentIndex].id : 0,
+                                resultat: "En cours",
+                                fraisInscriptionPaye: root.isPaid,
+                                montantInscription: parseFloat(editFeeField.text.replace(",", ".")) || 0
+                            })
+                        }
+                        root.close()
+                    }
+                }
+            }
+
             RowLayout {
-                width: parent.width; spacing: 16; Layout.topMargin: 10
+                width: parent.width; spacing: 10
+
                 OutlineButton {
                     Layout.fillWidth: true; text: "Annuler"
-                    onClicked: root.onClose()
+                    onClicked: root.close()
                 }
                 PrimaryButton {
                     Layout.fillWidth: true; text: "Mettre à jour"
                     onClicked: {
                         studentController.updateEnrollment(root.enrollmentData.id, {
                             eleveId: root.student.id,
-                            anneeScolaire: editYearCombo.currentText,
+                            anneeScolaire: root.enrollmentData.anneeScolaire,
+                            annee_scolaire_id: root.enrollmentData.annee_scolaire_id || 0,
                             niveauId: root.niveaux[editLevelCombo.currentIndex].id,
-                            resultat: editResultField.text,
+                            resultat: root.enrollmentData ? root.enrollmentData.resultat : "En cours",
                             fraisInscriptionPaye: root.isPaid,
                             montantInscription: parseFloat(editFeeField.text.replace(",", ".")),
                             dateInscription: editDateField.dateString !== "" ? editDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),

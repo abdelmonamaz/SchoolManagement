@@ -16,6 +16,7 @@ ColumnLayout {
     signal studentViewClicked(int index)
     signal studentEditClicked(int index)
     signal studentDeleteClicked(int studentId)
+    signal enrollmentEditClicked(int studentIdx, int studentId)
     signal registrationRequested()
     signal searchRequested(string text)
     signal filterByClass(int classeId)
@@ -23,15 +24,19 @@ ColumnLayout {
     signal niveauFilterChanged(int niveauId)
 
     // ─── Column widths (shared between header and rows) ───
-    readonly property int colNom:      400
-    readonly property int colId:       100
-    readonly property int colSexe:     70
-    readonly property int colCat:      110
-    readonly property int colActions:  80
+    readonly property int colNom:      280
+    readonly property int colId:       80
+    readonly property int colSexe:     60
+    readonly property int colCat:      90
+    readonly property int colStatut:   100
+    readonly property int colPaiement: 80
+    readonly property int colActions:  116
 
     // ─── Filter & Sort State ───
     property string sexeFilter:       "all"
     property string categorieFilter:  "all"
+    property string statutFilter:     "all"   // "all" | "inscrit" | "non-inscrit"
+    property string paiementFilter:   "all"   // "all" | "paye"   | "impaye"
     property string sortColumn:       ""
     property bool   sortAsc:          true
     property int    currentPage:      0
@@ -52,23 +57,18 @@ ColumnLayout {
         return cats
     }
 
-    // ─── Client-side filter + sort ───
-    // IDs des classes du niveau sélectionné (recompute quand classes change via backend)
-    readonly property var niveauClassIds: {
-        if (activeNiveauId === 0 || classeSelectedFilter > 0) return null
-        var ids = {}
-        for (var k = 0; k < classes.length; k++) ids[classes[k].id] = true
-        return ids
-    }
-
     readonly property var processedStudents: {
-        var ids = niveauClassIds   // null = pas de filtre niveau
         var result = []
         for (var i = 0; i < students.length; i++) {
             var s = students[i]
-            if (ids !== null && !ids[s.classeId])               continue
+            // Filtre niveau : filtrer par niveauId de l'inscription (sauf si une classe spécifique est sélectionnée)
+            if (activeNiveauId !== 0 && classeSelectedFilter === 0 && s.niveauId !== activeNiveauId) continue
             if (sexeFilter      !== "all" && s.sexe      !== sexeFilter)      continue
             if (categorieFilter !== "all" && s.categorie !== categorieFilter)  continue
+            if (statutFilter === "inscrit"     && !s.inscritAnneeActive)  continue
+            if (statutFilter === "non-inscrit" &&  s.inscritAnneeActive)  continue
+            if (paiementFilter === "paye"   && !s.fraisPayeAnneeActive)   continue
+            if (paiementFilter === "impaye" &&  s.fraisPayeAnneeActive)   continue
             result.push({ s: s, idx: i })
         }
         if (sortColumn !== "") {
@@ -115,7 +115,7 @@ ColumnLayout {
             subtitle: "Gestion des dossiers individuels et du suivi."
         }
         PrimaryButton {
-            text: "Inscrire un Élève"; iconName: "plus"
+            text: "Ajouter un Élève"; iconName: "plus"
             onClicked: root.registrationRequested()
         }
     }
@@ -148,6 +148,8 @@ ColumnLayout {
                 }
                 onSexeChanged:      (s) => root.sexeFilter      = s
                 onCategorieChanged: (c) => root.categorieFilter = c
+                onStatutChanged:    (s) => root.statutFilter    = s
+                onPaiementChanged:  (p) => root.paiementFilter  = p
             }
 
             Separator { width: parent.width }
@@ -197,9 +199,29 @@ ColumnLayout {
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("categorie") }
                 }
+                // STATUT
+                Item {
+                    width: root.colStatut; height: parent.height
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "STATUT" + root.sortArrow("inscritAnneeActive")
+                        font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("inscritAnneeActive")
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("inscritAnneeActive") }
+                }
+                // PAIEMENT
+                Item {
+                    width: root.colPaiement; height: parent.height
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "PAIEMENT" + root.sortArrow("fraisPayeAnneeActive")
+                        font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("fraisPayeAnneeActive")
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("fraisPayeAnneeActive") }
+                }
                 // CONTACT (fills remaining space)
                 Item {
-                    width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colActions
+                    width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colActions
                     height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -282,9 +304,32 @@ ColumnLayout {
                                     text: modelData.s.categorie; variant: "info"
                                 }
                             }
+                            // STATUT
+                            Item {
+                                width: root.colStatut; height: parent.height
+                                Badge {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: modelData.s.inscritAnneeActive ? "INSCRIT" : "NON INSCRIT"
+                                    customTextColor: "#FFFFFF"
+                                    customBgColor: modelData.s.inscritAnneeActive ? Style.successColor : Style.textTertiary
+                                    customBorderColor: modelData.s.inscritAnneeActive ? Style.successColor : Style.borderMedium
+                                }
+                            }
+                            // PAIEMENT
+                            Item {
+                                width: root.colPaiement; height: parent.height
+                                Badge {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: modelData.s.inscritAnneeActive
+                                    text: modelData.s.fraisPayeAnneeActive ? "PAYÉ" : "IMPAYÉ"
+                                    customTextColor: "#FFFFFF"
+                                    customBgColor: modelData.s.fraisPayeAnneeActive ? Style.successColor : Style.errorColor
+                                    customBorderColor: modelData.s.fraisPayeAnneeActive ? Style.successColor : Style.errorColor
+                                }
+                            }
                             // CONTACT
                             Item {
-                                width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colActions
+                                width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colActions
                                 height: parent.height
                                 Column {
                                     anchors.verticalCenter: parent.verticalCenter
@@ -300,6 +345,7 @@ ColumnLayout {
                                     anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                     spacing: 4
                                     IconButton { iconName: "eye";    iconSize: 16; onClicked: root.studentViewClicked(modelData.idx) }
+                                    IconButton { iconName: "edit";   iconSize: 16; hoverColor: Style.warningColor || "#D97706"; onClicked: root.enrollmentEditClicked(modelData.idx, modelData.s.id) }
                                     IconButton { iconName: "delete"; iconSize: 16; hoverColor: Style.errorColor; onClicked: root.studentDeleteClicked(modelData.s.id) }
                                 }
                             }

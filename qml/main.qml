@@ -32,6 +32,11 @@ ApplicationWindow {
         function onIsInitializedChanged() {
             if (!setupController.isInitialized) {
                 setupWizard.open()
+            } else {
+                // Wizard vient de se terminer — recharger les données académiques
+                schoolingController.loadNiveaux()
+                schoolingController.loadSalles()
+                schoolingController.loadEquipements()
             }
         }
     }

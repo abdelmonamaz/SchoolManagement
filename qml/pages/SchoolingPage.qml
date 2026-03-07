@@ -351,6 +351,7 @@ Item {
         deletingClasseId: schoolPage.deletingClasseId
         selectedNiveauNom: schoolPage.selectedNiveauNom()
         selectedNiveauId: schoolPage.selectedNiveauId
+        activeAnneeScolaire: setupController.activeTarifs ? (setupController.activeTarifs.libelle || "") : ""
 
         property var pendingStudentsToAssign: []
 

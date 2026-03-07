@@ -15,6 +15,8 @@ ColumnLayout {
     property string selectedClass:     "all"
     property string selectedSexe:      "all"
     property string selectedCategorie: "all"
+    property string selectedStatut:    "all"
+    property string selectedPaiement:  "all"
 
     readonly property var filteredClasses: {
         if (selectedNiveauId === 0) return classes
@@ -30,6 +32,8 @@ ColumnLayout {
     signal classFilterChanged(int classeId)
     signal sexeChanged(string sexe)
     signal categorieChanged(string categorie)
+    signal statutChanged(string statut)
+    signal paiementChanged(string paiement)
 
     // ─── Row 1: Search + Niveau + Sexe + Catégorie ───
     RowLayout {
@@ -90,6 +94,64 @@ ColumnLayout {
                         }
                     }
                 }
+            }
+        }
+
+        // Statut filter dropdown
+        Rectangle {
+            width: 130; height: 44; radius: 12
+            color: root.selectedStatut !== "all" ? Style.primaryBg : Style.bgPage
+            border.color: root.selectedStatut !== "all" ? Style.primaryLight : Style.borderLight
+
+            RowLayout {
+                anchors.fill: parent; anchors.margins: 12; spacing: 6
+                Text { text: "📋"; font.pixelSize: 12 }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.selectedStatut === "inscrit" ? "Inscrit"
+                        : root.selectedStatut === "non-inscrit" ? "Non inscrit"
+                        : "Statut"
+                    font.pixelSize: 11; font.bold: true
+                    color: root.selectedStatut !== "all" ? Style.primary : Style.textPrimary
+                    elide: Text.ElideRight
+                }
+                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+            }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: statutMenu.open() }
+            Menu {
+                id: statutMenu; y: parent.height
+                MenuItem { text: "Tous statuts";  onTriggered: { root.selectedStatut = "all";         root.statutChanged("all") } }
+                MenuItem { text: "Inscrit";        onTriggered: { root.selectedStatut = "inscrit";     root.statutChanged("inscrit") } }
+                MenuItem { text: "Non inscrit";    onTriggered: { root.selectedStatut = "non-inscrit"; root.statutChanged("non-inscrit") } }
+            }
+        }
+
+        // Paiement filter dropdown
+        Rectangle {
+            width: 120; height: 44; radius: 12
+            color: root.selectedPaiement !== "all" ? Style.primaryBg : Style.bgPage
+            border.color: root.selectedPaiement !== "all" ? Style.primaryLight : Style.borderLight
+
+            RowLayout {
+                anchors.fill: parent; anchors.margins: 12; spacing: 6
+                Text { text: "💳"; font.pixelSize: 12 }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.selectedPaiement === "paye" ? "Payé"
+                        : root.selectedPaiement === "impaye" ? "Impayé"
+                        : "Paiement"
+                    font.pixelSize: 11; font.bold: true
+                    color: root.selectedPaiement !== "all" ? Style.primary : Style.textPrimary
+                    elide: Text.ElideRight
+                }
+                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+            }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: paiementMenu.open() }
+            Menu {
+                id: paiementMenu; y: parent.height
+                MenuItem { text: "Tous";    onTriggered: { root.selectedPaiement = "all";    root.paiementChanged("all") } }
+                MenuItem { text: "Payé";    onTriggered: { root.selectedPaiement = "paye";   root.paiementChanged("paye") } }
+                MenuItem { text: "Impayé";  onTriggered: { root.selectedPaiement = "impaye"; root.paiementChanged("impaye") } }
             }
         }
 
