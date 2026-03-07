@@ -221,7 +221,8 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
         else { m_selectedStudentEnrollments = result.toList(); emit selectedStudentEnrollmentsChanged(); }
         setLoading(false);
     }
-    else if (queryId == "Student.loadEnrollmentsByYear") {
+    else if (queryId == "Student.loadEnrollmentsByYear"
+             || queryId == "Student.loadEnrollmentsForActiveYear") {
         if (isError) setError(map["error"].toString());
         else { m_enrollmentsByYear = result.toList(); emit enrollmentsByYearChanged(); }
         setLoading(false);
@@ -340,11 +341,24 @@ void StudentController::loadEnrollmentsByYear(const QString& anneeScolaire) {
     });
 }
 
+void StudentController::loadEnrollmentsForActiveYear() {
+    setLoading(true);
+    m_worker->submit("Student.loadEnrollmentsForActiveYear", [svc = m_service]() -> QVariant {
+        auto result = svc->getEnrollmentsForActiveYear();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& i : result.value()) list.append(inscriptionToMap(i));
+        return list;
+    });
+}
+
 void StudentController::enrollStudent(const QVariantMap& data) {
     m_worker->submit("Student.enrollStudent", [svc = m_service, data]() -> QVariant {
         Inscription i;
         i.eleveId = data.value("eleveId").toInt();
         i.anneeScolaire = data.value("anneeScolaire").toString();
+        i.annee_scolaire_id = data.value("annee_scolaire_id").toInt();
         i.niveauId = data.value("niveauId").toInt();
         i.resultat = data.value("resultat").toString();
         i.fraisInscriptionPaye = data.value("fraisInscriptionPaye").toBool();

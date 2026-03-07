@@ -36,7 +36,7 @@ public:
 
     // Create personnel + initial contract
     Q_INVOKABLE void createPersonnel(const QString& nom, const QString& telephone,
-                                      const QString& sexe,
+                                      const QString& sexe, const QString& cin,
                                       const QString& poste, const QString& specialite,
                                       const QString& modePaie, double valeurBase,
                                       const QString& dateDebut, const QString& dateFin,
@@ -44,7 +44,7 @@ public:
 
     // Update identity only
     Q_INVOKABLE void updatePersonnel(int id, const QString& nom, const QString& telephone,
-                                      const QString& sexe);
+                                      const QString& sexe, const QString& cin);
 
     Q_INVOKABLE void deletePersonnel(int id);
 

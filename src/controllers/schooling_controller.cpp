@@ -1,6 +1,7 @@
 #include "controllers/schooling_controller.h"
 #include "services/schooling_service.h"
 #include "database/database_worker.h"
+#include <QDebug>
 
 static QVariantMap niveauToMap(const Niveau& n) {
     return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}};
@@ -248,27 +249,36 @@ void SchoolingController::createMatiereExamen(int matiereId, int typeExamenId) {
 }
 
 void SchoolingController::createTypeAndMatiereExamen(int matiereId, const QString& titre) {
+    qInfo() << "[SchoolingController::createTypeAndMatiereExamen] matiereId=" << matiereId << "titre=" << titre;
     m_worker->submit("Schooling.createMatiereExamen:" + QString::number(matiereId),
         [svc = m_service, matiereId, titre]() -> QVariant {
-            // Check if type exists or create it
+            // Check if type exists (active) or create/re-activate it
             auto typesResult = svc->getAllTypeExamens();
             int typeId = -1;
             if (typesResult.isOk()) {
                 for (const auto& t : typesResult.value()) {
                     if (t.titre.toLower() == titre.trimmed().toLower()) {
                         typeId = t.id;
+                        qInfo() << "[createTypeAndMatiereExamen] found existing typeId=" << typeId;
                         break;
                     }
                 }
             }
             if (typeId == -1) {
+                qInfo() << "[createTypeAndMatiereExamen] type not found, creating:" << titre.trimmed();
                 auto createTypeResult = svc->createTypeExamen(titre.trimmed());
-                if (!createTypeResult.isOk()) return QVariantMap{{"error", createTypeResult.errorMessage()}};
+                if (!createTypeResult.isOk()) {
+                    qWarning() << "[createTypeAndMatiereExamen] createTypeExamen failed:" << createTypeResult.errorMessage();
+                    return QVariantMap{{"error", createTypeResult.errorMessage()}};
+                }
                 typeId = createTypeResult.value();
+                qInfo() << "[createTypeAndMatiereExamen] created typeId=" << typeId;
             }
             auto result = svc->createMatiereExamen(matiereId, typeId);
-            if (!result.isOk())
+            if (!result.isOk()) {
+                qWarning() << "[createTypeAndMatiereExamen] createMatiereExamen failed:" << result.errorMessage();
                 return QVariantMap{{"error", result.errorMessage()}};
+            }
             return QVariantMap{{"success", true}};
         });
 }
@@ -329,10 +339,14 @@ void SchoolingController::loadTypeExamens() {
 }
 
 void SchoolingController::createTypeExamen(const QString& titre) {
+    qInfo() << "[SchoolingController::createTypeExamen] titre=" << titre;
     m_worker->submit("Schooling.createTypeExamen", [svc = m_service, titre]() -> QVariant {
         auto result = svc->createTypeExamen(titre);
-        if (!result.isOk())
+        if (!result.isOk()) {
+            qWarning() << "[createTypeExamen] failed:" << result.errorMessage();
             return QVariantMap{{"error", result.errorMessage()}};
+        }
+        qInfo() << "[createTypeExamen] success, id=" << result.value();
         return QVariantMap{{"success", true}};
     });
 }

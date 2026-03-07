@@ -293,12 +293,21 @@ Result<QList<Eleve>> SqliteEleveRepository::getUnassignedStudents(int niveauId, 
 Result<int> SqliteEleveRepository::createEnrollment(const Inscription& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
 
-    // Resolve annee_scolaire_id from text if not provided
+    // Resolve annee_scolaire_id from text if not provided, fall back to active year
     int anneeId = entity.annee_scolaire_id;
-    if (anneeId == 0 && !entity.anneeScolaire.isEmpty()) {
+    if (anneeId == 0) {
         QSqlQuery idQ(db);
-        idQ.prepare(QStringLiteral("SELECT id FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
-        idQ.addBindValue(entity.anneeScolaire);
+        if (!entity.anneeScolaire.isEmpty()) {
+            idQ.prepare(QStringLiteral(
+                "SELECT COALESCE("
+                "  (SELECT id FROM annees_scolaires WHERE libelle = ? AND valide=1 LIMIT 1),"
+                "  (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"
+                ")"));
+            idQ.addBindValue(entity.anneeScolaire);
+        } else {
+            idQ.prepare(QStringLiteral(
+                "SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1"));
+        }
         if (idQ.exec() && idQ.next()) anneeId = idQ.value(0).toInt();
     }
 
@@ -323,12 +332,21 @@ Result<int> SqliteEleveRepository::createEnrollment(const Inscription& entity) {
 Result<bool> SqliteEleveRepository::updateEnrollment(const Inscription& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
 
-    // Resolve annee_scolaire_id from text if not provided
+    // Resolve annee_scolaire_id from text if not provided, fall back to active year
     int anneeId = entity.annee_scolaire_id;
-    if (anneeId == 0 && !entity.anneeScolaire.isEmpty()) {
+    if (anneeId == 0) {
         QSqlQuery idQ(db);
-        idQ.prepare(QStringLiteral("SELECT id FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
-        idQ.addBindValue(entity.anneeScolaire);
+        if (!entity.anneeScolaire.isEmpty()) {
+            idQ.prepare(QStringLiteral(
+                "SELECT COALESCE("
+                "  (SELECT id FROM annees_scolaires WHERE libelle = ? AND valide=1 LIMIT 1),"
+                "  (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"
+                ")"));
+            idQ.addBindValue(entity.anneeScolaire);
+        } else {
+            idQ.prepare(QStringLiteral(
+                "SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1"));
+        }
         if (idQ.exec() && idQ.next()) anneeId = idQ.value(0).toInt();
     }
 
@@ -390,7 +408,10 @@ Result<std::optional<Inscription>> SqliteEleveRepository::getEnrollmentByYear(in
         "FROM inscriptions_eleves i "
         "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
         "WHERE i.eleve_id = ? "
-        "AND i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE libelle = ? AND valide=1 LIMIT 1) "
+        "AND i.annee_scolaire_id = COALESCE("
+        "  (SELECT id FROM annees_scolaires WHERE libelle = ? AND valide=1 LIMIT 1),"
+        "  (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"
+        ") "
         "AND i.valide = 1"));
     query.addBindValue(studentId);
     query.addBindValue(anneeScolaire);
@@ -445,13 +466,45 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForYear(const QS
     return Result<QList<Inscription>>::success(list);
 }
 
+Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForActiveYear() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT i.id, i.eleve_id, COALESCE(a.libelle,''), i.niveau_id, i.resultat, i.frais_inscription_paye, "
+        "  i.montant_inscription, i.date_inscription, i.justificatif_path, "
+        "  COALESCE(i.annee_scolaire_id, 0), COALESCE(i.classe_id, 0) "
+        "FROM inscriptions_eleves i "
+        "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
+        "WHERE i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1) "
+        "AND i.valide = 1"));
+    if (!query.exec()) return Result<QList<Inscription>>::error(query.lastError().text());
+    QList<Inscription> list;
+    while (query.next()) {
+        Inscription i;
+        i.id                   = query.value(0).toInt();
+        i.eleveId              = query.value(1).toInt();
+        i.anneeScolaire        = query.value(2).toString();
+        i.niveauId             = query.value(3).toInt();
+        i.resultat             = query.value(4).toString();
+        i.fraisInscriptionPaye = query.value(5).toInt() != 0;
+        i.montantInscription   = query.value(6).toDouble();
+        i.dateInscription      = query.value(7).toString();
+        i.justificatifPath     = query.value(8).toString();
+        i.annee_scolaire_id    = query.value(9).toInt();
+        i.classeId             = query.value(10).toInt();
+        list.append(i);
+    }
+    return Result<QList<Inscription>>::success(list);
+}
+
 Result<bool> SqliteEleveRepository::deleteEnrollment(int enrollmentId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     bool ok = query.prepare(QStringLiteral(
-        "UPDATE inscriptions_eleves SET valide = 0, date_invalidation = datetime('now'), "
-        "date_modification = datetime('now') WHERE id = ?"));
-    if (!ok) ok = query.prepare(QStringLiteral("UPDATE inscriptions_eleves SET valide = 0 WHERE id = ?"));
+        "UPDATE inscriptions_eleves SET valide = 0, frais_inscription_paye = 0, "
+        "date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
+    if (!ok) ok = query.prepare(QStringLiteral(
+        "UPDATE inscriptions_eleves SET valide = 0, frais_inscription_paye = 0 WHERE id = ?"));
     if (!ok) return Result<bool>::error(query.lastError().text());
     query.addBindValue(enrollmentId);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());

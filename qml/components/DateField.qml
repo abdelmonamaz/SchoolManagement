@@ -15,6 +15,7 @@ Column {
     property var nextTabItem: null
     property var prevTabItem: null
     property alias inputItem: dayInput
+    property int agePassage: 12
 
     // Validation calendaire stricte : ranges + nombre de jours réels dans le mois (années bissextiles incluses)
     readonly property bool isValid: {
@@ -51,8 +52,8 @@ Column {
         return a
     }
 
-    // Catégorie déduite : < 12 ans → Jeune, ≥ 12 ans → Adulte
-    readonly property string categorie: age < 0 ? "" : (age < 12 ? "Jeune" : "Adulte")
+    // Catégorie déduite selon l'âge de passage configurable (défaut 12 ans)
+    readonly property string categorie: age < 0 ? "" : (age < agePassage ? "Jeune" : "Adulte")
 
     // Réinitialise les trois champs
     function clear() {

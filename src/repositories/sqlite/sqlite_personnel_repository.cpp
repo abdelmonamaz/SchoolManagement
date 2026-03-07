@@ -10,7 +10,7 @@ SqlitePersonnelRepository::SqlitePersonnelRepository(const QString& connectionNa
 Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel WHERE valide = 1"))) {
+    if (!query.exec(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M'), cin FROM personnel WHERE valide = 1"))) {
         return Result<QList<Personnel>>::error(query.lastError().text());
     }
 
@@ -23,6 +23,7 @@ Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
         p.telephone = query.value(3).toString();
         p.adresse = query.value(4).toString();
         p.sexe = query.value(5).toString();
+        p.cin = query.value(6).toString();
         list.append(p);
     }
     return Result<QList<Personnel>>::success(list);
@@ -31,7 +32,7 @@ Result<QList<Personnel>> SqlitePersonnelRepository::getAll() {
 Result<std::optional<Personnel>> SqlitePersonnelRepository::getById(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M') FROM personnel WHERE id = ? AND valide = 1"));
+    query.prepare(QStringLiteral("SELECT id, nom, prenom, telephone, adresse, COALESCE(sexe, 'M'), cin FROM personnel WHERE id = ? AND valide = 1"));
     query.addBindValue(id);
     if (!query.exec()) {
         return Result<std::optional<Personnel>>::error(query.lastError().text());
@@ -45,6 +46,7 @@ Result<std::optional<Personnel>> SqlitePersonnelRepository::getById(int id) {
         p.telephone = query.value(3).toString();
         p.adresse = query.value(4).toString();
         p.sexe = query.value(5).toString();
+        p.cin = query.value(6).toString();
         return Result<std::optional<Personnel>>::success(p);
     }
     return Result<std::optional<Personnel>>::success(std::nullopt);
@@ -53,16 +55,16 @@ Result<std::optional<Personnel>> SqlitePersonnelRepository::getById(int id) {
 Result<int> SqlitePersonnelRepository::create(const Personnel& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    // prix_heure_actuel is NOT NULL in legacy schema, provide default 0
     query.prepare(QStringLiteral(
-        "INSERT INTO personnel (nom, prenom, telephone, adresse, sexe, prix_heure_actuel) "
-        "VALUES (?, ?, ?, ?, ?, 0)"));
+        "INSERT INTO personnel (nom, prenom, telephone, adresse, sexe, cin) "
+        "VALUES (?, ?, ?, ?, ?, ?)"));
 
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
     query.addBindValue(entity.sexe);
+    query.addBindValue(entity.cin);
 
     if (!query.exec()) {
         return Result<int>::error(query.lastError().text());
@@ -74,12 +76,13 @@ Result<bool> SqlitePersonnelRepository::update(const Personnel& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "UPDATE personnel SET nom=?, prenom=?, telephone=?, adresse=?, sexe=? , date_modification = datetime('now') WHERE id=?"));
+        "UPDATE personnel SET nom=?, prenom=?, telephone=?, adresse=?, sexe=?, cin=?, date_modification=datetime('now') WHERE id=?"));
     query.addBindValue(entity.nom);
     query.addBindValue(entity.prenom);
     query.addBindValue(entity.telephone);
     query.addBindValue(entity.adresse);
     query.addBindValue(entity.sexe);
+    query.addBindValue(entity.cin);
     query.addBindValue(entity.id);
     if (!query.exec()) {
         return Result<bool>::error(query.lastError().text());

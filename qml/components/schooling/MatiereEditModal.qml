@@ -273,63 +273,94 @@ ModalOverlay {
 
                 // Champ ajout nouvel examen
                 RowLayout {
+                    id: addExamenRow
                     width: parent.width; spacing: 12
 
-                    Rectangle {
-                        Layout.fillWidth: true; height: 44; radius: 12
-                        color: Style.bgPage
-                        border.color: newExamenCombo.activeFocus ? Style.primary : Style.borderLight
-                        
-                        ComboBox {
-                            id: newExamenCombo
-                            anchors.fill: parent; anchors.margins: 4
-                            model: schoolingController.typeExamens
-                            textRole: "titre"
-                            valueRole: "id"
-                            editable: true
-                            currentIndex: -1
-                            
-                            background: Rectangle { color: "transparent" }
-                            contentItem: TextInput {
-                                leftPadding: 8; rightPadding: 8
-                                verticalAlignment: Text.AlignVCenter
-                                text: newExamenCombo.editText
-                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                                selectByMouse: true
-                                Keys.onReturnPressed: addExamenBtn.doAdd()
-                                Text { 
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 8
-                                    visible: !parent.text
-                                    text: "Choisir ou saisir..."
-                                    font: parent.font; color: Style.textTertiary 
+                    // Vrai si le texte saisi existe déjà pour cette matière
+                    readonly property bool isDuplicate: {
+                        var t = newExamenCombo.editText.trim().toLowerCase()
+                        if (!t) return false
+                        for (var i = 0; i < schoolingController.matiereExamens.length; i++) {
+                            if (schoolingController.matiereExamens[i].titre.trim().toLowerCase() === t)
+                                return true
+                        }
+                        return false
+                    }
+
+                    Column {
+                        Layout.fillWidth: true; spacing: 4
+
+                        Rectangle {
+                            width: parent.width; height: 44; radius: 12
+                            color: Style.bgPage
+                            border.color: addExamenRow.isDuplicate ? Style.errorColor
+                                        : newExamenCombo.activeFocus ? Style.primary
+                                        : Style.borderLight
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                            ComboBox {
+                                id: newExamenCombo
+                                anchors.fill: parent; anchors.margins: 4
+                                model: schoolingController.typeExamens
+                                textRole: "titre"
+                                valueRole: "id"
+                                editable: true
+                                currentIndex: -1
+
+                                background: Rectangle { color: "transparent" }
+                                contentItem: TextInput {
+                                    leftPadding: 8; rightPadding: 8
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: newExamenCombo.editText
+                                    font.pixelSize: 13; font.bold: true
+                                    color: addExamenRow.isDuplicate ? Style.errorColor : Style.textPrimary
+                                    selectByMouse: true
+                                    Keys.onReturnPressed: addExamenBtn.doAdd()
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 8
+                                        visible: !parent.text
+                                        text: "Choisir ou saisir..."
+                                        font: parent.font; color: Style.textTertiary
+                                    }
                                 }
+
+                                Component.onCompleted: schoolingController.loadTypeExamens()
                             }
-                            
-                            Component.onCompleted: schoolingController.loadTypeExamens()
+                        }
+
+                        // Indicateur de doublon — sous le ComboBox
+                        Text {
+                            visible: addExamenRow.isDuplicate
+                            text: "Ce type d'évaluation est déjà ajouté pour cette matière"
+                            font.pixelSize: 10; font.weight: Font.Bold
+                            color: Style.errorColor
+                            leftPadding: 4
                         }
                     }
 
                     Rectangle {
                         id: addExamenBtn
                         width: 44; height: 44; radius: 12
-                        color: addExMa.containsMouse ? Style.primary : Style.primaryBg
+                        opacity: addExamenRow.isDuplicate ? 0.35 : 1.0
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                        color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.primary : Style.primaryBg
                         Behavior on color { ColorAnimation { duration: 150 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse ? "#FFFFFF" : Style.primary }
+                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? "#FFFFFF" : Style.primary }
 
                         function doAdd() {
                             var t = newExamenCombo.editText.trim()
-                            if (t && root.editingMatiereId > 0) {
-                                schoolingController.createTypeAndMatiereExamen(root.editingMatiereId, t)
-                                newExamenCombo.editText = ""
-                                newExamenCombo.currentIndex = -1
-                            }
+                            if (!t || root.editingMatiereId <= 0) return
+                            if (addExamenRow.isDuplicate) return
+                            schoolingController.createTypeAndMatiereExamen(root.editingMatiereId, t)
+                            newExamenCombo.editText = ""
+                            newExamenCombo.currentIndex = -1
                         }
 
                         MouseArea {
                             id: addExMa; anchors.fill: parent
-                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true; cursorShape: addExamenRow.isDuplicate ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                             onClicked: addExamenBtn.doAdd()
                         }
                     }

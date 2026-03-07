@@ -7,6 +7,36 @@ Item {
     id: settingsPage
     implicitHeight: mainLayout.implicitHeight
 
+    // ── Helpers exercice comptable ─────────────────────────────────────────
+    property bool updatingDate: false
+    property bool tarifsSaved: false
+    property bool associationSaved: false
+    property int loadedAgePassage: setupController.associationData.agePassageAdulte || 12
+
+    function isoToLocalDate(iso) {
+        var p = iso.split("-")
+        return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]))
+    }
+    function localDateToIso(d) {
+        var m = d.getMonth() + 1; var day = d.getDate()
+        return d.getFullYear() + "-" + (m < 10 ? "0" + m : "" + m)
+               + "-" + (day < 10 ? "0" + day : "" + day)
+    }
+
+    function _doSaveAssociation(agePassage) {
+        associationSaved = true
+        loadedAgePassage = agePassage
+        setupController.saveAssociation({
+            nomAssociation:   nomEcoleField.text.trim(),
+            adresse:          adresseEdit.text.trim(),
+            exerciceDebut:    exDebutField.isValid ? exDebutField.dateString
+                                                   : (setupController.associationData.exerciceDebut || "01-01"),
+            exerciceFin:      exFinField.isValid   ? exFinField.dateString
+                                                   : (setupController.associationData.exerciceFin   || "12-31"),
+            agePassageAdulte: agePassage
+        })
+    }
+
     ColumnLayout {
         id: mainLayout
         anchors.left: parent.left
@@ -145,6 +175,7 @@ Item {
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
                                     verticalAlignment: TextInput.AlignVCenter
+                                    onTextEdited: settingsPage.tarifsSaved = false
                                     validator: RegularExpressionValidator {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
@@ -193,6 +224,7 @@ Item {
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
                                     verticalAlignment: TextInput.AlignVCenter
+                                    onTextEdited: settingsPage.tarifsSaved = false
                                     validator: RegularExpressionValidator {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
@@ -255,6 +287,7 @@ Item {
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
                                     verticalAlignment: TextInput.AlignVCenter
+                                    onTextEdited: settingsPage.tarifsSaved = false
                                     validator: RegularExpressionValidator {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
@@ -303,6 +336,7 @@ Item {
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
                                     verticalAlignment: TextInput.AlignVCenter
+                                    onTextEdited: settingsPage.tarifsSaved = false
                                     validator: RegularExpressionValidator {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
@@ -348,7 +382,9 @@ Item {
 
                     PrimaryButton {
                         text: "Enregistrer les tarifs"
+                        enabled: !settingsPage.tarifsSaved
                         onClicked: {
+                            settingsPage.tarifsSaved = true
                             setupController.updateTarifs({
                                 tarifJeune:             parseFloat(tarifJeuneInput.text)  || 0,
                                 tarifAdulte:            parseFloat(tarifAdulteInput.text) || 0,
@@ -381,6 +417,7 @@ Item {
                         label: "NOM DE L'ASSOCIATION"
                         placeholder: "ex: Ez-Zaytouna"
                         text: setupController.associationData.nomAssociation || ""
+                        onTextChanged: settingsPage.associationSaved = false
                     }
 
                     Column {
@@ -396,19 +433,115 @@ Item {
                                 font.pixelSize: 13; font.bold: true
                                 color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
+                                onTextChanged: settingsPage.associationSaved = false
                             }
                         }
                     }
 
+                    // ── Exercice comptable ──
+                    Text {
+                        text: "EXERCICE COMPTABLE"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        spacing: 16
+
+                        DateField {
+                            id: exDebutField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 0
+                            label: "DATE DE DÉBUT"
+                            Component.onCompleted: {
+                                var v = setupController.associationData.exerciceDebut || ""
+                                if (v) setDate(v)
+                            }
+                            onDateStringChanged: {
+                                if (!settingsPage.updatingDate && isValid)
+                                    settingsPage.associationSaved = false
+                                if (settingsPage.updatingDate || !isValid) return
+                                settingsPage.updatingDate = true
+                                var d = settingsPage.isoToLocalDate(dateString)
+                                d.setMonth(d.getMonth() + 12)
+                                d.setDate(d.getDate() - 1)
+                                exFinField.setDate(settingsPage.localDateToIso(d))
+                                settingsPage.updatingDate = false
+                            }
+                        }
+
+                        DateField {
+                            id: exFinField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 0
+                            label: "DATE DE FIN"
+                            Component.onCompleted: {
+                                var v = setupController.associationData.exerciceFin || ""
+                                if (v) setDate(v)
+                            }
+                            onDateStringChanged: {
+                                if (!settingsPage.updatingDate && isValid)
+                                    settingsPage.associationSaved = false
+                                if (settingsPage.updatingDate || !isValid) return
+                                settingsPage.updatingDate = true
+                                var d = settingsPage.isoToLocalDate(dateString)
+                                d.setDate(d.getDate() + 1)
+                                d.setMonth(d.getMonth() - 12)
+                                exDebutField.setDate(settingsPage.localDateToIso(d))
+                                settingsPage.updatingDate = false
+                            }
+                        }
+                    }
+
+                    // ── Âge de passage adulte ──
+                    Text {
+                        text: "CATÉGORISATION"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    RowLayout {
+                        width: parent.width; spacing: 12
+                        Text {
+                            text: "Âge de passage Adulte :"
+                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        TextField {
+                            id: agePassageField
+                            Layout.preferredWidth: 72; height: 40
+                            text: (setupController.associationData.agePassageAdulte || 12).toString()
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                            horizontalAlignment: TextInput.AlignHCenter
+                            selectByMouse: true
+                            validator: IntValidator { bottom: 1; top: 99 }
+                            onTextEdited: settingsPage.associationSaved = false
+                            background: Rectangle {
+                                radius: 10; color: Style.bgPage; border.color: Style.borderLight
+                                border.width: parent.activeFocus ? 2 : 1
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                            }
+                        }
+                        Text {
+                            text: "ans"
+                            font.pixelSize: 13; font.bold: true; color: Style.textSecondary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Item { Layout.fillWidth: true }
+                    }
+
                     PrimaryButton {
                         text: "Enregistrer les modifications"
+                        enabled: !settingsPage.associationSaved
                         onClicked: {
-                            setupController.saveAssociation({
-                                nomAssociation: nomEcoleField.text.trim(),
-                                adresse:        adresseEdit.text.trim(),
-                                exerciceDebut:  setupController.associationData.exerciceDebut || "01-01",
-                                exerciceFin:    setupController.associationData.exerciceFin   || "12-31"
-                            })
+                            var newAge = parseInt(agePassageField.text) || 12
+                            if (newAge !== settingsPage.loadedAgePassage) {
+                                confirmAgePopup.pendingAge = newAge
+                                confirmAgePopup.open()
+                            } else {
+                                settingsPage._doSaveAssociation(newAge)
+                            }
                         }
                     }
                 }
@@ -482,5 +615,74 @@ Item {
         }
 
         Item { Layout.preferredHeight: 32 }
+    }
+
+    // ── Popup confirmation recalcul catégories ──────────────────────────
+    Popup {
+        id: confirmAgePopup
+        property int pendingAge: 12
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 540; padding: 0
+        modal: true
+        closePolicy: Popup.CloseOnEscape
+        Overlay.modal: Rectangle { color: "#0F172A99" }
+        background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
+
+        contentItem: Column {
+            width: confirmAgePopup.width
+            padding: 28; spacing: 20
+
+            Text {
+                text: "Recalculer les catégories ?"
+                font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
+                width: confirmAgePopup.width - 56
+            }
+            Text {
+                text: "L'âge de passage adulte a changé à <b>" + confirmAgePopup.pendingAge + " ans</b>.\nVoulez-vous recalculer la catégorie (Jeune / Adulte) des élèves existants ?"
+                font.pixelSize: 13; color: Style.textSecondary
+                width: confirmAgePopup.width - 56
+                wrapMode: Text.WordWrap; lineHeight: 1.5
+                textFormat: Text.RichText
+            }
+            RowLayout {
+                width: confirmAgePopup.width - 56; spacing: 12
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 44; radius: 12
+                    color: Style.bgPage; border.color: Style.borderMedium; border.width: 1
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Non, nouveaux élèves seulement"
+                        font.pixelSize: 12; font.bold: true; color: Style.textSecondary
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            confirmAgePopup.close()
+                            settingsPage._doSaveAssociation(confirmAgePopup.pendingAge)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 44; radius: 12
+                    color: Style.primary
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Oui, recalculer tout"
+                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            confirmAgePopup.close()
+                            setupController.recalculeCategories(confirmAgePopup.pendingAge)
+                            settingsPage._doSaveAssociation(confirmAgePopup.pendingAge)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

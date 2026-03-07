@@ -212,6 +212,7 @@ Popup {
                                 label: "DATE DE NAISSANCE"
                                 nextTabItem: phoneField.inputItem
                                 prevTabItem: prenomField.inputItem
+                                agePassage: setupController.associationData.agePassageAdulte || 12
                             }
                         }
                     }

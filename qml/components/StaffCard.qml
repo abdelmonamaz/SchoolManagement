@@ -276,9 +276,7 @@ Rectangle {
                 width: (parent.width - 16) / 2
                 spacing: 6
 
-                SectionLabel {
-                    text: "TÉLÉPHONE"
-                }
+                SectionLabel { text: "TÉLÉPHONE" }
 
                 Text {
                     text: staffData.telephone || "—"
@@ -291,14 +289,11 @@ Rectangle {
             Column {
                 width: (parent.width - 16) / 2
                 spacing: 6
-                visible: staffData.specialite
 
-                SectionLabel {
-                    text: "SPÉCIALITÉ"
-                }
+                SectionLabel { text: "CIN" }
 
                 Text {
-                    text: staffData.specialite || "—"
+                    text: staffData.cin || "—"
                     font.pixelSize: 12
                     font.weight: Font.Medium
                     color: Style.textSecondary

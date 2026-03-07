@@ -251,6 +251,41 @@ Popup {
                         }
                     }
 
+                    // ── Âge de passage adulte ──
+                    Text {
+                        text: "CATÉGORISATION"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        Text {
+                            text: "Âge de passage Adulte :"
+                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        TextField {
+                            id: agePassageInput
+                            Layout.preferredWidth: 72; height: 40
+                            text: (setupController.associationData.agePassageAdulte || 12).toString()
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                            horizontalAlignment: TextInput.AlignHCenter
+                            selectByMouse: true
+                            validator: IntValidator { bottom: 1; top: 99 }
+                            background: Rectangle {
+                                radius: 10; color: Style.bgPage; border.color: Style.borderLight
+                                border.width: parent.activeFocus ? 2 : 1
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                            }
+                        }
+                        Text {
+                            text: "ans"
+                            font.pixelSize: 13; font.bold: true; color: Style.textSecondary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                    }
 
                     Item { Layout.fillHeight: true }
                 }
@@ -867,10 +902,11 @@ Popup {
                         onClicked: {
                             if (root.currentStep === 1) {
                                 setupController.saveAssociation({
-                                    nomAssociation: nomAssocField.text.trim(),
-                                    adresse:        adresseField.text.trim(),
-                                    exerciceDebut:  exDebutField.dateString,
-                                    exerciceFin:    exFinField.dateString
+                                    nomAssociation:   nomAssocField.text.trim(),
+                                    adresse:          adresseField.text.trim(),
+                                    exerciceDebut:    exDebutField.dateString,
+                                    exerciceFin:      exFinField.dateString,
+                                    agePassageAdulte: parseInt(agePassageInput.text) || 12
                                 })
                                 root.currentStep = 2
                             } else if (root.currentStep === 2) {

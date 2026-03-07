@@ -31,13 +31,39 @@ AppCard {
         niveaux: schoolingController.niveaux
     }
 
+    Connections {
+        target: studentController
+        function onOperationSucceeded(message) {
+            if (message === "Inscription mise à jour" || message === "Nouvelle année inscrite"
+                    || message === "Inscription supprimée") {
+                editEnrollmentModal.show = false
+            }
+        }
+    }
+
+
+    // ── Computed — active-year range check ──────────────────────────────────
+    // Uses integer year*12+month to avoid UTC/local-time Date comparison bugs.
+    // mensuel  : show from date_debut month onwards
+    // inscription : show from date_debut - 1 month (pre-registration period)
+    readonly property bool isInActiveYear: {
+        var at = setupController.activeTarifs
+        if (!at || !at.dateDebut || !at.dateFin) return false
+        var selVal = page.selectedYear * 12 + (page.selectedMonthIndex + 1)
+        var dp = at.dateDebut.split("-")
+        var fp = at.dateFin.split("-")
+        var debutVal = parseInt(dp[0]) * 12 + parseInt(dp[1])
+        var finVal   = parseInt(fp[0]) * 12 + parseInt(fp[1])
+        if (tab.viewMode === "inscription") debutVal -= 1
+        return selVal >= debutVal && selVal <= finVal
+    }
 
     // ── Computed — tarif helper ──────────────────────────────────────────────
     function tarifForCategorie(categorie) {
-        var t = financeController.tarifs
-        for (var i = 0; i < t.length; i++)
-            if (t[i].categorie === categorie) return t[i].montant
-        return categorie === "Adulte" ? 250.0 : 150.0
+        if (!setupController.activeTarifs) return categorie === "Adulte" ? 250.0 : 150.0
+        return categorie === "Adulte"
+               ? setupController.activeTarifs.tarifAdulte
+               : setupController.activeTarifs.tarifJeune
     }
 
     // ── Computed — all rows ──────────────────────────────────────────────────
@@ -47,7 +73,7 @@ AppCard {
 
         if (tab.viewMode === "mensuel") {
             var _payments = financeController.payments
-            var _tarifs   = financeController.tarifs   // tracked
+            var _tarifs   = setupController.activeTarifs   // tracked for reactivity
 
             var payMap = {}
             for (var i = 0; i < _payments.length; i++) {
@@ -179,7 +205,7 @@ AppCard {
         Rectangle {
             width: parent.width; height: 68; radius: 14
             color: Style.bgPage; border.color: Style.borderLight
-            visible: tab.allStats.total > 0
+            visible: tab.isInActiveYear && tab.allStats.total > 0
             RowLayout {
                 anchors.fill: parent; anchors.margins: 16; spacing: 0
                 Column { Layout.fillWidth: true; spacing: 3
@@ -224,7 +250,7 @@ AppCard {
 
         // ── Status filter pills ──────────────────────────────────────────────
         Row {
-            spacing: 8
+            spacing: 8; visible: tab.isInActiveYear
             Repeater {
                 model: tab.viewMode === "mensuel" ? [
                     { key: "all",     label: "Tous (" + tab.allRows.length + ")" },
@@ -250,12 +276,35 @@ AppCard {
             }
         }
 
-        // ── Loading / empty states ───────────────────────────────────────────
+        // ── Loading / empty / out-of-range states ────────────────────────────
         Item { width: parent.width; height: 48; visible: financeController.loading || studentController.loading
             Text { anchors.centerIn: parent; text: "Chargement…"; font.pixelSize: 13; color: Style.textTertiary } }
 
+        // Hors de l'année scolaire active
+        Column { width: parent.width; spacing: 8
+            visible: !tab.isInActiveYear && !(financeController.loading || studentController.loading)
+            Item { width: 1; height: 16 }
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.bgSecondary
+                        anchors.horizontalCenter: parent.horizontalCenter
+                IconLabel { anchors.centerIn: parent; iconName: "calendar"; iconSize: 24; iconColor: Style.textTertiary } }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Hors de l'année scolaire active"
+                font.pixelSize: 13; font.weight: Font.Medium; color: Style.textTertiary
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: setupController.activeTarifs
+                      ? "Année active : " + setupController.activeTarifs.libelle
+                      : "Aucune année scolaire active configurée"
+                font.pixelSize: 11; color: Style.textTertiary
+            }
+            Item { width: 1; height: 16 }
+        }
+
+        // Dans l'année active mais aucun résultat
         Column { width: parent.width; spacing: 16
-            visible: !(financeController.loading || studentController.loading) && tab.filteredRows.length === 0
+            visible: tab.isInActiveYear && !(financeController.loading || studentController.loading) && tab.filteredRows.length === 0
             Item { width: 1; height: 16 }
             Rectangle { width: 56; height: 56; radius: 20; color: Style.primaryBg
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -271,7 +320,7 @@ AppCard {
         }
 
         // ── Table header ─────────────────────────────────────────────────────
-        RowLayout { width: parent.width; height: 36; visible: tab.filteredRows.length > 0; spacing: 0
+        RowLayout { width: parent.width; height: 36; visible: tab.isInActiveYear && tab.filteredRows.length > 0; spacing: 0
             SectionLabel { Layout.fillWidth: true; Layout.rightMargin: 16; text: "ÉLÈVE" }
             SectionLabel { Layout.preferredWidth: 100; text: tab.viewMode === "mensuel" ? "MENSUALITÉ" : "FRAIS INSCR.";  horizontalAlignment: Text.AlignHCenter }
             SectionLabel { Layout.preferredWidth: 88;  text: "PAYÉ";        horizontalAlignment: Text.AlignHCenter }
@@ -279,11 +328,11 @@ AppCard {
             SectionLabel { Layout.preferredWidth: 100; text: "STATUT";      horizontalAlignment: Text.AlignHCenter }
             SectionLabel { Layout.preferredWidth: 80;  text: "ACTION";      horizontalAlignment: Text.AlignHCenter }
         }
-        Separator { width: parent.width; visible: tab.filteredRows.length > 0 }
+        Separator { width: parent.width; visible: tab.isInActiveYear && tab.filteredRows.length > 0 }
 
         // ── Rows ─────────────────────────────────────────────────────────────
         Column {
-            width: parent.width; spacing: 0; visible: tab.filteredRows.length > 0
+            width: parent.width; spacing: 0; visible: tab.isInActiveYear && tab.filteredRows.length > 0
             Repeater {
                 model: tab.pagedRows
                 delegate: Column {

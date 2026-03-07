@@ -77,6 +77,7 @@ public:
 
     // Bilan financier
     Q_INVOKABLE void loadAnnualBalance(int year);
+    Q_INVOKABLE void loadAnnualBalanceForAccountingYear(int year, int month);
     Q_INVOKABLE void loadTotalBalance();
 
 signals:

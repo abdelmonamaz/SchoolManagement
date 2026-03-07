@@ -50,6 +50,11 @@ public:
     // data : { tarifJeune, tarifAdulte, fraisInscriptionJeune, fraisInscriptionAdulte }
     Q_INVOKABLE bool updateTarifs(const QVariantMap& data);
 
+    // ── Recalcul des catégories élèves ──
+    // Recalcule la catégorie (Jeune/Adulte) de tous les élèves existants selon le nouvel âge de passage.
+    // Retourne le nombre d'élèves mis à jour, ou -1 en cas d'erreur.
+    Q_INVOKABLE int recalculeCategories(int agePassage);
+
 signals:
     void isInitializedChanged();
     void associationDataChanged();
@@ -57,6 +62,7 @@ signals:
     void activeTarifsChanged();
     void setupCompleted();
     void operationFailed(const QString& error);
+    void categoriesRecalculees(int count);
 
 private:
     void loadActiveTarifs();

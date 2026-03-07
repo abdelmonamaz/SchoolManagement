@@ -97,14 +97,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  prenom TEXT,"
             "  telephone TEXT,"
             "  adresse TEXT,"
-            "  poste TEXT DEFAULT 'Enseignant',"
-            "  specialite TEXT,"
-            "  mode_paie TEXT DEFAULT 'Heure',"
-            "  valeur_base REAL DEFAULT 25.0,"
-            "  paye_pendant_vacances INTEGER DEFAULT 1,"
-            "  heures_travalies INTEGER DEFAULT 0,"
-            "  statut TEXT DEFAULT 'Actif',"
-            "  prix_heure_actuel REAL NOT NULL"
+            "  sexe TEXT DEFAULT 'M',"
+            "  cin TEXT"
             ")"),
 
         // ── Tarifs profs historique ──
@@ -830,6 +824,27 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
     if (columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("annee_scolaire"))) {
         execStatement(db, QStringLiteral("ALTER TABLE inscriptions_eleves DROP COLUMN annee_scolaire"));
         qInfo() << "[DatabaseManager] Migration 32: dropped column inscriptions_eleves.annee_scolaire";
+    }
+
+    // ── Migration 33 : nettoyage personnel (suppression colonnes migrées vers contrats, ajout cin) ──
+    if (!columnExists(QStringLiteral("personnel"), QStringLiteral("cin"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE personnel ADD COLUMN cin TEXT"));
+        qInfo() << "[DatabaseManager] Migration 33a: added column personnel.cin";
+    }
+    for (const QString& col : {QStringLiteral("mode_paie"), QStringLiteral("specialite"),
+                                QStringLiteral("valeur_base"), QStringLiteral("paye_pendant_vacances"),
+                                QStringLiteral("heures_travalies"), QStringLiteral("statut"),
+                                QStringLiteral("poste"), QStringLiteral("prix_heure_actuel")}) {
+        if (columnExists(QStringLiteral("personnel"), col)) {
+            execStatement(db, QStringLiteral("ALTER TABLE personnel DROP COLUMN ") + col);
+            qInfo() << "[DatabaseManager] Migration 33: dropped column personnel." << col;
+        }
+    }
+
+    // ── Migration 34 : ajout age_passage_adulte dans association_config ──
+    if (!columnExists(QStringLiteral("association_config"), QStringLiteral("age_passage_adulte"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE association_config ADD COLUMN age_passage_adulte INTEGER DEFAULT 12"));
+        qInfo() << "[DatabaseManager] Migration 34: added column association_config.age_passage_adulte";
     }
 }
 

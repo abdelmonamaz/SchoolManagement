@@ -92,8 +92,8 @@ Item {
 
     // ── Data loading ──────────────────────────────────────────────────────────
     Component.onCompleted: {
-        studentController.loadStudentsBySchoolYear(selectedMonthIndex + 1, selectedYear)
-        studentController.loadEnrollmentsByYear(getSchoolYear())
+        studentController.loadStudents()
+        studentController.loadEnrollmentsForActiveYear()
         financeController.loadPaymentsByMonth(selectedMonthIndex + 1, selectedYear)
         financeController.loadProjets()
         financeController.loadDonateurs()
@@ -104,12 +104,12 @@ Item {
         staffController.currentMonth = selectedMonthIndex + 1
         staffController.currentYear = selectedYear
         staffController.loadPersonnel()
-        financeController.loadAnnualBalance(selectedYear)
+        financeController.loadAnnualBalanceForAccountingYear(selectedYear, selectedMonthIndex + 1)
         financeController.loadTotalBalance()
     }
     onSelectedMonthIndexChanged: {
-        studentController.loadStudentsBySchoolYear(selectedMonthIndex + 1, selectedYear)
-        studentController.loadEnrollmentsByYear(getSchoolYear())
+        studentController.loadStudents()
+        studentController.loadEnrollmentsForActiveYear()
         financeController.loadPaymentsByMonth(selectedMonthIndex + 1, selectedYear)
         financeController.loadDepensesByMonth(selectedMonthIndex + 1, selectedYear)
         financeController.loadTarifs(selectedMonthIndex + 1, selectedYear)
@@ -119,8 +119,8 @@ Item {
         staffController.loadPersonnel()
     }
     onSelectedYearChanged: {
-        studentController.loadStudentsBySchoolYear(selectedMonthIndex + 1, selectedYear)
-        studentController.loadEnrollmentsByYear(getSchoolYear())
+        studentController.loadStudents()
+        studentController.loadEnrollmentsForActiveYear()
         financeController.loadPaymentsByMonth(selectedMonthIndex + 1, selectedYear)
         financeController.loadDepensesByMonth(selectedMonthIndex + 1, selectedYear)
         financeController.loadTarifs(selectedMonthIndex + 1, selectedYear)
@@ -128,7 +128,7 @@ Item {
         staffController.currentMonth = selectedMonthIndex + 1
         staffController.currentYear = selectedYear
         staffController.loadPersonnel()
-        financeController.loadAnnualBalance(selectedYear)
+        financeController.loadAnnualBalanceForAccountingYear(selectedYear, selectedMonthIndex + 1)
     }
 
     onVisibleChanged: {
@@ -136,9 +136,9 @@ Item {
             staffController.currentMonth = selectedMonthIndex + 1
             staffController.currentYear = selectedYear
             staffController.loadPersonnel()
-            
-            // Également recharger les étudiants pour éviter l'écrasement par d'autres pages
-            studentController.loadStudentsBySchoolYear(selectedMonthIndex + 1, selectedYear)
+            studentController.loadStudents()
+            studentController.loadEnrollmentsForActiveYear()
+            financeController.loadAnnualBalanceForAccountingYear(selectedYear, selectedMonthIndex + 1)
         }
     }
 
@@ -194,9 +194,10 @@ Item {
     Connections {
         target: studentController
         function onOperationSucceeded(message) {
-            if (message === "Inscription mise à jour" || message === "Nouvelle année inscrite" || message === "Élève inscrit") {
-                studentController.loadStudentsBySchoolYear(financePage.selectedMonthIndex + 1, financePage.selectedYear)
-                studentController.loadEnrollmentsByYear(financePage.getSchoolYear())
+            if (message === "Inscription mise à jour" || message === "Nouvelle année inscrite"
+                    || message === "Inscription supprimée" || message === "Élève inscrit") {
+                studentController.loadStudents()
+                studentController.loadEnrollmentsForActiveYear()
             }
         }
     }

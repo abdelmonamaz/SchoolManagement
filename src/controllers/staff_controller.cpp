@@ -80,6 +80,7 @@ void StaffController::loadPersonnel() {
             map["telephone"] = person.telephone;
             map["adresse"] = person.adresse;
             map["sexe"] = person.sexe;
+            map["cin"] = person.cin;
 
             // Active contract data (most recent)
             map["contratId"] = contrat.id;
@@ -151,6 +152,7 @@ void StaffController::loadAllPersonnel() {
             map["telephone"] = person.telephone;
             map["adresse"] = person.adresse;
             map["sexe"] = person.sexe;
+            map["cin"] = person.cin;
 
             auto countResult = staffSvc->countContrats(person.id);
             map["nbContrats"] = countResult.isOk() ? countResult.value() : 0;
@@ -197,19 +199,20 @@ void StaffController::loadAllPersonnel() {
 }
 
 void StaffController::createPersonnel(const QString& nom, const QString& telephone,
-                                       const QString& sexe,
+                                       const QString& sexe, const QString& cin,
                                        const QString& poste, const QString& specialite,
                                        const QString& modePaie, double valeurBase,
                                        const QString& dateDebut, const QString& dateFin,
                                        int joursTravail) {
     m_worker->submit("Staff.createPersonnel",
-        [svc = m_service, nom, telephone, sexe, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail]() -> QVariant {
+        [svc = m_service, nom, telephone, sexe, cin, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail]() -> QVariant {
         Personnel p;
         p.nom = nom.trimmed();
         p.prenom = "";
         p.telephone = telephone.trimmed();
         p.adresse = "";
         p.sexe = sexe.isEmpty() ? "M" : sexe;
+        p.cin = cin.trimmed();
 
         auto result = svc->createPersonnel(p);
         if (!result.isOk())
@@ -240,9 +243,9 @@ void StaffController::createPersonnel(const QString& nom, const QString& telepho
 }
 
 void StaffController::updatePersonnel(int id, const QString& nom, const QString& telephone,
-                                       const QString& sexe) {
+                                       const QString& sexe, const QString& cin) {
     m_worker->submit("Staff.updatePersonnel",
-        [svc = m_service, id, nom, telephone, sexe]() -> QVariant {
+        [svc = m_service, id, nom, telephone, sexe, cin]() -> QVariant {
         Personnel p;
         p.id = id;
         p.nom = nom.trimmed();
@@ -250,6 +253,7 @@ void StaffController::updatePersonnel(int id, const QString& nom, const QString&
         p.telephone = telephone.trimmed();
         p.adresse = "";
         p.sexe = sexe.isEmpty() ? "M" : sexe;
+        p.cin = cin.trimmed();
 
         auto result = svc->updatePersonnel(p);
         if (!result.isOk())

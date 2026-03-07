@@ -4,6 +4,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
+#include <QDebug>
 
 // --- SqliteNiveauRepository ---
 
@@ -445,11 +446,38 @@ Result<std::optional<TypeExamen>> SqliteTypeExamenRepository::getById(int id)
 Result<int> SqliteTypeExamenRepository::create(const TypeExamen& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO type_examen (titre) VALUES (?)");
-    query.addBindValue(entity.titre);
-    if (!query.exec()) return Result<int>::error(query.lastError().text());
-    return Result<int>::success(query.lastInsertId().toInt());
+    const QString normalised = entity.titre.trimmed();
+
+    // Step 1 : re-activate a soft-deleted entry with the same title
+    QSqlQuery qReactivate(db);
+    qReactivate.prepare(
+        "UPDATE type_examen SET valide = 1, date_modification = datetime('now'), date_invalidation = NULL "
+        "WHERE LOWER(titre) = LOWER(?) AND valide = 0");
+    qReactivate.addBindValue(normalised);
+    if (!qReactivate.exec())
+        qWarning() << "[TypeExamenRepo::create] re-activate failed:" << qReactivate.lastError().text();
+    else if (qReactivate.numRowsAffected() > 0)
+        qInfo() << "[TypeExamenRepo::create] re-activated soft-deleted entry:" << normalised;
+
+    // Step 2 : INSERT, ignoring if a valide entry already exists
+    QSqlQuery qInsert(db);
+    qInsert.prepare("INSERT OR IGNORE INTO type_examen (titre) VALUES (?)");
+    qInsert.addBindValue(normalised);
+    if (!qInsert.exec())
+        return Result<int>::error(qInsert.lastError().text());
+
+    // Step 3 : retrieve the id (works whether it was inserted or already existed)
+    QSqlQuery qSelect(db);
+    qSelect.prepare("SELECT id FROM type_examen WHERE LOWER(titre) = LOWER(?) AND valide = 1");
+    qSelect.addBindValue(normalised);
+    if (!qSelect.exec() || !qSelect.next())
+        return Result<int>::error(qSelect.lastError().text().isEmpty()
+                                  ? "Impossible de récupérer la ligne"
+                                  : qSelect.lastError().text());
+
+    int id = qSelect.value(0).toInt();
+    qInfo() << "[TypeExamenRepo::create] id=" << id << "titre=" << normalised;
+    return Result<int>::success(id);
 }
 
 Result<bool> SqliteTypeExamenRepository::update(const TypeExamen& entity)

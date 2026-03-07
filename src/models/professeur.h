@@ -11,6 +11,7 @@ struct Personnel {
     QString telephone;
     QString adresse;
     QString sexe = "M";  // "M" ou "F"
+    QString cin;
 };
 
 struct Contrat {

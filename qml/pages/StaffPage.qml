@@ -290,7 +290,8 @@ Item {
                     formData.personnelId,
                     formData.nom,
                     formData.telephone,
-                    formData.sexe
+                    formData.sexe,
+                    formData.cin || ""
                 )
             } else if (formData.mode === "contract") {
                 staffController.createContrat(
@@ -321,6 +322,7 @@ Item {
                     formData.nom,
                     formData.telephone,
                     formData.sexe,
+                    formData.cin || "",
                     formData.poste,
                     formData.specialite,
                     formData.modePaie,

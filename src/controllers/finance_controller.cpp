@@ -484,6 +484,14 @@ void FinanceController::loadAnnualBalance(int year) {
     });
 }
 
+void FinanceController::loadAnnualBalanceForAccountingYear(int year, int month) {
+    m_worker->submit("Finance.loadAnnualBalanceForAccountingYear", [svc = m_service, year, month]() -> QVariant {
+        auto result = svc->getBalanceForAccountingYear(year, month);
+        if (!result.isOk()) return QVariantMap{{"error", result.errorMessage()}};
+        return result.value();
+    });
+}
+
 void FinanceController::loadTotalBalance() {
     m_worker->submit("Finance.loadTotalBalance", [svc = m_service]() -> QVariant {
         auto result = svc->getTotalBalance();
@@ -603,7 +611,8 @@ void FinanceController::onQueryCompleted(const QString& queryId, const QVariant&
         setLoading(false);
     }
     // Bilan financier
-    else if (queryId == "Finance.loadAnnualBalance") {
+    else if (queryId == "Finance.loadAnnualBalance"
+             || queryId == "Finance.loadAnnualBalanceForAccountingYear") {
         if (!isError) { m_annualBalance = result.toMap(); emit annualBalanceChanged(); }
     }
     else if (queryId == "Finance.loadTotalBalance") {

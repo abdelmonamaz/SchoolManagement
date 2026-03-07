@@ -6,6 +6,10 @@ AppCard {
     id: tab
     required property var page
 
+    Component.onCompleted: {
+        financeController.loadAnnualBalanceForAccountingYear(page.selectedYear, page.selectedMonthIndex + 1)
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     function isoToFr(d) {
         if (!d || d === "") return "—"
@@ -243,10 +247,7 @@ AppCard {
             width: parent.width; radius: 16
             implicitHeight: bilanAnnuelCol.implicitHeight + 32
             color: Style.bgPage; border.color: Style.borderLight
-            visible: {
-                var b = financeController.annualBalance
-                return b && (b.entrees > 0 || b.sorties > 0)
-            }
+            visible: !!(financeController.annualBalance && financeController.annualBalance.libelle)
 
             Column {
                 id: bilanAnnuelCol
@@ -257,7 +258,7 @@ AppCard {
                     width: parent.width
                     IconLabel { iconName: "calendar"; iconSize: 16; iconColor: Style.primary }
                     Text { Layout.fillWidth: true
-                           text: "BILAN ANNUEL " + page.selectedYear
+                           text: "BILAN ANNUEL — " + (financeController.annualBalance.libelle || page.selectedYear)
                            font.pixelSize: 11; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 0.5 }
                 }
 
@@ -269,7 +270,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "ENTRÉES " + page.selectedYear
+                                   text: "ENTRÉES " + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.successColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.annualBalance.entrees || 0).toFixed(2) + " DT"
@@ -282,7 +283,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "SORTIES " + page.selectedYear
+                                   text: "SORTIES " + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.errorColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.annualBalance.sorties || 0).toFixed(2) + " DT"
@@ -296,7 +297,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "SOLDE " + page.selectedYear
+                                   text: "SOLDE " + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.5
                                    color: (financeController.annualBalance.solde || 0) >= 0 ? Style.successColor : Style.errorColor }
                             Text { anchors.horizontalCenter: parent.horizontalCenter

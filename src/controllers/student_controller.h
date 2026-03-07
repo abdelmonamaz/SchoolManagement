@@ -47,6 +47,7 @@ public:
     // Enrollments
     Q_INVOKABLE void loadEnrollments(int studentId);
     Q_INVOKABLE void loadEnrollmentsByYear(const QString& anneeScolaire);
+    Q_INVOKABLE void loadEnrollmentsForActiveYear();
     Q_INVOKABLE void loadSchoolYears();
     Q_INVOKABLE void enrollStudent(const QVariantMap& data);
     Q_INVOKABLE void updateEnrollment(int enrollmentId, const QVariantMap& data);

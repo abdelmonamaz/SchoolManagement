@@ -27,17 +27,19 @@ void SetupController::checkInitialized()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery q(db);
     q.exec(QStringLiteral(
-        "SELECT app_initialized, nom_association, adresse, exercice_debut, exercice_fin "
+        "SELECT app_initialized, nom_association, adresse, exercice_debut, exercice_fin, age_passage_adulte "
         "FROM association_config LIMIT 1"));
 
     bool init = false;
     if (q.next()) {
         init = q.value(0).toInt() == 1;
+        int age = q.value(5).toInt();
         m_associationData = {
-            {"nomAssociation", q.value(1).toString()},
-            {"adresse",        q.value(2).toString()},
-            {"exerciceDebut",  q.value(3).toString()},
-            {"exerciceFin",    q.value(4).toString()}
+            {"nomAssociation",   q.value(1).toString()},
+            {"adresse",          q.value(2).toString()},
+            {"exerciceDebut",    q.value(3).toString()},
+            {"exerciceFin",      q.value(4).toString()},
+            {"agePassageAdulte", age > 0 ? age : 12}
         };
         emit associationDataChanged();
     }
@@ -57,19 +59,23 @@ void SetupController::loadActiveTarifs()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery q(db);
     q.exec(QStringLiteral(
-        "SELECT libelle, tarif_jeune, tarif_adulte, "
-        "       frais_inscription_jeune, frais_inscription_adulte "
+        "SELECT id, libelle, tarif_jeune, tarif_adulte, "
+        "       frais_inscription_jeune, frais_inscription_adulte, "
+        "       date_debut, date_fin "
         "FROM annees_scolaires "
         "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
 
     QVariantMap tarifs;
     if (q.next()) {
         tarifs = {
-            {"libelle",                q.value(0).toString()},
-            {"tarifJeune",             q.value(1).toDouble()},
-            {"tarifAdulte",            q.value(2).toDouble()},
-            {"fraisInscriptionJeune",  q.value(3).toDouble()},
-            {"fraisInscriptionAdulte", q.value(4).toDouble()}
+            {"id",                     q.value(0).toInt()},
+            {"libelle",                q.value(1).toString()},
+            {"tarifJeune",             q.value(2).toDouble()},
+            {"tarifAdulte",            q.value(3).toDouble()},
+            {"fraisInscriptionJeune",  q.value(4).toDouble()},
+            {"fraisInscriptionAdulte", q.value(5).toDouble()},
+            {"dateDebut",              q.value(6).toString()},
+            {"dateFin",                q.value(7).toString()}
         };
     }
     if (m_activeTarifs != tarifs) {
@@ -136,16 +142,18 @@ bool SetupController::saveAssociation(const QVariantMap& data)
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
         "UPDATE association_config SET "
-        "  nom_association  = ?, "
-        "  adresse          = ?, "
-        "  exercice_debut   = ?, "
-        "  exercice_fin     = ?, "
-        "  date_modification = datetime('now') "
+        "  nom_association     = ?, "
+        "  adresse             = ?, "
+        "  exercice_debut      = ?, "
+        "  exercice_fin        = ?, "
+        "  age_passage_adulte  = ?, "
+        "  date_modification   = datetime('now') "
         "WHERE id = (SELECT MIN(id) FROM association_config)"));
     q.addBindValue(data.value("nomAssociation").toString());
     q.addBindValue(data.value("adresse").toString());
     q.addBindValue(data.value("exerciceDebut", "01-01").toString());
     q.addBindValue(data.value("exerciceFin",   "12-31").toString());
+    q.addBindValue(data.value("agePassageAdulte", 12).toInt());
 
     if (!q.exec()) {
         qWarning() << "[SetupController] saveAssociation error:" << q.lastError().text();
@@ -355,4 +363,32 @@ bool SetupController::completeSetup(const QVariantMap& anneeData)
     loadActiveTarifs();
     emit setupCompleted();
     return true;
+}
+
+// ── Recalcul des catégories élèves ────────────────────────────────────────
+
+int SetupController::recalculeCategories(int agePassage)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "UPDATE eleves SET categorie = CASE "
+        "  WHEN ("
+        "    CAST(strftime('%Y','now') AS INTEGER) - CAST(strftime('%Y', date_naissance) AS INTEGER)"
+        "    - CASE WHEN strftime('%m-%d','now') < strftime('%m-%d', date_naissance) THEN 1 ELSE 0 END"
+        "  ) < :age THEN 'Jeune' ELSE 'Adulte' "
+        "END "
+        "WHERE valide = 1 AND date_naissance IS NOT NULL AND date_naissance != ''"));
+    q.bindValue(QStringLiteral(":age"), agePassage);
+
+    if (!q.exec()) {
+        qWarning() << "[SetupController] recalculeCategories error:" << q.lastError().text();
+        emit operationFailed(q.lastError().text());
+        return -1;
+    }
+
+    int count = q.numRowsAffected();
+    qInfo() << "[SetupController] recalculeCategories: updated" << count << "eleves with agePassage=" << agePassage;
+    emit categoriesRecalculees(count);
+    return count;
 }

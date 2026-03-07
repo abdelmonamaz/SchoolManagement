@@ -15,6 +15,7 @@ ModalOverlay {
     // Identity data
     property string nomText: ""
     property string telephoneText: ""
+    property string cinText: ""
     property string selectedSexe: "M"
 
     // Contract data
@@ -46,6 +47,7 @@ ModalOverlay {
     function reset() {
         nomText = ""
         telephoneText = ""
+        cinText = ""
         selectedSexe = "M"
         specialtyText = ""
         baseValueText = "25"
@@ -62,6 +64,7 @@ ModalOverlay {
     function populateIdentity(data) {
         nomText = data.nom || ""
         telephoneText = data.telephone || ""
+        cinText = data.cin || ""
         selectedSexe = data.sexe || "M"
         personnelId = data.id || -1
         editMode = "identity"
@@ -166,9 +169,7 @@ ModalOverlay {
                 spacing: 6
                 visible: editMode === "full" || editMode === "identity"
 
-                SectionLabel {
-                    text: "TÉLÉPHONE"
-                }
+                SectionLabel { text: "TÉLÉPHONE" }
 
                 FormField {
                     id: fieldTelephone
@@ -177,10 +178,30 @@ ModalOverlay {
                     text: root.telephoneText
                     onTextChanged: root.telephoneText = text
                     prevTabItem: fieldNom.inputItem
+                    nextTabItem: fieldCin.inputItem
 
                     validator: RegularExpressionValidator {
                         regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
                     }
+                }
+            }
+
+            // CIN
+            Column {
+                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width / 2 - 8
+                spacing: 6
+                visible: editMode === "full" || editMode === "identity"
+
+                SectionLabel { text: "CIN" }
+
+                FormField {
+                    id: fieldCin
+                    width: parent.width
+                    placeholder: "Numéro CIN..."
+                    text: root.cinText
+                    onTextChanged: root.cinText = text
+                    prevTabItem: fieldTelephone.inputItem
                 }
             }
 
@@ -674,7 +695,8 @@ ModalOverlay {
                         personnelId: root.personnelId,
                         nom: root.nomText,
                         telephone: root.telephoneText,
-                        sexe: root.selectedSexe
+                        sexe: root.selectedSexe,
+                        cin: root.cinText
                     })
                 } else if (editMode === "contract") {
                     root.confirmed({
@@ -707,6 +729,7 @@ ModalOverlay {
                         nom: root.nomText,
                         telephone: root.telephoneText,
                         sexe: root.selectedSexe,
+                        cin: root.cinText,
                         poste: root.selectedPost,
                         specialite: root.specialtyText,
                         modePaie: root.selectedPaymentMode,

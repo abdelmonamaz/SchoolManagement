@@ -25,6 +25,7 @@ public:
     virtual Result<QList<Inscription>> getEnrollmentsByStudentId(int studentId) = 0;
     virtual Result<std::optional<Inscription>> getEnrollmentByYear(int studentId, const QString& anneeScolaire) = 0;
     virtual Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire) = 0;
+    virtual Result<QList<Inscription>> getEnrollmentsForActiveYear() = 0;
     virtual Result<bool> deleteEnrollment(int enrollmentId) = 0;
 
     // School years

@@ -38,6 +38,10 @@ Result<QList<Inscription>> StudentService::getEnrollmentsForYear(const QString& 
     return m_eleveRepo->getEnrollmentsForYear(anneeScolaire);
 }
 
+Result<QList<Inscription>> StudentService::getEnrollmentsForActiveYear() {
+    return m_eleveRepo->getEnrollmentsForActiveYear();
+}
+
 Result<bool> StudentService::deleteEnrollment(int enrollmentId) {
     return m_eleveRepo->deleteEnrollment(enrollmentId);
 }

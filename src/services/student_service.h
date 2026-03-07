@@ -42,6 +42,7 @@ public:
     Result<bool> updateEnrollment(const Inscription& inscription);
     Result<QList<Inscription>> getEnrollmentsForStudent(int studentId);
     Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire);
+    Result<QList<Inscription>> getEnrollmentsForActiveYear();
     Result<bool> deleteEnrollment(int enrollmentId);
     Result<QVariantList> loadSchoolYears();
 

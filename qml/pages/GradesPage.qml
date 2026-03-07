@@ -227,7 +227,7 @@ Item {
 
                 // Niveau — largeur fixe (le plus court)
                 Column {
-                    Layout.preferredWidth: 130
+                    Layout.preferredWidth: 260
                     spacing: 6
                     SectionLabel { text: "NIVEAU" }
                     Rectangle {

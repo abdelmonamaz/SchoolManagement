@@ -60,6 +60,8 @@ public:
 
     // Bilan financier
     Result<QVariantMap> getAnnualBalance(int year);
+    Result<QVariantMap> getBalanceForDateRange(const QString& dateDebut, const QString& dateFin);
+    Result<QVariantMap> getBalanceForAccountingYear(int year, int month);
     Result<QVariantMap> getTotalBalance();
 
     // Tarifs mensualités

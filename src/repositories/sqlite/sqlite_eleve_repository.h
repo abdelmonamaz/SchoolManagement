@@ -28,6 +28,7 @@ public:
     Result<QList<Inscription>> getEnrollmentsByStudentId(int studentId) override;
     Result<std::optional<Inscription>> getEnrollmentByYear(int studentId, const QString& anneeScolaire) override;
     Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire) override;
+    Result<QList<Inscription>> getEnrollmentsForActiveYear() override;
     Result<bool> deleteEnrollment(int enrollmentId) override;
 
     // School years
