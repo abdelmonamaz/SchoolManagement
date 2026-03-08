@@ -62,4 +62,5 @@ qt_add_qml_module(GestionScolaire_Components
         BulletinConfigPopup.qml
         BulletinPreviewPopup.qml
         SetupWizardModal.qml
+        YearClosureModal.qml
 )

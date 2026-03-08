@@ -114,6 +114,8 @@ add_library(GS_Services STATIC
     src/controllers/dashboard_controller.cpp
     src/controllers/backup_controller.h
     src/controllers/backup_controller.cpp
+    src/controllers/year_closure_controller.h
+    src/controllers/year_closure_controller.cpp
 )
 
 target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql Qt6::ZlibPrivate)

@@ -65,6 +65,11 @@ Item {
     onSelectedYearChanged: { selectedDay = -1; if (activeView === "calendar") examsController.loadAllSessionsByMonth(selectedMonth + 1, selectedYear) }
 
     Connections {
+        target: yearClosureController
+        function onClosureSuccess(newYearLabel) { reloadCurrentView() }
+    }
+
+    Connections {
         target: examsController
         function onOperationSucceeded(msg) {
             console.log("ExamsPage:", msg)
@@ -127,7 +132,10 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: activeView = "planning"
+                                onClicked: {
+                                    activeView = "planning"
+                                    examsController.loadSessionsByWeek(selectedWeek, selectedWeekYear)
+                                }
                             }
                         }
 

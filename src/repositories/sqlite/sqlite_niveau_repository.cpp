@@ -16,7 +16,13 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom, COALESCE(parent_level_id, 0), COALESCE(annee_scolaire_id, 0) FROM niveaux WHERE valide = 1 ORDER BY id")) {
+    if (!query.exec(
+            "SELECT n.id, n.nom, COALESCE(n.parent_level_id,0), COALESCE(n.annee_scolaire_id,0) "
+            "FROM niveaux n "
+            "JOIN niveaux_actifs_par_annee napa ON napa.niveau_id = n.id "
+            "JOIN annees_scolaires a ON a.id = napa.annee_scolaire_id "
+            "WHERE n.valide = 1 AND a.statut = 'Active' AND a.valide = 1 "
+            "ORDER BY n.id")) {
         return Result<QList<Niveau>>::error(query.lastError().text());
     }
 
@@ -56,16 +62,33 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
 Result<int> SqliteNiveauRepository::create(const Niveau& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    // Resolve active year
+    QSqlQuery qYear(db);
+    qYear.exec("SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1");
+    const int activeYearId = qYear.next() ? qYear.value(0).toInt() : 0;
+
     QSqlQuery query(db);
     query.prepare("INSERT INTO niveaux (nom, parent_level_id, annee_scolaire_id) VALUES (?, NULLIF(?, 0), NULLIF(?, 0))");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.parentLevelId);
-    query.addBindValue(entity.anneeScolaireId);
+    query.addBindValue(activeYearId > 0 ? activeYearId : entity.anneeScolaireId);
 
     if (!query.exec()) {
         return Result<int>::error(query.lastError().text());
     }
-    return Result<int>::success(query.lastInsertId().toInt());
+    const int newId = query.lastInsertId().toInt();
+
+    // Link to active year in junction table
+    if (activeYearId > 0) {
+        QSqlQuery qNapa(db);
+        qNapa.prepare("INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) VALUES (?, ?)");
+        qNapa.addBindValue(activeYearId);
+        qNapa.addBindValue(newId);
+        qNapa.exec();
+    }
+
+    return Result<int>::success(newId);
 }
 
 Result<bool> SqliteNiveauRepository::update(const Niveau& entity)

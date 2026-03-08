@@ -27,6 +27,55 @@ ApplicationWindow {
         id: setupWizard
     }
 
+    // ─── DB Init Error Popup ───
+    Popup {
+        id: dbErrorPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 460; padding: 0
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        Overlay.modal: Rectangle { color: "#0F172ACC" }
+        background: Rectangle { radius: 16; color: Style.bgWhite; border.color: "#FCA5A5"; border.width: 2 }
+
+        Column {
+            width: dbErrorPopup.width
+            padding: 28; spacing: 18
+
+            Row {
+                spacing: 12
+                Text { text: "🚫"; font.pixelSize: 24 }
+                Text {
+                    text: "Erreur d'initialisation"
+                    font.pixelSize: 17; font.weight: Font.Black; color: "#DC2626"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+            Text {
+                width: dbErrorPopup.width - 56
+                text: appController.dbInitError
+                font.pixelSize: 13; color: Style.textSecondary
+                wrapMode: Text.WordWrap; lineHeight: 1.5
+            }
+            Rectangle {
+                width: dbErrorPopup.width - 56; height: 42; radius: 10
+                color: "#DC2626"
+                Text { anchors.centerIn: parent; text: "Fermer l'application"; font.pixelSize: 13; font.bold: true; color: "white" }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: Qt.quit()
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: appController
+        function onDbInitErrorChanged() {
+            if (appController.dbInitError.length > 0) dbErrorPopup.open()
+        }
+    }
+
     Connections {
         target: setupController
         function onIsInitializedChanged() {

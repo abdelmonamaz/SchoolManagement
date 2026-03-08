@@ -8,7 +8,7 @@ Rectangle {
 
     implicitHeight: 48
     radius: 16
-    color: Style.bgPage
+    color: "#FFFFFF"
     border.color: input.activeFocus ? Style.primary : Style.borderLight
     border.width: 1
 

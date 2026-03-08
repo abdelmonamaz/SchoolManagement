@@ -265,10 +265,19 @@ Result<bool> SqliteSeanceRepository::setPresenceValide(int seanceId, bool valide
     return Result<bool>::success(true);
 }
 
+// ── Active-year filter ─────────────────────────────────────────────────────────
+// Cours and Examen sessions are scoped to the active school year.
+// Events (Événement) have no annee_scolaire_id and are shown unconditionally.
+static const auto kActiveYearFilter = QStringLiteral(
+    " AND (s.type_seance = 'Événement'"
+    "      OR s.annee_scolaire_id = ("
+    "          SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1))");
+
 Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& from, const QDateTime& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" AND s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
+    query.prepare(kSeanceSelect + kActiveYearFilter
+                  + QStringLiteral(" AND s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
     query.addBindValue(from.toString(Qt::ISODate));
     query.addBindValue(to.toString(Qt::ISODate));
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
@@ -280,7 +289,8 @@ Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& fr
 Result<QList<Seance>> SqliteSeanceRepository::getByClasseId(int classeId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"));
+    query.prepare(kSeanceSelect + kActiveYearFilter
+                  + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"));
     query.addBindValue(classeId);
     query.addBindValue(classeId);
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());

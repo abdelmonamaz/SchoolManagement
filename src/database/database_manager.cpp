@@ -888,5 +888,16 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "ALTER TABLE niveaux ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
         qInfo() << "[DatabaseManager] Migration 38: added column niveaux.annee_scolaire_id";
     }
+
+    // ── Migration 39 : link existing niveaux to active year in niveaux_actifs_par_annee ──
+    // Ensures niveaux that were not linked show up in the year-filtered getAllNiveaux()
+    execStatement(db, QStringLiteral(
+        "INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) "
+        "SELECT a.id, n.id FROM niveaux n, annees_scolaires a "
+        "WHERE n.valide = 1 AND a.statut = 'Active' AND a.valide = 1 "
+        "AND NOT EXISTS ("
+        "  SELECT 1 FROM niveaux_actifs_par_annee napa2 "
+        "  WHERE napa2.annee_scolaire_id = a.id AND napa2.niveau_id = n.id)"));
+    qInfo() << "[DatabaseManager] Migration 39: linked existing niveaux to active year";
 }
 

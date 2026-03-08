@@ -12,6 +12,7 @@ Column {
     id: root
 
     property string label: ""
+    property color fieldColor: Style.bgPage
     property var nextTabItem: null
     property var prevTabItem: null
     property alias inputItem: dayInput
@@ -88,7 +89,7 @@ Column {
         width: parent.width
         height: 44
         radius: 12
-        color: Style.bgPage
+        color: root.fieldColor
         border.color: Style.borderLight
 
         HoverHandler {

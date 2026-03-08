@@ -51,14 +51,18 @@ Item {
             subtitle: "Configurez l'environnement Ez-Zaytouna selon vos besoins."
         }
 
-        // ─── Top row: Tarifs + Backup ───
+        // ─── Cards ───
         RowLayout {
             Layout.fillWidth: true
             spacing: 24
+
+            // ── Left column ──
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
             // ─── Configuration des Tarifs ───
             AppCard {
             Layout.fillWidth: true
-            Layout.fillHeight: false
             Layout.alignment: Qt.AlignTop
             title: "Configuration des Tarifs"
             subtitle: "Tarifs mensuels et frais d'inscription de l'année scolaire active."
@@ -334,10 +338,161 @@ Item {
             }
             } // end tarifs AppCard
 
+            // School Info Form
+            AppCard {
+                Layout.fillWidth: true
+                title: "Informations de l'Établissement"
+
+                Column {
+                    width: parent.width
+                    spacing: 20
+
+                    FormField {
+                        id: nomEcoleField
+                        width: parent.width
+                        label: "NOM DE L'ASSOCIATION"
+                        placeholder: "ex: Ez-Zaytouna"
+                        text: setupController.associationData.nomAssociation || ""
+                        onTextChanged: settingsPage.associationSaved = false
+                    }
+
+                    Column {
+                        width: parent.width; spacing: 6
+                        SectionLabel { text: "ADRESSE" }
+                        Rectangle {
+                            width: parent.width; height: 80; radius: 12
+                            color: Style.bgPage; border.color: Style.borderLight
+                            TextEdit {
+                                id: adresseEdit
+                                anchors.fill: parent; anchors.margins: 12
+                                text: setupController.associationData.adresse || ""
+                                font.pixelSize: 13; font.bold: true
+                                color: Style.textPrimary
+                                wrapMode: TextEdit.Wrap
+                                onTextChanged: settingsPage.associationSaved = false
+                            }
+                        }
+                    }
+
+                    // ── Exercice comptable ──
+                    Text {
+                        text: "EXERCICE COMPTABLE"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        spacing: 16
+
+                        DateField {
+                            id: exDebutField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 0
+                            label: "DATE DE DÉBUT"
+                            Component.onCompleted: {
+                                var v = setupController.associationData.exerciceDebut || ""
+                                if (v) setDate(v)
+                            }
+                            onDateStringChanged: {
+                                if (!settingsPage.updatingDate && isValid)
+                                    settingsPage.associationSaved = false
+                                if (settingsPage.updatingDate || !isValid) return
+                                settingsPage.updatingDate = true
+                                var d = settingsPage.isoToLocalDate(dateString)
+                                d.setMonth(d.getMonth() + 12)
+                                d.setDate(d.getDate() - 1)
+                                exFinField.setDate(settingsPage.localDateToIso(d))
+                                settingsPage.updatingDate = false
+                            }
+                        }
+
+                        DateField {
+                            id: exFinField
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 0
+                            label: "DATE DE FIN"
+                            Component.onCompleted: {
+                                var v = setupController.associationData.exerciceFin || ""
+                                if (v) setDate(v)
+                            }
+                            onDateStringChanged: {
+                                if (!settingsPage.updatingDate && isValid)
+                                    settingsPage.associationSaved = false
+                                if (settingsPage.updatingDate || !isValid) return
+                                settingsPage.updatingDate = true
+                                var d = settingsPage.isoToLocalDate(dateString)
+                                d.setDate(d.getDate() + 1)
+                                d.setMonth(d.getMonth() - 12)
+                                exDebutField.setDate(settingsPage.localDateToIso(d))
+                                settingsPage.updatingDate = false
+                            }
+                        }
+                    }
+
+                    // ── Âge de passage adulte ──
+                    Text {
+                        text: "CATÉGORISATION"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    RowLayout {
+                        width: parent.width; spacing: 12
+                        Text {
+                            text: "Âge de passage Adulte :"
+                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        TextField {
+                            id: agePassageField
+                            Layout.preferredWidth: 72; height: 40
+                            text: (setupController.associationData.agePassageAdulte || 12).toString()
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                            horizontalAlignment: TextInput.AlignHCenter
+                            selectByMouse: true
+                            validator: IntValidator { bottom: 1; top: 99 }
+                            onTextEdited: settingsPage.associationSaved = false
+                            background: Rectangle {
+                                radius: 10; color: Style.bgPage; border.color: Style.borderLight
+                                border.width: parent.activeFocus ? 2 : 1
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                            }
+                        }
+                        Text {
+                            text: "ans"
+                            font.pixelSize: 13; font.bold: true; color: Style.textSecondary
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    PrimaryButton {
+                        text: "Enregistrer les modifications"
+                        enabled: !settingsPage.associationSaved
+                        onClicked: {
+                            var newAge = parseInt(agePassageField.text) || 12
+                            if (newAge !== settingsPage.loadedAgePassage) {
+                                confirmAgePopup.pendingAge = newAge
+                                confirmAgePopup.open()
+                            } else {
+                                settingsPage._doSaveAssociation(newAge)
+                            }
+                        }
+                    }
+                }
+            }
+
+            } // end left ColumnLayout
+
+            // ── Right column ──
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
             // ─── Sauvegarde & Restauration ───
             AppCard {
                 Layout.fillWidth: true
-                Layout.fillHeight: false
                 Layout.alignment: Qt.AlignTop
                 title: "Sauvegarde & Restauration"
                 subtitle: "Gérez les sauvegardes de votre base de données."
@@ -527,10 +682,38 @@ Item {
                         }
                     }
 
-                    OutlineButton {
-                        width: parent.width
-                        text: "Charger une base de données"
-                        onClicked: loadFileDialog.open()
+                    Rectangle {
+                        id: loadDbButton
+                        width: parent.width; height: 42; radius: 10
+                        property bool loading: false
+                        color: loadDbMa.containsMouse ? "#D97706" : "#F59E0B"
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        Row {
+                            anchors.centerIn: parent; spacing: 8
+                            Text {
+                                text: loadDbButton.loading ? "⏳" : "📂"
+                                font.pixelSize: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: loadDbButton.loading ? "Chargement en cours…" : "Charger une base de données"
+                                font.pixelSize: 12; font.bold: true; color: "white"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        MouseArea {
+                            id: loadDbMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: !loadDbButton.loading
+                            onClicked: {
+                                loadDbButton.loading = true
+                                loadFileDialog.open()
+                            }
+                        }
                     }
 
                     // Toast / feedback
@@ -561,166 +744,10 @@ Item {
                     }
                 }
             }
-        } // end top RowLayout
-
-        Item { Layout.preferredHeight: 10 }
-
-        // ─── Bottom cards ───
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 24
-
-            // School Info Form
-            AppCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: false
-                Layout.alignment: Qt.AlignTop
-                title: "Informations de l'Établissement"
-
-                Column {
-                    width: parent.width
-                    spacing: 20
-
-                    FormField {
-                        id: nomEcoleField
-                        width: parent.width
-                        label: "NOM DE L'ASSOCIATION"
-                        placeholder: "ex: Ez-Zaytouna"
-                        text: setupController.associationData.nomAssociation || ""
-                        onTextChanged: settingsPage.associationSaved = false
-                    }
-
-                    Column {
-                        width: parent.width; spacing: 6
-                        SectionLabel { text: "ADRESSE" }
-                        Rectangle {
-                            width: parent.width; height: 80; radius: 12
-                            color: Style.bgPage; border.color: Style.borderLight
-                            TextEdit {
-                                id: adresseEdit
-                                anchors.fill: parent; anchors.margins: 12
-                                text: setupController.associationData.adresse || ""
-                                font.pixelSize: 13; font.bold: true
-                                color: Style.textPrimary
-                                wrapMode: TextEdit.Wrap
-                                onTextChanged: settingsPage.associationSaved = false
-                            }
-                        }
-                    }
-
-                    // ── Exercice comptable ──
-                    Text {
-                        text: "EXERCICE COMPTABLE"
-                        font.pixelSize: 10; font.weight: Font.Black
-                        color: Style.primary; font.letterSpacing: 1
-                    }
-
-                    RowLayout {
-                        width: parent.width
-                        spacing: 16
-
-                        DateField {
-                            id: exDebutField
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 0
-                            label: "DATE DE DÉBUT"
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceDebut || ""
-                                if (v) setDate(v)
-                            }
-                            onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
-                                    settingsPage.associationSaved = false
-                                if (settingsPage.updatingDate || !isValid) return
-                                settingsPage.updatingDate = true
-                                var d = settingsPage.isoToLocalDate(dateString)
-                                d.setMonth(d.getMonth() + 12)
-                                d.setDate(d.getDate() - 1)
-                                exFinField.setDate(settingsPage.localDateToIso(d))
-                                settingsPage.updatingDate = false
-                            }
-                        }
-
-                        DateField {
-                            id: exFinField
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 0
-                            label: "DATE DE FIN"
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceFin || ""
-                                if (v) setDate(v)
-                            }
-                            onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
-                                    settingsPage.associationSaved = false
-                                if (settingsPage.updatingDate || !isValid) return
-                                settingsPage.updatingDate = true
-                                var d = settingsPage.isoToLocalDate(dateString)
-                                d.setDate(d.getDate() + 1)
-                                d.setMonth(d.getMonth() - 12)
-                                exDebutField.setDate(settingsPage.localDateToIso(d))
-                                settingsPage.updatingDate = false
-                            }
-                        }
-                    }
-
-                    // ── Âge de passage adulte ──
-                    Text {
-                        text: "CATÉGORISATION"
-                        font.pixelSize: 10; font.weight: Font.Black
-                        color: Style.primary; font.letterSpacing: 1
-                    }
-
-                    RowLayout {
-                        width: parent.width; spacing: 12
-                        Text {
-                            text: "Âge de passage Adulte :"
-                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-                        TextField {
-                            id: agePassageField
-                            Layout.preferredWidth: 72; height: 40
-                            text: (setupController.associationData.agePassageAdulte || 12).toString()
-                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
-                            horizontalAlignment: TextInput.AlignHCenter
-                            selectByMouse: true
-                            validator: IntValidator { bottom: 1; top: 99 }
-                            onTextEdited: settingsPage.associationSaved = false
-                            background: Rectangle {
-                                radius: 10; color: Style.bgPage; border.color: Style.borderLight
-                                border.width: parent.activeFocus ? 2 : 1
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
-                            }
-                        }
-                        Text {
-                            text: "ans"
-                            font.pixelSize: 13; font.bold: true; color: Style.textSecondary
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    PrimaryButton {
-                        text: "Enregistrer les modifications"
-                        enabled: !settingsPage.associationSaved
-                        onClicked: {
-                            var newAge = parseInt(agePassageField.text) || 12
-                            if (newAge !== settingsPage.loadedAgePassage) {
-                                confirmAgePopup.pendingAge = newAge
-                                confirmAgePopup.open()
-                            } else {
-                                settingsPage._doSaveAssociation(newAge)
-                            }
-                        }
-                    }
-                }
-            }
 
             // System Status
             AppCard {
                 Layout.fillWidth: true
-                Layout.fillHeight: false
                 Layout.alignment: Qt.AlignTop
                 title: "État du Système"
 
@@ -784,10 +811,98 @@ Item {
                     }
                 }
             }
+            } // end right ColumnLayout
+        } // end RowLayout
+
+        Item { Layout.preferredHeight: 20 }
+
+        // ── Clôture d'Année Scolaire ─────────────────────────────────────────
+        Rectangle {
+            Layout.fillWidth: true
+            height: 88
+            radius: 20
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "#FFF1F2" }
+                GradientStop { position: 1.0; color: "#FFE4E6" }
+            }
+            border.color: "#FECDD3"; border.width: 1
+
+            RowLayout {
+                anchors.fill: parent; anchors.margins: 20; spacing: 16
+
+                // Lock icon
+                Rectangle {
+                    width: 52; height: 52; radius: 14
+                    color: "#E11D48"
+                    Text { anchors.centerIn: parent; text: "🔒"; font.pixelSize: 22 }
+                }
+
+                // Text
+                Column {
+                    Layout.fillWidth: true; spacing: 4
+                    Text {
+                        text: "Clôture d'Année Scolaire"
+                        font.pixelSize: 16; font.bold: true; color: "#881337"
+                    }
+                    Text {
+                        text: "Archivez l'année " + (setupController.activeTarifs.libelle || "en cours")
+                              + ", faites passer les étudiants au niveau supérieur et générez les rapports finaux."
+                        font.pixelSize: 12; color: "#BE123C"
+                        wrapMode: Text.WordWrap; width: parent.width
+                    }
+                    Row {
+                        spacing: 16
+                        Row {
+                            spacing: 5
+                            Rectangle { width: 7; height: 7; radius: 4; color: "#E11D48"; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "ACTION IRRÉVERSIBLE"; font.pixelSize: 10; font.bold: true; color: "#E11D48"; font.letterSpacing: 0.5 }
+                        }
+                        Text {
+                            text: "Année en cours : " + (setupController.activeTarifs.libelle || "-")
+                            font.pixelSize: 11; font.bold: true; color: "#9F1239"
+                        }
+                    }
+                }
+
+                // Button
+                Rectangle {
+                    width: 180; height: 44; radius: 12
+                    color: "#E11D48"
+
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    Row {
+                        anchors.centerIn: parent; spacing: 8
+                        Text {
+                            text: "🔒"; font.pixelSize: 14; color: "white"
+                            height: 20; verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            text: "DÉMARRER LA CLÔTURE"
+                            font.pixelSize: 11; font.bold: true; color: "white"; font.letterSpacing: 0.5
+                            height: 20; verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onEntered: parent.color = "#BE123C"
+                        onExited:  parent.color = "#E11D48"
+                        onClicked: {
+                            yearClosureController.loadStats()
+                            yearClosureController.loadStudentProgressions()
+                            yearClosureModal.open()
+                        }
+                    }
+                }
+            }
         }
 
         Item { Layout.preferredHeight: 32 }
     }
+
+    // ── Clôture modal ──────────────────────────────────────────────────────
+    YearClosureModal { id: yearClosureModal }
 
     // ── Dialogs sauvegarde / restauration ─────────────────────────────────
     Platform.FolderDialog {
@@ -814,6 +929,7 @@ Item {
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Archive ZIP (*.zip)", "Base de données (*.db)", "Tous les fichiers (*)"]
         onAccepted: backupController.loadDatabase(file.toString())
+        onRejected: loadDbButton.loading = false
     }
 
     // BackupController signal handlers
@@ -831,9 +947,11 @@ Item {
             feedbackTimer.restart()
         }
         function onRestoreReady() {
+            loadDbButton.loading = false
             restartPopup.open()
         }
         function onRestoreError(message) {
+            loadDbButton.loading = false
             feedbackBar.feedbackIsError = true
             feedbackText.text = message
             feedbackTimer.restart()

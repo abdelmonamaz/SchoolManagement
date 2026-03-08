@@ -88,6 +88,8 @@ void DatabaseWorker::onThreadStarted()
     if (!ok) {
         qCritical() << "[DatabaseWorker] Initialization failed for"
                      << m_connectionName;
+        emit initError(QStringLiteral("Impossible d'ouvrir la base de données.\nVérifiez que le fichier n'est pas verrouillé par une autre application.\n\nChemin : ") + m_dbPath);
+        emit ready(); // unblock any waiting event loop
         return;
     }
 

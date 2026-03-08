@@ -29,6 +29,7 @@ public:
 
 signals:
     void ready();
+    void initError(const QString& message);
     void queryCompleted(const QString& queryId, const QVariant& result);
     void queryError(const QString& queryId, const QString& error);
 

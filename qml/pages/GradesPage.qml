@@ -130,6 +130,25 @@ Item {
     }
 
     Connections {
+        target: yearClosureController
+        function onClosureSuccess(newYearLabel) {
+            // Reset all selections — old year data is no longer valid
+            niveauCombo.currentIndex  = -1
+            classeCombo.currentIndex  = -1
+            matiereCombo.currentIndex = -1
+            epreuveCombo.currentIndex = -1
+            gradesPage.selNiveauId  = -1
+            gradesPage.selNiveauNom = ""
+            gradesPage.selClasseId  = -1
+            gradesPage.selClasseNom = ""
+            gradesPage.selMatiereId = -1
+            gradesPage.selSeanceId  = -1
+            gradesPage.pendingGrades  = ({})
+            gradesPage.pendingVersion++
+        }
+    }
+
+    Connections {
         target: gradesController
         function onOperationSucceeded(msg) {
             gradesPage.pendingGrades  = ({})

@@ -32,6 +32,7 @@
 // Controllers
 #include "controllers/backup_controller.h"
 #include "controllers/setup_controller.h"
+#include "controllers/year_closure_controller.h"
 #include "controllers/schooling_controller.h"
 #include "controllers/student_controller.h"
 #include "controllers/staff_controller.h"
@@ -67,6 +68,12 @@ void AppController::setupDatabase() {
     BackupController_applyPendingRestore(m_dbPath);
 
     m_dbWorker = std::make_unique<DatabaseWorker>(m_dbPath);
+
+    // Capture any init error so QML can display it
+    connect(m_dbWorker.get(), &DatabaseWorker::initError, this, [this](const QString& msg) {
+        m_dbInitError = msg;
+        emit dbInitErrorChanged();
+    });
 
     // Wait synchronously for the worker thread to initialise the DB
     QEventLoop loop;
@@ -128,8 +135,9 @@ void AppController::createServices() {
 
 void AppController::createControllers() {
     auto* w = m_dbWorker.get();
-    m_backupController = std::make_unique<BackupController>(m_dbPath, this);
-    m_setupController  = std::make_unique<SetupController>(m_dbPath, this);
+    m_backupController      = std::make_unique<BackupController>(m_dbPath, this);
+    m_setupController       = std::make_unique<SetupController>(m_dbPath, this);
+    m_yearClosureController = std::make_unique<YearClosureController>(m_dbPath, this);
     m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
     m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);
@@ -145,8 +153,10 @@ void AppController::createControllers() {
 
 void AppController::registerWithQml(QQmlApplicationEngine& engine) {
     auto* ctx = engine.rootContext();
-    ctx->setContextProperty("backupController", m_backupController.get());
-    ctx->setContextProperty("setupController", m_setupController.get());
+    ctx->setContextProperty("appController",         this);
+    ctx->setContextProperty("backupController",      m_backupController.get());
+    ctx->setContextProperty("setupController",       m_setupController.get());
+    ctx->setContextProperty("yearClosureController", m_yearClosureController.get());
     ctx->setContextProperty("schoolingController", m_schoolingController.get());
     ctx->setContextProperty("studentController", m_studentController.get());
     ctx->setContextProperty("staffController", m_staffController.get());

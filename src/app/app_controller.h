@@ -24,6 +24,7 @@ class FinanceController;
 class DashboardController;
 class SetupController;
 class BackupController;
+class YearClosureController;
 
 class ISalleRepository;
 class INiveauRepository;
@@ -47,10 +48,16 @@ class IDepenseRepository;
 
 class AppController : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString dbInitError READ dbInitError NOTIFY dbInitErrorChanged)
 
 public:
     explicit AppController(QQmlApplicationEngine& engine, QObject* parent = nullptr);
     ~AppController() override;
+
+    QString dbInitError() const { return m_dbInitError; }
+
+signals:
+    void dbInitErrorChanged();
 
 private:
     void setupDatabase();
@@ -61,6 +68,7 @@ private:
 
     // Database
     QString m_dbPath;
+    QString m_dbInitError;
     std::unique_ptr<DatabaseWorker> m_dbWorker;
 
     // Repositories (owned, created on main thread for now)
@@ -96,6 +104,7 @@ private:
     // Controllers (owned)
     std::unique_ptr<BackupController> m_backupController;
     std::unique_ptr<SetupController> m_setupController;
+    std::unique_ptr<YearClosureController> m_yearClosureController;
     std::unique_ptr<SchoolingController> m_schoolingController;
     std::unique_ptr<StudentController> m_studentController;
     std::unique_ptr<StaffController> m_staffController;

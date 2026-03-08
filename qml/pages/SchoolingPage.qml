@@ -70,6 +70,16 @@ Item {
     }
 
     Connections {
+        target: yearClosureController
+        function onClosureSuccess(newYearLabel) {
+            schoolingController.loadNiveaux()
+            schoolingController.loadSalles()
+            schoolingController.loadEquipements()
+            studentController.loadStudents()
+        }
+    }
+
+    Connections {
         target: studentController
         function onStudentsChanged() {
             var cnt = 0
