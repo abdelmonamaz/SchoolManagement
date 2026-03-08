@@ -65,7 +65,8 @@ public:
     Result<QVariantMap> getTotalBalance();
 
     // Tarifs mensualités
-    Result<QList<TarifMensualite>> getTarifsForYear(const QString& anneeScolaire);
+    Result<QList<TarifMensualite>> getTarifsForYear(const QString& anneeScolaireLibelle);
+    Result<QList<TarifMensualite>> getTarifsForYearId(int anneeScolaireId);
 
     // Paiements personnel
     Result<std::optional<PaiementMensuelPersonnel>>

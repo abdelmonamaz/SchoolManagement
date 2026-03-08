@@ -6,10 +6,10 @@
 #include "common/enums.h"
 
 struct TarifMensualite {
-    int     id            = 0;
-    QString categorie;       // "Jeune", "Adulte", …
-    QString anneeScolaire;   // "2025-2026"
-    double  montant       = 0.0;
+    int     id               = 0;
+    QString categorie;          // "Jeune", "Adulte", …
+    int     anneeScolaireId  = 0; // FK → annees_scolaires.id
+    double  montant          = 0.0;
 };
 
 struct Projet {

@@ -431,10 +431,10 @@ Result<QList<Depense>> SqliteDepenseRepository::getByMonth(int month, int year) 
 
 static TarifMensualite rowToTarif(const QSqlQuery& q) {
     TarifMensualite t;
-    t.id            = q.value(0).toInt();
-    t.categorie     = q.value(1).toString();
-    t.anneeScolaire = q.value(2).toString();
-    t.montant       = q.value(3).toDouble();
+    t.id               = q.value(0).toInt();
+    t.categorie        = q.value(1).toString();
+    t.anneeScolaireId  = q.value(2).toInt();
+    t.montant          = q.value(3).toDouble();
     return t;
 }
 
@@ -445,19 +445,39 @@ Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     if (!query.exec(QStringLiteral(
-            "SELECT id, categorie, annee_scolaire, montant FROM tarifs_mensualites WHERE valide = 1 ORDER BY annee_scolaire, categorie")))
+            "SELECT t.id, t.categorie, t.annee_scolaire_id, t.montant "
+            "FROM tarifs_mensualites t "
+            "LEFT JOIN annees_scolaires a ON a.id = t.annee_scolaire_id "
+            "WHERE t.valide = 1 ORDER BY a.libelle, t.categorie")))
         return Result<QList<TarifMensualite>>::error(query.lastError().text());
     QList<TarifMensualite> list;
     while (query.next()) list.append(rowToTarif(query));
     return Result<QList<TarifMensualite>>::success(list);
 }
 
-Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getByYear(const QString& anneeScolaire) {
+Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getByYear(const QString& anneeScolaireLibelle) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "SELECT id, categorie, annee_scolaire, montant FROM tarifs_mensualites WHERE annee_scolaire = ? AND valide = 1"));
-    query.addBindValue(anneeScolaire);
+        "SELECT t.id, t.categorie, t.annee_scolaire_id, t.montant "
+        "FROM tarifs_mensualites t "
+        "JOIN annees_scolaires a ON a.id = t.annee_scolaire_id "
+        "WHERE a.libelle = ? AND t.valide = 1"));
+    query.addBindValue(anneeScolaireLibelle);
+    if (!query.exec())
+        return Result<QList<TarifMensualite>>::error(query.lastError().text());
+    QList<TarifMensualite> list;
+    while (query.next()) list.append(rowToTarif(query));
+    return Result<QList<TarifMensualite>>::success(list);
+}
+
+Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getByYearId(int anneeScolaireId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT id, categorie, annee_scolaire_id, montant "
+        "FROM tarifs_mensualites WHERE annee_scolaire_id = ? AND valide = 1"));
+    query.addBindValue(anneeScolaireId);
     if (!query.exec())
         return Result<QList<TarifMensualite>>::error(query.lastError().text());
     QList<TarifMensualite> list;

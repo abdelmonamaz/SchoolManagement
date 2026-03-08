@@ -11,6 +11,7 @@ struct PaiementMensualite {
     QDate datePaiement;
     int moisConcerne = 0;
     int anneeConcernee = 0;
+    int anneeScolaireId = 0; // FK → annees_scolaires.id
     QString justificatifPath;
 };
 

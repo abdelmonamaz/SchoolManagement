@@ -23,6 +23,7 @@ class GradesController;
 class FinanceController;
 class DashboardController;
 class SetupController;
+class BackupController;
 
 class ISalleRepository;
 class INiveauRepository;
@@ -93,6 +94,7 @@ private:
     std::unique_ptr<DashboardService> m_dashboardService;
 
     // Controllers (owned)
+    std::unique_ptr<BackupController> m_backupController;
     std::unique_ptr<SetupController> m_setupController;
     std::unique_ptr<SchoolingController> m_schoolingController;
     std::unique_ptr<StudentController> m_studentController;

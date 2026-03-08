@@ -5,7 +5,8 @@
 struct Niveau {
     int id = 0;
     QString nom;
-    int parentLevelId = 0; // 0 = niveau terminal (diplômé) ou racine
+    int parentLevelId = 0;   // 0 = niveau terminal (diplômé) ou racine
+    int anneeScolaireId = 0; // FK → annees_scolaires.id (0 = global, non rattaché à une année)
 };
 
 struct Classe {

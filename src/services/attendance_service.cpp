@@ -2,16 +2,20 @@
 
 #include <algorithm>
 #include <QDebug>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 
 #include "repositories/iseance_repository.h"
 #include "repositories/ieleve_repository.h"
 
 AttendanceService::AttendanceService(ISeanceRepository* seanceRepo,
                                      IParticipationRepository* participationRepo,
-                                     IEleveRepository* eleveRepo)
+                                     IEleveRepository* eleveRepo,
+                                     const QString& connectionName)
     : m_seanceRepo(seanceRepo)
     , m_participationRepo(participationRepo)
     , m_eleveRepo(eleveRepo)
+    , m_connectionName(connectionName)
 {
 }
 
@@ -50,7 +54,33 @@ Result<int> AttendanceService::createSeance(const Seance& seance)
     }
     qDebug() << "createSeance: no conflicts, creating session";
 
-    return m_seanceRepo->create(seance);
+    // Auto-remplir annee_scolaire_id pour cours et examens (NULL pour les événements)
+    Seance toCreate = seance;
+    if (toCreate.typeSeance != GS::CategorieSeance::Evenement
+        && toCreate.anneeScolaireId == 0
+        && !m_connectionName.isEmpty()) {
+        QSqlDatabase db = QSqlDatabase::database(m_connectionName);
+        QSqlQuery q(db);
+        // Cherche l'année scolaire dont la plage englobe la date de la séance
+        q.prepare(QStringLiteral(
+            "SELECT id FROM annees_scolaires "
+            "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+        const QString dateStr = toCreate.dateHeureDebut.date().toString(Qt::ISODate);
+        q.addBindValue(dateStr);
+        q.addBindValue(dateStr);
+        if (q.exec() && q.next()) {
+            toCreate.anneeScolaireId = q.value(0).toInt();
+        } else {
+            // Fallback : année scolaire active
+            QSqlQuery q2(db);
+            q2.prepare(QStringLiteral(
+                "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+            if (q2.exec() && q2.next())
+                toCreate.anneeScolaireId = q2.value(0).toInt();
+        }
+    }
+
+    return m_seanceRepo->create(toCreate);
 }
 
 Result<bool> AttendanceService::updateSeance(const Seance& seance)
@@ -69,7 +99,31 @@ Result<bool> AttendanceService::updateSeance(const Seance& seance)
     if (!conflictsResult.value().isEmpty())
         return Result<bool>::error(conflictsResult.value().join("\n"));
 
-    return m_seanceRepo->update(seance);
+    // Auto-remplir annee_scolaire_id pour cours et examens (NULL pour les événements)
+    Seance toUpdate = seance;
+    if (toUpdate.typeSeance != GS::CategorieSeance::Evenement
+        && toUpdate.anneeScolaireId == 0
+        && !m_connectionName.isEmpty()) {
+        QSqlDatabase db = QSqlDatabase::database(m_connectionName);
+        QSqlQuery q(db);
+        q.prepare(QStringLiteral(
+            "SELECT id FROM annees_scolaires "
+            "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+        const QString dateStr = toUpdate.dateHeureDebut.date().toString(Qt::ISODate);
+        q.addBindValue(dateStr);
+        q.addBindValue(dateStr);
+        if (q.exec() && q.next()) {
+            toUpdate.anneeScolaireId = q.value(0).toInt();
+        } else {
+            QSqlQuery q2(db);
+            q2.prepare(QStringLiteral(
+                "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+            if (q2.exec() && q2.next())
+                toUpdate.anneeScolaireId = q2.value(0).toInt();
+        }
+    }
+
+    return m_seanceRepo->update(toUpdate);
 }
 
 Result<bool> AttendanceService::deleteSeance(int id)

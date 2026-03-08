@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1 as Platform
 import UI.Components
 
 Item {
@@ -41,88 +42,24 @@ Item {
         id: mainLayout
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 28
+        spacing: 0
 
         PageHeader {
             Layout.fillWidth: true
+            Layout.bottomMargin: 28
             title: "Paramètres du Système"
             subtitle: "Configurez l'environnement Ez-Zaytouna selon vos besoins."
         }
 
-        // ─── Settings Cards Grid ───
-        GridLayout {
+        // ─── Top row: Tarifs + Backup ───
+        RowLayout {
             Layout.fillWidth: true
-            columns: 3
-            columnSpacing: 20
-            rowSpacing: 20
-
-            Repeater {
-                model: ListModel {
-                    ListElement { sid: "profile"; label: "Profil Admin"; icon: "👤"; desc: "Gérez vos informations personnelles et votre avatar." }
-                    ListElement { sid: "security"; label: "Sécurité & Accès"; icon: "🛡"; desc: "Double authentification et historique de connexion." }
-                    ListElement { sid: "school"; label: "Établissement"; icon: "🏫"; desc: "Nom de l'école, logo, et année scolaire en cours." }
-                    ListElement { sid: "rooms"; label: "Gestion des Salles"; icon: "📍"; desc: "Configurez les salles disponibles et leur capacité." }
-                    ListElement { sid: "notif"; label: "Notifications"; icon: "🔔"; desc: "Paramètres des alertes SMS et Emails pour les parents." }
-                    ListElement { sid: "backup"; label: "Sauvegarde & Data"; icon: "🗄"; desc: "Sauvegardes automatiques et export de la base." }
-                }
-
-                delegate: Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 160
-                    radius: Style.radiusRound
-                    color: Style.bgWhite
-                    border.color: setMa.containsMouse ? Style.primary : Style.borderLight
-                    border.width: 1
-
-                    Behavior on border.color { ColorAnimation { duration: 200 } }
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 24
-                        spacing: 12
-
-                        Rectangle {
-                            width: 48; height: 48
-                            radius: 16
-                            color: setMa.containsMouse ? Style.primaryBg : Style.bgPage
-
-                            Behavior on color { ColorAnimation { duration: 200 } }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: model.icon
-                                font.pixelSize: 22
-                            }
-                        }
-
-                        Text {
-                            text: model.label
-                            font.pixelSize: 14; font.bold: true
-                            color: setMa.containsMouse ? Style.primary : Style.textPrimary
-                        }
-
-                        Text {
-                            text: model.desc
-                            font.pixelSize: 11; font.weight: Font.Medium
-                            color: Style.textTertiary
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    MouseArea {
-                        id: setMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                    }
-                }
-            }
-        }
-
-        // ─── Configuration des Tarifs ───
-        AppCard {
+            spacing: 24
+            // ─── Configuration des Tarifs ───
+            AppCard {
             Layout.fillWidth: true
+            Layout.fillHeight: false
+            Layout.alignment: Qt.AlignTop
             title: "Configuration des Tarifs"
             subtitle: "Tarifs mensuels et frais d'inscription de l'année scolaire active."
 
@@ -395,7 +332,238 @@ Item {
                     }
                 }
             }
-        }
+            } // end tarifs AppCard
+
+            // ─── Sauvegarde & Restauration ───
+            AppCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: false
+                Layout.alignment: Qt.AlignTop
+                title: "Sauvegarde & Restauration"
+                subtitle: "Gérez les sauvegardes de votre base de données."
+
+                Column {
+                    width: parent.width
+                    spacing: 20
+
+                    // ── Sauvegarde automatique ──
+                    Text {
+                        text: "SAUVEGARDE AUTOMATIQUE"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.textTertiary; font.letterSpacing: 1
+                    }
+
+                    // Toggle activation
+                    Rectangle {
+                        width: parent.width
+                        height: 52; radius: 14
+                        color: backupController.autoBackupEnabled ? Style.primaryBg : Style.bgPage
+                        border.color: backupController.autoBackupEnabled ? Style.primary : Style.borderLight
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                        RowLayout {
+                            anchors.fill: parent; anchors.margins: 14; spacing: 12
+
+                            Text {
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                verticalAlignment: Text.AlignVCenter
+                                text: "Activer la sauvegarde automatique"
+                                font.pixelSize: 13; font.bold: true
+                                color: backupController.autoBackupEnabled ? Style.primary : Style.textPrimary
+                            }
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignVCenter
+                                width: 44; height: 24; radius: 12
+                                color: backupController.autoBackupEnabled ? Style.primary : Style.borderMedium
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                Rectangle {
+                                    x: backupController.autoBackupEnabled ? parent.width - width - 3 : 3
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 18; height: 18; radius: 9
+                                    color: "white"
+                                    Behavior on x { NumberAnimation { duration: 150 } }
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: backupController.autoBackupEnabled = !backupController.autoBackupEnabled
+                        }
+                    }
+
+                    // Frequency + folder (only visible when enabled)
+                    Column {
+                        width: parent.width; spacing: 16
+                        visible: backupController.autoBackupEnabled
+                        opacity: visible ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                        // Frequency selector
+                        Column {
+                            width: parent.width; spacing: 6
+
+                            SectionLabel { text: "FRÉQUENCE" }
+
+                            RowLayout {
+                                width: parent.width; spacing: 8
+
+                                Repeater {
+                                    model: [
+                                        { label: "Quotidien",  days: 1  },
+                                        { label: "Hebdo",      days: 7  },
+                                        { label: "Mensuel",    days: 30 }
+                                    ]
+                                    delegate: Rectangle {
+                                        Layout.fillWidth: true; height: 40; radius: 10
+                                        property bool sel: backupController.autoBackupInterval === modelData.days
+                                        color: sel ? Style.primary : Style.bgPage
+                                        border.color: sel ? Style.primary : Style.borderLight
+                                        border.width: 1
+                                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.label
+                                            font.pixelSize: 12; font.bold: true
+                                            color: sel ? "#FFFFFF" : Style.textSecondary
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: backupController.autoBackupInterval = modelData.days
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Last auto-backup info
+                        Text {
+                            visible: backupController.lastAutoBackupDate.length > 0
+                            text: "Dernière sauvegarde auto : " + backupController.lastAutoBackupDate
+                            font.pixelSize: 10; font.weight: Font.Bold
+                            color: Style.textTertiary
+                        }
+
+                        // Destination folder
+                        Column {
+                            width: parent.width; spacing: 6
+
+                            SectionLabel { text: "DOSSIER DE DESTINATION" }
+
+                            RowLayout {
+                                width: parent.width; spacing: 8
+
+                                Rectangle {
+                                    Layout.fillWidth: true; height: 44
+                                    radius: 12; color: Style.bgPage
+                                    border.color: Style.borderLight; border.width: 1
+                                    clip: true
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left; anchors.leftMargin: 14
+                                        anchors.right: parent.right; anchors.rightMargin: 14
+                                        text: backupController.autoBackupPath.length > 0
+                                              ? backupController.autoBackupPath
+                                              : "Aucun dossier sélectionné"
+                                        font.pixelSize: 12; font.bold: true
+                                        color: backupController.autoBackupPath.length > 0
+                                               ? Style.textPrimary : Style.textTertiary
+                                        elide: Text.ElideLeft
+                                    }
+                                }
+
+                                OutlineButton {
+                                    text: "Parcourir"
+                                    onClicked: folderDialog.open()
+                                }
+                            }
+                        }
+                    }
+
+                    PrimaryButton {
+                        width: parent.width
+                        text: "Sauvegarder maintenant"
+                        onClicked: saveFileDialog.open()
+                    }
+
+                    // ── Séparateur ──
+                    Rectangle {
+                        width: parent.width; height: 1
+                        color: Style.borderLight
+                    }
+
+                    // ── Restauration ──
+                    Text {
+                        text: "RESTAURATION"
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.textTertiary; font.letterSpacing: 1
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        implicitHeight: warnRow.implicitHeight + 24
+                        radius: 14; color: "#FEF3C7"
+                        border.color: "#FCD34D"; border.width: 1
+
+                        RowLayout {
+                            id: warnRow
+                            anchors.fill: parent; anchors.margins: 14; spacing: 10
+
+                            Text { text: "⚠"; font.pixelSize: 16 }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Charger une base de données remplacera toutes les données actuelles. L'application devra redémarrer."
+                                font.pixelSize: 11; font.weight: Font.Bold
+                                color: "#D97706"; wrapMode: Text.WordWrap; lineHeight: 1.4
+                            }
+                        }
+                    }
+
+                    OutlineButton {
+                        width: parent.width
+                        text: "Charger une base de données"
+                        onClicked: loadFileDialog.open()
+                    }
+
+                    // Toast / feedback
+                    Rectangle {
+                        id: feedbackBar
+                        width: parent.width
+                        height: feedbackText.implicitHeight + 16
+                        radius: 10
+                        visible: feedbackText.text.length > 0
+                        color: feedbackIsError ? "#FEE2E2" : Style.successBg
+                        border.color: feedbackIsError ? "#FCA5A5" : Style.successBorder
+
+                        property bool feedbackIsError: false
+
+                        Text {
+                            id: feedbackText
+                            anchors.fill: parent; anchors.margins: 10
+                            font.pixelSize: 11; font.weight: Font.Bold
+                            wrapMode: Text.WordWrap; lineHeight: 1.4
+                            color: feedbackBar.feedbackIsError ? "#DC2626" : Style.successColor
+                        }
+
+                        Timer {
+                            id: feedbackTimer
+                            interval: 4000
+                            onTriggered: feedbackText.text = ""
+                        }
+                    }
+                }
+            }
+        } // end top RowLayout
+
+        Item { Layout.preferredHeight: 10 }
 
         // ─── Bottom cards ───
         RowLayout {
@@ -405,6 +573,8 @@ Item {
             // School Info Form
             AppCard {
                 Layout.fillWidth: true
+                Layout.fillHeight: false
+                Layout.alignment: Qt.AlignTop
                 title: "Informations de l'Établissement"
 
                 Column {
@@ -550,6 +720,8 @@ Item {
             // System Status
             AppCard {
                 Layout.fillWidth: true
+                Layout.fillHeight: false
+                Layout.alignment: Qt.AlignTop
                 title: "État du Système"
 
                 Column {
@@ -615,6 +787,119 @@ Item {
         }
 
         Item { Layout.preferredHeight: 32 }
+    }
+
+    // ── Dialogs sauvegarde / restauration ─────────────────────────────────
+    Platform.FolderDialog {
+        id: folderDialog
+        title: "Choisir le dossier de sauvegarde automatique"
+        onAccepted: backupController.autoBackupPath = folder.toString()
+    }
+
+    Platform.FileDialog {
+        id: saveFileDialog
+        title: "Enregistrer une copie de la base de données"
+        fileMode: Platform.FileDialog.SaveFile
+        nameFilters: ["Archive ZIP (*.zip)", "Tous les fichiers (*)"]
+        defaultSuffix: "zip"
+        onAccepted: {
+            var ok = backupController.copyDatabaseTo(file.toString())
+            // feedback handled by backupSuccess / backupError signals
+        }
+    }
+
+    Platform.FileDialog {
+        id: loadFileDialog
+        title: "Charger une base de données"
+        fileMode: Platform.FileDialog.OpenFile
+        nameFilters: ["Archive ZIP (*.zip)", "Base de données (*.db)", "Tous les fichiers (*)"]
+        onAccepted: backupController.loadDatabase(file.toString())
+    }
+
+    // BackupController signal handlers
+    Connections {
+        target: backupController
+
+        function onBackupSuccess(path) {
+            feedbackBar.feedbackIsError = false
+            feedbackText.text = "Sauvegarde créée avec succès :\n" + path
+            feedbackTimer.restart()
+        }
+        function onBackupError(message) {
+            feedbackBar.feedbackIsError = true
+            feedbackText.text = message
+            feedbackTimer.restart()
+        }
+        function onRestoreReady() {
+            restartPopup.open()
+        }
+        function onRestoreError(message) {
+            feedbackBar.feedbackIsError = true
+            feedbackText.text = message
+            feedbackTimer.restart()
+        }
+    }
+
+    // ── Popup: redémarrage requis après restauration ────────────────────
+    Popup {
+        id: restartPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 480; padding: 0
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        Overlay.modal: Rectangle { color: "#0F172A99" }
+        background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
+
+        contentItem: Column {
+            width: restartPopup.width
+            padding: 28; spacing: 20
+
+            Text {
+                text: "Redémarrage requis"
+                font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
+                width: restartPopup.width - 56
+            }
+
+            Text {
+                text: "La nouvelle base de données sera appliquée au prochain démarrage.\nFermez l'application et relancez-la pour prendre en compte les nouvelles données."
+                font.pixelSize: 13; color: Style.textSecondary
+                width: restartPopup.width - 56
+                wrapMode: Text.WordWrap; lineHeight: 1.5
+            }
+
+            RowLayout {
+                width: restartPopup.width - 56; spacing: 12
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 44; radius: 12
+                    color: Style.bgPage; border.color: Style.borderMedium; border.width: 1
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Plus tard"
+                        font.pixelSize: 12; font.bold: true; color: Style.textSecondary
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: restartPopup.close()
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 44; radius: 12
+                    color: Style.primary
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Quitter l'application"
+                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.quit()
+                    }
+                }
+            }
+        }
     }
 
     // ── Popup confirmation recalcul catégories ──────────────────────────

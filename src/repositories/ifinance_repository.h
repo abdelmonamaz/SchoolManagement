@@ -34,5 +34,6 @@ public:
     virtual ~ITarifMensualiteRepository() = default;
 
     virtual Result<QList<TarifMensualite>> getAll() = 0;
-    virtual Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaire) = 0;
+    virtual Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaireLibelle) = 0;
+    virtual Result<QList<TarifMensualite>> getByYearId(int anneeScolaireId) = 0;
 };

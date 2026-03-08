@@ -41,7 +41,7 @@ static GS::TypePresence stringToTypePresence(const QString& s) {
 // Column order matches kSeanceSelect JOIN query:
 // 0: s.id, 1: s.salle_id, 2: s.date_heure_debut, 3: s.duree_minutes, 4: s.type_seance,
 // 5: matiere_id (COALESCE), 6: prof_id (COALESCE), 7: classe_id (COALESCE),
-// 8: titre (COALESCE), 9: descriptif (COALESCE), 10: s.presence_valide
+// 8: titre (COALESCE), 9: descriptif (COALESCE), 10: s.presence_valide, 11: s.annee_scolaire_id
 static Seance rowToSeance(const QSqlQuery& q) {
     Seance s;
     s.id = q.value(0).toInt();
@@ -55,6 +55,7 @@ static Seance rowToSeance(const QSqlQuery& q) {
     s.titre = q.value(8).toString();
     s.descriptif = q.value(9).toString();
     s.presenceValide = q.value(10).toBool();
+    s.anneeScolaireId = q.value(11).toInt();
     return s;
 }
 
@@ -81,7 +82,8 @@ static const auto kSeanceSelect = QStringLiteral(
     "COALESCE(c.classe_id, e.classe_id, 0), "
     "COALESCE(e.titre, ev.titre, ''), "
     "COALESCE(ev.descriptif, ''), "
-    "s.presence_valide "
+    "s.presence_valide, "
+    "COALESCE(s.annee_scolaire_id, 0) "
     "FROM seances s "
     "LEFT JOIN cours c ON c.seance_id = s.id "
     "LEFT JOIN examens e ON e.seance_id = s.id "
@@ -119,14 +121,17 @@ Result<int> SqliteSeanceRepository::create(const Seance& entity) {
         return Result<int>::error(QStringLiteral("Failed to begin transaction"));
 
     // 1. Insert base seance
+    // annee_scolaire_id est NULL pour les événements (indépendants de l'année scolaire)
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "INSERT INTO seances (salle_id, date_heure_debut, duree_minutes, type_seance) "
-        "VALUES (?, ?, ?, ?)"));
+        "INSERT INTO seances (salle_id, date_heure_debut, duree_minutes, type_seance, annee_scolaire_id) "
+        "VALUES (?, ?, ?, ?, ?)"));
     q.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
     q.addBindValue(entity.dateHeureDebut.toString(Qt::ISODate));
     q.addBindValue(entity.dureeMinutes);
     q.addBindValue(categorieSeanceToString(entity.typeSeance));
+    bool isEvent = (entity.typeSeance == GS::CategorieSeance::Evenement);
+    q.addBindValue(!isEvent && entity.anneeScolaireId > 0 ? QVariant(entity.anneeScolaireId) : QVariant());
     if (!q.exec()) {
         db.rollback();
         return Result<int>::error(q.lastError().text());
@@ -183,11 +188,16 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
     // 1. Update base seance
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "UPDATE seances SET salle_id=?, date_heure_debut=?, duree_minutes=?, type_seance=? , date_modification = datetime('now') WHERE id=?"));
+        "UPDATE seances SET salle_id=?, date_heure_debut=?, duree_minutes=?, type_seance=?, annee_scolaire_id=?"
+        ", date_modification = datetime('now') WHERE id=?"));
     q.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
     q.addBindValue(entity.dateHeureDebut.toString(Qt::ISODate));
     q.addBindValue(entity.dureeMinutes);
     q.addBindValue(categorieSeanceToString(entity.typeSeance));
+    {
+        bool isEvent = (entity.typeSeance == GS::CategorieSeance::Evenement);
+        q.addBindValue(!isEvent && entity.anneeScolaireId > 0 ? QVariant(entity.anneeScolaireId) : QVariant());
+    }
     q.addBindValue(entity.id);
     if (!q.exec()) {
         db.rollback();

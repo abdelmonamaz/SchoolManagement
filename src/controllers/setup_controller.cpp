@@ -109,23 +109,23 @@ bool SetupController::updateTarifs(const QVariantMap& data)
         return false;
     }
 
-    // 2. Synchroniser tarifs_mensualites (compatibilité FinanceController)
+    // 2. Synchroniser tarifs_mensualites (utilise annee_scolaire_id FK)
     QSqlQuery libQuery(db);
     libQuery.exec(QStringLiteral(
-        "SELECT libelle FROM annees_scolaires "
+        "SELECT id FROM annees_scolaires "
         "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
     if (libQuery.next()) {
-        QString libelle = libQuery.value(0).toString();
+        int anneeId = libQuery.value(0).toInt();
         QSqlQuery insTarif(db);
         insTarif.prepare(QStringLiteral(
             "INSERT OR REPLACE INTO tarifs_mensualites "
-            "(categorie, annee_scolaire, montant) VALUES (?, ?, ?)"));
+            "(categorie, annee_scolaire_id, montant) VALUES (?, ?, ?)"));
         insTarif.addBindValue(QStringLiteral("Jeune"));
-        insTarif.addBindValue(libelle);
+        insTarif.addBindValue(anneeId);
         insTarif.addBindValue(data.value("tarifJeune", 0.0).toDouble());
         insTarif.exec();
         insTarif.addBindValue(QStringLiteral("Adulte"));
-        insTarif.addBindValue(libelle);
+        insTarif.addBindValue(anneeId);
         insTarif.addBindValue(data.value("tarifAdulte", 0.0).toDouble());
         insTarif.exec();
     }
@@ -344,19 +344,27 @@ bool SetupController::completeSetup(const QVariantMap& anneeData)
         return false;
     }
 
-    // 4. Synchroniser les tarifs dans tarifs_mensualites (compatibilité existante)
+    // 4. Synchroniser les tarifs dans tarifs_mensualites (utilise annee_scolaire_id FK)
+    // L'année scolaire vient d'être créée ci-dessus, on récupère son id via le libelle
     QString libelle = anneeData.value("libelle").toString();
-    QSqlQuery insTarif(db);
-    insTarif.prepare(QStringLiteral(
-        "INSERT OR REPLACE INTO tarifs_mensualites (categorie, annee_scolaire, montant) VALUES (?, ?, ?)"));
-    insTarif.addBindValue(QStringLiteral("Jeune"));
-    insTarif.addBindValue(libelle);
-    insTarif.addBindValue(anneeData.value("tarifJeune", 0.0).toDouble());
-    insTarif.exec();
-    insTarif.addBindValue(QStringLiteral("Adulte"));
-    insTarif.addBindValue(libelle);
-    insTarif.addBindValue(anneeData.value("tarifAdulte", 0.0).toDouble());
-    insTarif.exec();
+    QSqlQuery anneeIdQuery(db);
+    anneeIdQuery.prepare(QStringLiteral("SELECT id FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
+    anneeIdQuery.addBindValue(libelle);
+    anneeIdQuery.exec();
+    if (anneeIdQuery.next()) {
+        int anneeId = anneeIdQuery.value(0).toInt();
+        QSqlQuery insTarif(db);
+        insTarif.prepare(QStringLiteral(
+            "INSERT OR REPLACE INTO tarifs_mensualites (categorie, annee_scolaire_id, montant) VALUES (?, ?, ?)"));
+        insTarif.addBindValue(QStringLiteral("Jeune"));
+        insTarif.addBindValue(anneeId);
+        insTarif.addBindValue(anneeData.value("tarifJeune", 0.0).toDouble());
+        insTarif.exec();
+        insTarif.addBindValue(QStringLiteral("Adulte"));
+        insTarif.addBindValue(anneeId);
+        insTarif.addBindValue(anneeData.value("tarifAdulte", 0.0).toDouble());
+        insTarif.exec();
+    }
 
     m_initialized = true;
     emit isInitializedChanged();

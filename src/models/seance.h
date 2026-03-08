@@ -10,6 +10,7 @@ struct Seance {
     int profId = 0;
     int salleId = 0;
     int classeId = 0;
+    int anneeScolaireId = 0; // FK → annees_scolaires.id (0/NULL pour les événements indépendants)
     QDateTime dateHeureDebut;
     int dureeMinutes = 60;
     GS::CategorieSeance typeSeance = GS::CategorieSeance::Cours;

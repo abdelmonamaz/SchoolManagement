@@ -268,9 +268,8 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "CREATE TABLE IF NOT EXISTS tarifs_mensualites ("
             "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  categorie TEXT NOT NULL,"
-            "  annee_scolaire TEXT NOT NULL,"
-            "  montant REAL NOT NULL DEFAULT 0.0,"
-            "  UNIQUE(categorie, annee_scolaire)"
+            "  annee_scolaire_id INTEGER REFERENCES annees_scolaires(id),"
+            "  montant REAL NOT NULL DEFAULT 0.0"
             ")"),
 
         // ── Cours (sous-table de séances) ──
@@ -703,11 +702,12 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         qInfo() << "[DatabaseManager] Migration 20: created table depenses";
     }
 
-    // Insérer les tarifs par défaut pour les années scolaires courantes (idempotent)
+    // Insérer les tarifs par défaut pour les années scolaires existantes (idempotent via subquery)
     {
         QSqlQuery ins(db);
         ins.prepare(QStringLiteral(
-            "INSERT OR IGNORE INTO tarifs_mensualites (categorie, annee_scolaire, montant) VALUES (?, ?, ?)"));
+            "INSERT OR IGNORE INTO tarifs_mensualites (categorie, annee_scolaire_id, montant) "
+            "SELECT ?, id, ? FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
         const QList<std::tuple<QString,QString,double>> defaults = {
             {"Jeune",  "2023-2024", 150.0},
             {"Adulte", "2023-2024", 250.0},
@@ -720,8 +720,8 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         };
         for (const auto& [cat, annee, montant] : defaults) {
             ins.addBindValue(cat);
-            ins.addBindValue(annee);
             ins.addBindValue(montant);
+            ins.addBindValue(annee);
             ins.exec();
         }
     }
@@ -845,6 +845,48 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
     if (!columnExists(QStringLiteral("association_config"), QStringLiteral("age_passage_adulte"))) {
         execStatement(db, QStringLiteral("ALTER TABLE association_config ADD COLUMN age_passage_adulte INTEGER DEFAULT 12"));
         qInfo() << "[DatabaseManager] Migration 34: added column association_config.age_passage_adulte";
+    }
+
+    // ── Migration 35 : tarifs_mensualites — annee_scolaire TEXT → annee_scolaire_id FK ──
+    if (!columnExists(QStringLiteral("tarifs_mensualites"), QStringLiteral("annee_scolaire_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE tarifs_mensualites ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
+        // Populer depuis le champ texte existant
+        execStatement(db, QStringLiteral(
+            "UPDATE tarifs_mensualites SET annee_scolaire_id = ("
+            "  SELECT a.id FROM annees_scolaires a"
+            "  WHERE a.libelle = tarifs_mensualites.annee_scolaire AND a.valide = 1 LIMIT 1"
+            ") WHERE annee_scolaire IS NOT NULL"));
+        qInfo() << "[DatabaseManager] Migration 35a: added and populated tarifs_mensualites.annee_scolaire_id";
+    }
+    // Créer l'index unique sur (categorie, annee_scolaire_id) avant de supprimer l'ancien champ
+    execStatement(db, QStringLiteral(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_tarifs_mensualites_unique "
+        "ON tarifs_mensualites(categorie, annee_scolaire_id)"));
+    if (columnExists(QStringLiteral("tarifs_mensualites"), QStringLiteral("annee_scolaire"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE tarifs_mensualites DROP COLUMN annee_scolaire"));
+        qInfo() << "[DatabaseManager] Migration 35b: dropped column tarifs_mensualites.annee_scolaire";
+    }
+
+    // ── Migration 36 : seances — ajout annee_scolaire_id (NULL pour les événements) ──
+    if (!columnExists(QStringLiteral("seances"), QStringLiteral("annee_scolaire_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE seances ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
+        qInfo() << "[DatabaseManager] Migration 36: added column seances.annee_scolaire_id";
+    }
+
+    // ── Migration 37 : paiements_mensualites — ajout annee_scolaire_id ──
+    if (!columnExists(QStringLiteral("paiements_mensualites"), QStringLiteral("annee_scolaire_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE paiements_mensualites ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
+        qInfo() << "[DatabaseManager] Migration 37: added column paiements_mensualites.annee_scolaire_id";
+    }
+
+    // ── Migration 38 : niveaux — ajout annee_scolaire_id ──
+    if (!columnExists(QStringLiteral("niveaux"), QStringLiteral("annee_scolaire_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE niveaux ADD COLUMN annee_scolaire_id INTEGER REFERENCES annees_scolaires(id)"));
+        qInfo() << "[DatabaseManager] Migration 38: added column niveaux.annee_scolaire_id";
     }
 }
 

@@ -112,9 +112,11 @@ add_library(GS_Services STATIC
     src/controllers/finance_controller.cpp
     src/controllers/dashboard_controller.h
     src/controllers/dashboard_controller.cpp
+    src/controllers/backup_controller.h
+    src/controllers/backup_controller.cpp
 )
 
-target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql)
+target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql Qt6::ZlibPrivate)
 
 # ═══════════════════════════════════════════════════════════════
 # Exécutable principal

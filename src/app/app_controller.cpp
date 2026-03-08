@@ -30,6 +30,7 @@
 #include "services/dashboard_service.h"
 
 // Controllers
+#include "controllers/backup_controller.h"
 #include "controllers/setup_controller.h"
 #include "controllers/schooling_controller.h"
 #include "controllers/student_controller.h"
@@ -60,6 +61,10 @@ void AppController::setupDatabase() {
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(dataDir);
     m_dbPath = dataDir + "/gestion_scolaire.db";
+
+    // Apply any pending DB restore staged by BackupController::loadDatabase()
+    // Must be done BEFORE any QSqlDatabase connection is opened.
+    BackupController_applyPendingRestore(m_dbPath);
 
     m_dbWorker = std::make_unique<DatabaseWorker>(m_dbPath);
 
@@ -106,7 +111,8 @@ void AppController::createServices() {
         m_profRepo.get(), m_contratRepo.get(), m_seanceRepo.get());
 
     m_attendanceService = std::make_unique<AttendanceService>(
-        m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get());
+        m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get(),
+        m_dbWorker->connectionName());
 
     m_gradesService = std::make_unique<GradesService>(
         m_participationRepo.get(), m_seanceRepo.get());
@@ -122,7 +128,8 @@ void AppController::createServices() {
 
 void AppController::createControllers() {
     auto* w = m_dbWorker.get();
-    m_setupController = std::make_unique<SetupController>(m_dbPath, this);
+    m_backupController = std::make_unique<BackupController>(m_dbPath, this);
+    m_setupController  = std::make_unique<SetupController>(m_dbPath, this);
     m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
     m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);
@@ -138,6 +145,7 @@ void AppController::createControllers() {
 
 void AppController::registerWithQml(QQmlApplicationEngine& engine) {
     auto* ctx = engine.rootContext();
+    ctx->setContextProperty("backupController", m_backupController.get());
     ctx->setContextProperty("setupController", m_setupController.get());
     ctx->setContextProperty("schoolingController", m_schoolingController.get());
     ctx->setContextProperty("studentController", m_studentController.get());

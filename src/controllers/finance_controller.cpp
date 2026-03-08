@@ -56,7 +56,7 @@ static QVariantMap donToMap(const Don& d) {
 
 static QVariantMap tarifToMap(const TarifMensualite& t) {
     return {{"id", t.id}, {"categorie", t.categorie},
-            {"anneeScolaire", t.anneeScolaire}, {"montant", t.montant}};
+            {"anneeScolaireId", t.anneeScolaireId}, {"montant", t.montant}};
 }
 
 static QString anneeScolaireForMonth(int month, int year) {

@@ -265,9 +265,14 @@ Result<bool> FinanceService::updateDonateur(int id, const Donateur& donateur)
 
 // --- Tarifs mensualités ---
 
-Result<QList<TarifMensualite>> FinanceService::getTarifsForYear(const QString& anneeScolaire)
+Result<QList<TarifMensualite>> FinanceService::getTarifsForYear(const QString& anneeScolaireLibelle)
 {
-    return m_tarifRepo->getByYear(anneeScolaire);
+    return m_tarifRepo->getByYear(anneeScolaireLibelle);
+}
+
+Result<QList<TarifMensualite>> FinanceService::getTarifsForYearId(int anneeScolaireId)
+{
+    return m_tarifRepo->getByYearId(anneeScolaireId);
 }
 
 // --- Paiements personnel ---

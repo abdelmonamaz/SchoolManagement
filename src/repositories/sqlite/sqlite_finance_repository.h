@@ -54,7 +54,8 @@ public:
     explicit SqliteTarifMensualiteRepository(const QString& connectionName);
 
     Result<QList<TarifMensualite>> getAll() override;
-    Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaire) override;
+    Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaireLibelle) override;
+    Result<QList<TarifMensualite>> getByYearId(int anneeScolaireId) override;
 
 private:
     QString m_connectionName;
