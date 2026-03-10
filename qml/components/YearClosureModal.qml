@@ -116,6 +116,7 @@ Popup {
 
     Connections {
         target: yearClosureController
+
         function onClosureSuccess(newYearLabel) {
             root.close()
             setupController.checkInitialized()
@@ -123,6 +124,61 @@ Popup {
         function onClosureError(message) {
             errorText.text = message
             errorPopup.open()
+        }
+
+        // Async data arrives after open() — populate progressions when ready
+        function onStudentProgressionsChanged() {
+            if (!root.visible) return
+            var src = yearClosureController.studentProgressions
+            if (src.length === 0) return
+            var copy = []
+            for (var i = 0; i < src.length; i++) {
+                var p = src[i]
+                var moy = (p.moyenneAnnuelle !== undefined) ? p.moyenneAnnuelle : -1.0
+                var res = (p.resultat !== "" && p.resultat !== "En cours") ? p.resultat : "En cours"
+                var nSuivantId = (p.niveauxSuivants && p.niveauxSuivants.length > 0) ? p.niveauxSuivants[0].id : 0
+                if (res === "En cours" && moy >= 0) {
+                    if (moy >= 10) {
+                        res = "Réussi"
+                    } else {
+                        res = "Redoublant"
+                        nSuivantId = 0
+                    }
+                }
+                copy.push({
+                    inscriptionId:   p.inscriptionId,
+                    eleveId:         p.eleveId,
+                    nom:             p.nom,
+                    prenom:          p.prenom,
+                    categorie:       p.categorie,
+                    niveauActuelId:  p.niveauActuelId,
+                    niveauActuelNom: p.niveauActuelNom,
+                    resultat:        res,
+                    niveauxSuivants: p.niveauxSuivants,
+                    niveauSuivantId: nSuivantId,
+                    moyenneAnnuelle: moy
+                })
+            }
+            progressions = copy
+        }
+
+        // Async stats arrive — auto-fill new year fields when ready
+        function onClosureStatsChanged() {
+            if (!root.visible) return
+            var s = yearClosureController.closureStats
+            if (s && s.anneeActiveLibelle) {
+                var parts = s.anneeActiveLibelle.split("-")
+                if (parts.length === 2) {
+                    var y1n = parseInt(parts[0]) + 1
+                    var y2n = parseInt(parts[1]) + 1
+                    newLabel = y1n + "-" + y2n
+                    newDebut = y1n + "-09-01"
+                    newFin   = y2n + "-06-30"
+                    libelleAutoFill = true
+                    dateField5Debut.setDate(newDebut)
+                    dateField5Fin.setDate(newFin)
+                }
+            }
         }
     }
 

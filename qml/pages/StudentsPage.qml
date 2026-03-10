@@ -22,6 +22,7 @@ Item {
         studentController.loadStudents()
         studentController.loadSchoolYears()
         schoolingController.loadNiveaux()
+        schoolingController.loadNiveauxGlobal()
         schoolingController.loadAllClasses()
         checkPendingStudent()
     }

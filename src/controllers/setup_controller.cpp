@@ -1,22 +1,38 @@
 #include "controllers/setup_controller.h"
-#include "database/database_manager.h"
+#include "database/database_worker.h"
+#include "repositories/iniveau_repository.h"
+#include "repositories/isetup_repository.h"
 
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QVariant>
 #include <QDebug>
 
-static const QString kSetupConn = QStringLiteral("gs_setup_main");
-
-SetupController::SetupController(const QString& dbPath, QObject* parent)
-    : QObject(parent)
-    , m_connectionName(kSetupConn)
+// Helper: convert a Niveau list to the QVariantList format expected by QML.
+static QVariantList niveauxToList(const QList<Niveau>& niveaux)
 {
-    // Ouvrir une connexion dédiée sur le main thread
-    if (!QSqlDatabase::contains(kSetupConn)) {
-        DatabaseManager::initialize(dbPath, kSetupConn);
+    QVariantList list;
+    list.reserve(niveaux.size());
+    for (const auto& n : niveaux) {
+        list.append(QVariantMap{
+            {"id",            n.id},
+            {"nom",           n.nom},
+            {"parentLevelId", n.parentLevelId}
+        });
     }
+    return list;
+}
+
+SetupController::SetupController(INiveauRepository* niveauRepo,
+                                 IAssociationRepository* assocRepo,
+                                 ISetupSchoolYearRepository* schoolYearRepo,
+                                 DatabaseWorker* worker,
+                                 QObject* parent)
+    : QObject(parent)
+    , m_niveauRepo(niveauRepo)
+    , m_assocRepo(assocRepo)
+    , m_schoolYearRepo(schoolYearRepo)
+    , m_worker(worker)
+{
+    connect(m_worker, &DatabaseWorker::queryCompleted, this, &SetupController::onQueryCompleted);
+    connect(m_worker, &DatabaseWorker::queryError,     this, &SetupController::onQueryError);
     checkInitialized();
 }
 
@@ -24,379 +40,304 @@ SetupController::SetupController(const QString& dbPath, QObject* parent)
 
 void SetupController::checkInitialized()
 {
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.exec(QStringLiteral(
-        "SELECT app_initialized, nom_association, adresse, exercice_debut, exercice_fin, age_passage_adulte "
-        "FROM association_config LIMIT 1"));
+    m_worker->submit(QStringLiteral("Setup.checkInitialized"),
+        [assocRepo = m_assocRepo, schoolYearRepo = m_schoolYearRepo]() -> QVariant
+    {
+        QVariantMap config = assocRepo->getConfig();
+        if (config.isEmpty()) return QVariantMap{};
 
-    bool init = false;
-    if (q.next()) {
-        init = q.value(0).toInt() == 1;
-        int age = q.value(5).toInt();
-        m_associationData = {
-            {"nomAssociation",   q.value(1).toString()},
-            {"adresse",          q.value(2).toString()},
-            {"exerciceDebut",    q.value(3).toString()},
-            {"exerciceFin",      q.value(4).toString()},
-            {"agePassageAdulte", age > 0 ? age : 12}
-        };
-        emit associationDataChanged();
-    }
+        QVariantMap result;
+        result["initialized"]    = config.value("initialized");
+        result["associationData"] = config.value("associationData");
 
-    if (m_initialized != init) {
-        m_initialized = init;
-        emit isInitializedChanged();
-    }
-
-    if (init) loadActiveTarifs();
-}
-
-// ── Tarifs de l'année active ──────────────────────────────────────────────
-
-void SetupController::loadActiveTarifs()
-{
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.exec(QStringLiteral(
-        "SELECT id, libelle, tarif_jeune, tarif_adulte, "
-        "       frais_inscription_jeune, frais_inscription_adulte, "
-        "       date_debut, date_fin "
-        "FROM annees_scolaires "
-        "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
-
-    QVariantMap tarifs;
-    if (q.next()) {
-        tarifs = {
-            {"id",                     q.value(0).toInt()},
-            {"libelle",                q.value(1).toString()},
-            {"tarifJeune",             q.value(2).toDouble()},
-            {"tarifAdulte",            q.value(3).toDouble()},
-            {"fraisInscriptionJeune",  q.value(4).toDouble()},
-            {"fraisInscriptionAdulte", q.value(5).toDouble()},
-            {"dateDebut",              q.value(6).toString()},
-            {"dateFin",                q.value(7).toString()}
-        };
-    }
-    if (m_activeTarifs != tarifs) {
-        m_activeTarifs = tarifs;
-        emit activeTarifsChanged();
-    }
-}
-
-bool SetupController::updateTarifs(const QVariantMap& data)
-{
-    auto db = QSqlDatabase::database(m_connectionName);
-
-    // 1. Mettre à jour l'année scolaire active
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE annees_scolaires SET "
-        "  tarif_jeune               = ?, "
-        "  tarif_adulte              = ?, "
-        "  frais_inscription_jeune   = ?, "
-        "  frais_inscription_adulte  = ?, "
-        "  date_modification         = datetime('now') "
-        "WHERE statut = 'Active' AND valide = 1"));
-    q.addBindValue(data.value("tarifJeune",             0.0).toDouble());
-    q.addBindValue(data.value("tarifAdulte",            0.0).toDouble());
-    q.addBindValue(data.value("fraisInscriptionJeune",  0.0).toDouble());
-    q.addBindValue(data.value("fraisInscriptionAdulte", 0.0).toDouble());
-
-    if (!q.exec()) {
-        qWarning() << "[SetupController] updateTarifs error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return false;
-    }
-
-    // 2. Synchroniser tarifs_mensualites (utilise annee_scolaire_id FK)
-    QSqlQuery libQuery(db);
-    libQuery.exec(QStringLiteral(
-        "SELECT id FROM annees_scolaires "
-        "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
-    if (libQuery.next()) {
-        int anneeId = libQuery.value(0).toInt();
-        QSqlQuery insTarif(db);
-        insTarif.prepare(QStringLiteral(
-            "INSERT OR REPLACE INTO tarifs_mensualites "
-            "(categorie, annee_scolaire_id, montant) VALUES (?, ?, ?)"));
-        insTarif.addBindValue(QStringLiteral("Jeune"));
-        insTarif.addBindValue(anneeId);
-        insTarif.addBindValue(data.value("tarifJeune", 0.0).toDouble());
-        insTarif.exec();
-        insTarif.addBindValue(QStringLiteral("Adulte"));
-        insTarif.addBindValue(anneeId);
-        insTarif.addBindValue(data.value("tarifAdulte", 0.0).toDouble());
-        insTarif.exec();
-    }
-
-    loadActiveTarifs();
-    return true;
+        if (config.value("initialized").toBool()) {
+            QVariantMap tarifs = schoolYearRepo->getActiveYearTarifs();
+            if (!tarifs.isEmpty())
+                result["activeTarifs"] = tarifs;
+        }
+        return result;
+    });
 }
 
 // ── Étape 1 : Enregistrement de l'association ────────────────────────────
 
-bool SetupController::saveAssociation(const QVariantMap& data)
+void SetupController::saveAssociation(const QVariantMap& data)
 {
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE association_config SET "
-        "  nom_association     = ?, "
-        "  adresse             = ?, "
-        "  exercice_debut      = ?, "
-        "  exercice_fin        = ?, "
-        "  age_passage_adulte  = ?, "
-        "  date_modification   = datetime('now') "
-        "WHERE id = (SELECT MIN(id) FROM association_config)"));
-    q.addBindValue(data.value("nomAssociation").toString());
-    q.addBindValue(data.value("adresse").toString());
-    q.addBindValue(data.value("exerciceDebut", "01-01").toString());
-    q.addBindValue(data.value("exerciceFin",   "12-31").toString());
-    q.addBindValue(data.value("agePassageAdulte", 12).toInt());
-
-    if (!q.exec()) {
-        qWarning() << "[SetupController] saveAssociation error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return false;
-    }
-
-    m_associationData = data;
-    emit associationDataChanged();
-    return true;
+    m_worker->submit(QStringLiteral("Setup.saveAssociation"),
+        [assocRepo = m_assocRepo, data]() -> QVariant
+    {
+        auto res = assocRepo->saveAssociation(data);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        return QVariantMap{{"ok", true}, {"data", data}};
+    });
 }
 
 // ── Étape 2 : Catalogue des niveaux ──────────────────────────────────────
 
 void SetupController::loadNiveaux()
 {
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.exec(QStringLiteral(
-        "SELECT id, nom, COALESCE(parent_level_id, 0) "
-        "FROM niveaux WHERE valide = 1 ORDER BY id"));
-
-    QVariantList list;
-    while (q.next()) {
-        list.append(QVariantMap{
-            {"id",            q.value(0).toInt()},
-            {"nom",           q.value(1).toString()},
-            {"parentLevelId", q.value(2).toInt()}
-        });
-    }
-    m_niveaux = list;
-    emit niveauxChanged();
+    m_worker->submit(QStringLiteral("Setup.loadNiveaux"),
+        [niveauRepo = m_niveauRepo]() -> QVariant
+    {
+        auto res = niveauRepo->getAllGlobal();
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        return niveauxToList(res.value());
+    });
 }
 
-int SetupController::createNiveau(const QString& nom, int parentLevelId)
+void SetupController::createNiveau(const QString& nom, int parentLevelId)
 {
     if (nom.trimmed().isEmpty()) {
         emit operationFailed(QStringLiteral("Le nom du niveau ne peut pas être vide."));
-        return -1;
+        return;
     }
 
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    if (parentLevelId > 0) {
-        q.prepare(QStringLiteral(
-            "INSERT INTO niveaux (nom, parent_level_id) VALUES (?, ?)"));
-        q.addBindValue(nom.trimmed());
-        q.addBindValue(parentLevelId);
-    } else {
-        q.prepare(QStringLiteral("INSERT INTO niveaux (nom) VALUES (?)"));
-        q.addBindValue(nom.trimmed());
-    }
+    const QString trimmedNom = nom.trimmed();
+    m_worker->submit(QStringLiteral("Setup.createNiveau"),
+        [niveauRepo = m_niveauRepo, trimmedNom, parentLevelId]() -> QVariant
+    {
+        Niveau n;
+        n.nom          = trimmedNom;
+        n.parentLevelId = parentLevelId;
+        auto res = niveauRepo->create(n);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        int newId = res.value();
 
-    if (!q.exec()) {
-        qWarning() << "[SetupController] createNiveau error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return -1;
-    }
-
-    int newId = q.lastInsertId().toInt();
-    loadNiveaux();
-    return newId;
+        auto allRes = niveauRepo->getAllGlobal();
+        QVariantList list;
+        if (allRes.isOk()) list = niveauxToList(allRes.value());
+        return QVariantMap{{"newId", newId}, {"niveaux", list}};
+    });
 }
 
-bool SetupController::updateNiveau(int id, const QString& nom, int parentLevelId)
+void SetupController::updateNiveau(int id, const QString& nom, int parentLevelId)
 {
     if (nom.trimmed().isEmpty()) {
         emit operationFailed(QStringLiteral("Le nom du niveau ne peut pas être vide."));
-        return false;
+        return;
     }
 
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE niveaux SET nom = ?, parent_level_id = NULLIF(?, 0), "
-        "date_modification = datetime('now') WHERE id = ? AND valide = 1"));
-    q.addBindValue(nom.trimmed());
-    q.addBindValue(parentLevelId);
-    q.addBindValue(id);
+    const QString trimmedNom = nom.trimmed();
+    m_worker->submit(QStringLiteral("Setup.updateNiveau"),
+        [niveauRepo = m_niveauRepo, id, trimmedNom, parentLevelId]() -> QVariant
+    {
+        Niveau n;
+        n.id            = id;
+        n.nom           = trimmedNom;
+        n.parentLevelId = parentLevelId;
+        auto res = niveauRepo->update(n);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
 
-    if (!q.exec()) {
-        qWarning() << "[SetupController] updateNiveau error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return false;
-    }
-
-    loadNiveaux();
-    return true;
+        auto allRes = niveauRepo->getAllGlobal();
+        QVariantList list;
+        if (allRes.isOk()) list = niveauxToList(allRes.value());
+        return QVariantMap{{"niveaux", list}};
+    });
 }
 
-bool SetupController::deleteNiveau(int id)
+void SetupController::deleteNiveau(int id)
 {
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE niveaux SET valide = 0, "
-        "date_invalidation = datetime('now'), "
-        "date_modification = datetime('now') "
-        "WHERE id = ?"));
-    q.addBindValue(id);
+    m_worker->submit(QStringLiteral("Setup.deleteNiveau"),
+        [niveauRepo = m_niveauRepo, id]() -> QVariant
+    {
+        auto res = niveauRepo->removeAndDetachChildren(id);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
 
-    if (!q.exec()) {
-        qWarning() << "[SetupController] deleteNiveau error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return false;
-    }
-
-    // Détacher les niveaux enfants qui pointaient vers ce niveau supprimé
-    QSqlQuery fix(db);
-    fix.prepare(QStringLiteral(
-        "UPDATE niveaux SET parent_level_id = NULL WHERE parent_level_id = ?"));
-    fix.addBindValue(id);
-    fix.exec();
-
-    loadNiveaux();
-    return true;
+        auto allRes = niveauRepo->getAllGlobal();
+        QVariantList list;
+        if (allRes.isOk()) list = niveauxToList(allRes.value());
+        return QVariantMap{{"niveaux", list}};
+    });
 }
 
 // ── Étape 3 : Première année scolaire + finalisation ─────────────────────
 
-bool SetupController::completeSetup(const QVariantMap& anneeData)
+void SetupController::completeSetup(const QVariantMap& anneeData)
 {
-    auto db = QSqlDatabase::database(m_connectionName);
+    m_worker->submit(QStringLiteral("Setup.completeSetup"),
+        [assocRepo = m_assocRepo, schoolYearRepo = m_schoolYearRepo, anneeData]() -> QVariant
+    {
+        // 1. Create / update the first school year
+        auto idRes = schoolYearRepo->upsertAnneeScolaire(anneeData);
+        if (!idRes.isOk()) return QVariantMap{{"error", idRes.errorMessage()}};
+        const int anneeId = idRes.value();
 
-    // 1. Créer (ou mettre à jour) la première année scolaire
-    QSqlQuery insAnnee(db);
-    insAnnee.prepare(QStringLiteral(
-        "INSERT INTO annees_scolaires "
-        "  (libelle, date_debut, date_fin, tarif_jeune, tarif_adulte, "
-        "   frais_inscription_jeune, frais_inscription_adulte, statut) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, 'Active') "
-        "ON CONFLICT(libelle) DO UPDATE SET "
-        "  date_debut                = excluded.date_debut, "
-        "  date_fin                  = excluded.date_fin, "
-        "  tarif_jeune               = excluded.tarif_jeune, "
-        "  tarif_adulte              = excluded.tarif_adulte, "
-        "  frais_inscription_jeune   = excluded.frais_inscription_jeune, "
-        "  frais_inscription_adulte  = excluded.frais_inscription_adulte, "
-        "  statut                    = 'Active', "
-        "  date_modification         = datetime('now')"));
-    insAnnee.addBindValue(anneeData.value("libelle").toString());
-    insAnnee.addBindValue(anneeData.value("dateDebut").toString());
-    insAnnee.addBindValue(anneeData.value("dateFin").toString());
-    insAnnee.addBindValue(anneeData.value("tarifJeune", 0.0).toDouble());
-    insAnnee.addBindValue(anneeData.value("tarifAdulte", 0.0).toDouble());
-    insAnnee.addBindValue(anneeData.value("fraisInscriptionJeune", 0.0).toDouble());
-    insAnnee.addBindValue(anneeData.value("fraisInscriptionAdulte", 0.0).toDouble());
+        // 2. Link all valid niveaux to this year
+        auto linkRes = schoolYearRepo->linkAllNiveauxToAnnee(anneeId);
+        if (!linkRes.isOk()) return QVariantMap{{"error", linkRes.errorMessage()}};
 
-    if (!insAnnee.exec()) {
-        qWarning() << "[SetupController] completeSetup (annee) error:" << insAnnee.lastError().text();
-        emit operationFailed(insAnnee.lastError().text());
-        return false;
-    }
+        // 3. Mark application as initialized
+        auto markRes = assocRepo->markInitialized();
+        if (!markRes.isOk()) return QVariantMap{{"error", markRes.errorMessage()}};
 
-    // Récupérer l'id de l'année créée
-    QSqlQuery idQuery(db);
-    idQuery.prepare(QStringLiteral("SELECT id FROM annees_scolaires WHERE libelle = ?"));
-    idQuery.addBindValue(anneeData.value("libelle").toString());
-    if (!idQuery.exec() || !idQuery.next()) {
-        emit operationFailed(QStringLiteral("Impossible de retrouver l'année scolaire créée."));
-        return false;
-    }
-    int anneeId = idQuery.value(0).toInt();
+        // 4. Sync tarifs_mensualites
+        auto syncRes = schoolYearRepo->syncTarifs(
+            anneeId,
+            anneeData.value("tarifJeune",  0.0).toDouble(),
+            anneeData.value("tarifAdulte", 0.0).toDouble());
+        if (!syncRes.isOk()) return QVariantMap{{"error", syncRes.errorMessage()}};
 
-    // 2. Lier tous les niveaux actifs (valide = 1) à cette année
-    QSqlQuery allNiveaux(db);
-    allNiveaux.exec(QStringLiteral("SELECT id FROM niveaux WHERE valide = 1"));
-    QSqlQuery insLien(db);
-    insLien.prepare(QStringLiteral(
-        "INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) "
-        "VALUES (?, ?)"));
-    while (allNiveaux.next()) {
-        insLien.addBindValue(anneeId);
-        insLien.addBindValue(allNiveaux.value(0).toInt());
-        insLien.exec();
-    }
+        // 5. Return active tarifs
+        return QVariantMap{{"ok", true}, {"activeTarifs", schoolYearRepo->getActiveYearTarifs()}};
+    });
+}
 
-    // 3. Marquer l'application comme initialisée
-    QSqlQuery markInit(db);
-    markInit.exec(QStringLiteral(
-        "UPDATE association_config SET app_initialized = 1, "
-        "date_modification = datetime('now') "
-        "WHERE id = (SELECT MIN(id) FROM association_config)"));
+// ── Mise à jour des tarifs ────────────────────────────────────────────────
 
-    if (markInit.lastError().isValid()) {
-        qWarning() << "[SetupController] completeSetup (mark init) error:" << markInit.lastError().text();
-        emit operationFailed(markInit.lastError().text());
-        return false;
-    }
-
-    // 4. Synchroniser les tarifs dans tarifs_mensualites (utilise annee_scolaire_id FK)
-    // L'année scolaire vient d'être créée ci-dessus, on récupère son id via le libelle
-    QString libelle = anneeData.value("libelle").toString();
-    QSqlQuery anneeIdQuery(db);
-    anneeIdQuery.prepare(QStringLiteral("SELECT id FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
-    anneeIdQuery.addBindValue(libelle);
-    anneeIdQuery.exec();
-    if (anneeIdQuery.next()) {
-        int anneeId = anneeIdQuery.value(0).toInt();
-        QSqlQuery insTarif(db);
-        insTarif.prepare(QStringLiteral(
-            "INSERT OR REPLACE INTO tarifs_mensualites (categorie, annee_scolaire_id, montant) VALUES (?, ?, ?)"));
-        insTarif.addBindValue(QStringLiteral("Jeune"));
-        insTarif.addBindValue(anneeId);
-        insTarif.addBindValue(anneeData.value("tarifJeune", 0.0).toDouble());
-        insTarif.exec();
-        insTarif.addBindValue(QStringLiteral("Adulte"));
-        insTarif.addBindValue(anneeId);
-        insTarif.addBindValue(anneeData.value("tarifAdulte", 0.0).toDouble());
-        insTarif.exec();
-    }
-
-    m_initialized = true;
-    emit isInitializedChanged();
-    loadActiveTarifs();
-    emit setupCompleted();
-    return true;
+void SetupController::updateTarifs(const QVariantMap& data)
+{
+    m_worker->submit(QStringLiteral("Setup.updateTarifs"),
+        [schoolYearRepo = m_schoolYearRepo, data]() -> QVariant
+    {
+        auto res = schoolYearRepo->updateActiveTarifs(data);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        return QVariantMap{{"ok", true}, {"activeTarifs", schoolYearRepo->getActiveYearTarifs()}};
+    });
 }
 
 // ── Recalcul des catégories élèves ────────────────────────────────────────
 
-int SetupController::recalculeCategories(int agePassage)
+void SetupController::recalculeCategories(int agePassage)
 {
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE eleves SET categorie = CASE "
-        "  WHEN ("
-        "    CAST(strftime('%Y','now') AS INTEGER) - CAST(strftime('%Y', date_naissance) AS INTEGER)"
-        "    - CASE WHEN strftime('%m-%d','now') < strftime('%m-%d', date_naissance) THEN 1 ELSE 0 END"
-        "  ) < :age THEN 'Jeune' ELSE 'Adulte' "
-        "END "
-        "WHERE valide = 1 AND date_naissance IS NOT NULL AND date_naissance != ''"));
-    q.bindValue(QStringLiteral(":age"), agePassage);
+    m_worker->submit(QStringLiteral("Setup.recalculeCategories"),
+        [assocRepo = m_assocRepo, agePassage]() -> QVariant
+    {
+        auto res = assocRepo->recalculeCategories(agePassage);
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        return QVariantMap{{"count", res.value()}};
+    });
+}
 
-    if (!q.exec()) {
-        qWarning() << "[SetupController] recalculeCategories error:" << q.lastError().text();
-        emit operationFailed(q.lastError().text());
-        return -1;
+// ── Dispatching des résultats ─────────────────────────────────────────────
+
+void SetupController::onQueryCompleted(const QString& queryId, const QVariant& result)
+{
+    if (queryId == QLatin1String("Setup.checkInitialized")) {
+        const auto map = result.toMap();
+        const bool init = map.value("initialized").toBool();
+        if (map.contains("associationData")) {
+            m_associationData = map.value("associationData").toMap();
+            emit associationDataChanged();
+        }
+        if (m_initialized != init) {
+            m_initialized = init;
+            emit isInitializedChanged();
+        }
+        if (map.contains("activeTarifs")) {
+            QVariantMap tarifs = map.value("activeTarifs").toMap();
+            if (m_activeTarifs != tarifs) {
+                m_activeTarifs = tarifs;
+                emit activeTarifsChanged();
+            }
+        }
+        // Signal that the initial check is done — QML can now decide
+        // whether to open the wizard based on isInitialized.
+        if (m_isChecking) {
+            m_isChecking = false;
+            emit isCheckingChanged();
+        }
+        return;
     }
 
-    int count = q.numRowsAffected();
-    qInfo() << "[SetupController] recalculeCategories: updated" << count << "eleves with agePassage=" << agePassage;
-    emit categoriesRecalculees(count);
-    return count;
+    if (queryId == QLatin1String("Setup.saveAssociation")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController] saveAssociation error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        m_associationData = map.value("data").toMap();
+        emit associationDataChanged();
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.loadNiveaux")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        m_niveaux = result.toList();
+        emit niveauxChanged();
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.createNiveau")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController] createNiveau error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        m_niveaux = map.value("niveaux").toList();
+        emit niveauxChanged();
+        emit niveauCreated(map.value("newId").toInt());
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.updateNiveau") ||
+        queryId == QLatin1String("Setup.deleteNiveau")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController]" << queryId << "error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        m_niveaux = map.value("niveaux").toList();
+        emit niveauxChanged();
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.completeSetup")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController] completeSetup error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        m_initialized = true;
+        emit isInitializedChanged();
+        const QVariantMap tarifs = map.value("activeTarifs").toMap();
+        if (m_activeTarifs != tarifs) {
+            m_activeTarifs = tarifs;
+            emit activeTarifsChanged();
+        }
+        emit setupCompleted();
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.updateTarifs")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController] updateTarifs error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        const QVariantMap tarifs = map.value("activeTarifs").toMap();
+        if (m_activeTarifs != tarifs) {
+            m_activeTarifs = tarifs;
+            emit activeTarifsChanged();
+        }
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.recalculeCategories")) {
+        const auto map = result.toMap();
+        if (map.contains("error")) {
+            qWarning() << "[SetupController] recalculeCategories error:" << map.value("error").toString();
+            emit operationFailed(map.value("error").toString());
+            return;
+        }
+        const int count = map.value("count").toInt();
+        qInfo() << "[SetupController] recalculeCategories: updated" << count << "eleves";
+        emit categoriesRecalculees(count);
+        return;
+    }
+}
+
+void SetupController::onQueryError(const QString& queryId, const QString& error)
+{
+    if (!queryId.startsWith(QLatin1String("Setup."))) return;
+    qWarning() << "[SetupController] Query error" << queryId << ":" << error;
+    emit operationFailed(error);
 }

@@ -31,6 +31,9 @@ public:
     Result<QList<Inscription>> getEnrollmentsForActiveYear() override;
     Result<bool> deleteEnrollment(int enrollmentId) override;
 
+    // Bulletin helpers
+    Result<QList<Eleve>> getByClasseAndYear(int classeId, int anneeId) override;
+
     // School years
     Result<QVariantList> getSchoolYears() override;
 

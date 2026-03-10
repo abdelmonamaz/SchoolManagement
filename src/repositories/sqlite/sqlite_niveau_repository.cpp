@@ -17,10 +17,9 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     QSqlQuery query(db);
 
     if (!query.exec(
-            "SELECT n.id, n.nom, COALESCE(n.parent_level_id,0), COALESCE(n.annee_scolaire_id,0) "
+            "SELECT n.id, n.nom, COALESCE(n.parent_level_id,0), n.annee_scolaire_id "
             "FROM niveaux n "
-            "JOIN niveaux_actifs_par_annee napa ON napa.niveau_id = n.id "
-            "JOIN annees_scolaires a ON a.id = napa.annee_scolaire_id "
+            "JOIN annees_scolaires a ON n.annee_scolaire_id = a.id "
             "WHERE n.valide = 1 AND a.statut = 'Active' AND a.valide = 1 "
             "ORDER BY n.id")) {
         return Result<QList<Niveau>>::error(query.lastError().text());
@@ -35,6 +34,8 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
             .anneeScolaireId = query.value(3).toInt()
         });
     }
+    qDebug() << "[NiveauRepo::getAll] =>" << list.size() << "niveaux. IDs:"
+             << [&]{ QStringList s; for (const auto& n : list) s << QString("%1(%2,annee=%3)").arg(n.id).arg(n.nom).arg(n.anneeScolaireId); return s.join(","); }();
     return Result<QList<Niveau>>::success(std::move(list));
 }
 
@@ -78,16 +79,6 @@ Result<int> SqliteNiveauRepository::create(const Niveau& entity)
         return Result<int>::error(query.lastError().text());
     }
     const int newId = query.lastInsertId().toInt();
-
-    // Link to active year in junction table
-    if (activeYearId > 0) {
-        QSqlQuery qNapa(db);
-        qNapa.prepare("INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) VALUES (?, ?)");
-        qNapa.addBindValue(activeYearId);
-        qNapa.addBindValue(newId);
-        qNapa.exec();
-    }
-
     return Result<int>::success(newId);
 }
 
@@ -118,6 +109,45 @@ Result<bool> SqliteNiveauRepository::remove(int id)
     if (!query.exec()) {
         return Result<bool>::error(query.lastError().text());
     }
+    return Result<bool>::success(true);
+}
+
+Result<QList<Niveau>> SqliteNiveauRepository::getAllGlobal()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    if (!query.exec(
+            "SELECT id, nom, COALESCE(parent_level_id,0), COALESCE(annee_scolaire_id,0) "
+            "FROM niveaux WHERE valide = 1 ORDER BY id")) {
+        return Result<QList<Niveau>>::error(query.lastError().text());
+    }
+    QList<Niveau> list;
+    while (query.next()) {
+        list.append({
+            .id = query.value(0).toInt(),
+            .nom = query.value(1).toString(),
+            .parentLevelId = query.value(2).toInt(),
+            .anneeScolaireId = query.value(3).toInt()
+        });
+    }
+    return Result<QList<Niveau>>::success(std::move(list));
+}
+
+Result<bool> SqliteNiveauRepository::removeAndDetachChildren(int id)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare("UPDATE niveaux SET valide = 0, date_invalidation = datetime('now'), "
+              "date_modification = datetime('now') WHERE id = ?");
+    q.addBindValue(id);
+    if (!q.exec())
+        return Result<bool>::error(q.lastError().text());
+
+    QSqlQuery fix(db);
+    fix.prepare("UPDATE niveaux SET parent_level_id = NULL WHERE parent_level_id = ?");
+    fix.addBindValue(id);
+    fix.exec(); // non-fatal if this fails
+
     return Result<bool>::success(true);
 }
 
@@ -227,6 +257,8 @@ Result<QList<Classe>> SqliteClasseRepository::getByNiveauId(int niveauId)
             .niveauId = query.value(2).toInt()
         });
     }
+    qDebug() << "[ClasseRepo::getByNiveauId] niveauId=" << niveauId << "=>" << list.size() << "classes:"
+             << [&]{ QStringList s; for (const auto& c : list) s << QString("%1(%2)").arg(c.id).arg(c.nom); return s.join(","); }();
     return Result<QList<Classe>>::success(std::move(list));
 }
 

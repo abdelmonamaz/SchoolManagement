@@ -27,11 +27,13 @@ public:
 
     QString lastAutoBackupDate() const;
 
-    // Immediate backup: copies the DB to a user-chosen path (URL or local path accepted)
-    Q_INVOKABLE bool copyDatabaseTo(const QString& destPath);
+    // Immediate backup: copies the DB to a user-chosen path (URL or local path accepted).
+    // Result is reported asynchronously via backupSuccess / backupError signals.
+    Q_INVOKABLE void copyDatabaseTo(const QString& destPath);
 
-    // Restore: stages the selected DB file and marks it as pending (applied on next startup)
-    Q_INVOKABLE bool loadDatabase(const QString& srcPath);
+    // Restore: stages the selected DB file and marks it as pending (applied on next startup).
+    // Result is reported asynchronously via restoreReady / restoreError signals.
+    Q_INVOKABLE void loadDatabase(const QString& srcPath);
 
 signals:
     void autoBackupPathChanged();
@@ -50,7 +52,7 @@ private slots:
     void onTimerTick();
 
 private:
-    bool doAutoBackup();  // returns true on success
+    void doAutoBackup();  // runs file I/O in a background thread
     void rescheduleTimer();
 
     QString m_dbPath;

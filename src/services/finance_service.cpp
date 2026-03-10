@@ -2,9 +2,6 @@
 
 #include <QDate>
 #include <QDebug>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
 
 #include "repositories/ipaiement_repository.h"
 #include "repositories/ifinance_repository.h"
@@ -15,7 +12,7 @@ FinanceService::FinanceService(IPaiementRepository* paiementRepo, IProjetReposit
                                IPaiementPersonnelRepository* paiementPersonnelRepo,
                                ITarifMensualiteRepository* tarifRepo,
                                IDepenseRepository* depenseRepo,
-                               const QString& connectionName)
+                               IFinanceBalanceRepository* balanceRepo)
     : m_paiementRepo(paiementRepo)
     , m_projetRepo(projetRepo)
     , m_donateurRepo(donateurRepo)
@@ -23,7 +20,7 @@ FinanceService::FinanceService(IPaiementRepository* paiementRepo, IProjetReposit
     , m_paiementPersonnelRepo(paiementPersonnelRepo)
     , m_tarifRepo(tarifRepo)
     , m_depenseRepo(depenseRepo)
-    , m_connectionName(connectionName)
+    , m_balanceRepo(balanceRepo)
 {
 }
 
@@ -327,167 +324,18 @@ Result<bool> FinanceService::savePersonnelPayment(const PaiementMensuelPersonnel
 
 // --- Bilan financier ---
 
-static QVariantMap computeBalance(const QString& connName, const QString& yearFilter)
-{
-    auto db = QSqlDatabase::database(connName);
-    QSqlQuery q(db);
-    double scolarite = 0.0, inscriptions = 0.0, dons = 0.0, depenses = 0.0, salaires = 0.0;
-
-    // Scolarité
-    if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"));
-    } else {
-        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
-                                 " WHERE strftime('%Y', date_paiement) = ?"));
-        q.addBindValue(yearFilter);
-        q.exec();
-    }
-    if (q.next()) scolarite = q.value(0).toDouble();
-
-    // Inscriptions
-    if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves WHERE frais_inscription_paye = 1"));
-    } else {
-        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves"
-                                 " WHERE frais_inscription_paye = 1 AND strftime('%Y', date_inscription) = ?"));
-        q.addBindValue(yearFilter);
-        q.exec();
-    }
-    if (q.next()) inscriptions = q.value(0).toDouble();
-
-    // Dons
-    const QString donSql = QStringLiteral(
-        "SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END),0)"
-        " FROM dons");
-    if (yearFilter.isEmpty()) {
-        q.exec(donSql);
-    } else {
-        q.prepare(donSql + QStringLiteral(" WHERE strftime('%Y', date_don) = ?"));
-        q.addBindValue(yearFilter);
-        q.exec();
-    }
-    if (q.next()) dons = q.value(0).toDouble();
-
-    // Dépenses
-    if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"));
-    } else {
-        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"
-                                 " WHERE strftime('%Y', date) = ?"));
-        q.addBindValue(yearFilter);
-        q.exec();
-    }
-    if (q.next()) depenses = q.value(0).toDouble();
-
-    // Salaires personnel
-    if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"));
-    } else {
-        q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
-                                 " WHERE strftime('%Y', COALESCE(date_paiement, date_modification)) = ?"));
-        q.addBindValue(yearFilter);
-        q.exec();
-    }
-    if (q.next()) salaires = q.value(0).toDouble();
-
-    double entrees = scolarite + inscriptions + dons;
-    double sorties = depenses + salaires;
-    return {
-        {"entrees",   entrees},
-        {"sorties",   sorties},
-        {"solde",     entrees - sorties},
-        {"scolarite", scolarite},
-        {"inscriptions", inscriptions},
-        {"dons",      dons},
-        {"depenses",  depenses},
-        {"salaires",  salaires}
-    };
-}
-
-static QVariantMap computeBalanceForRange(const QString& connName, const QString& dateFrom, const QString& dateTo)
-{
-    qInfo() << "[Balance] computeBalanceForRange:" << dateFrom << "->" << dateTo;
-    auto db = QSqlDatabase::database(connName);
-    if (!db.isOpen()) { qWarning() << "[Balance] DB not open, conn=" << connName; }
-    QSqlQuery q(db);
-    double scolarite = 0.0, inscriptions = 0.0, dons = 0.0, depenses = 0.0, salaires = 0.0;
-
-    // Scolarité (date_paiement in range)
-    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
-                             " WHERE date_paiement >= ? AND date_paiement <= ?"));
-    q.addBindValue(dateFrom); q.addBindValue(dateTo);
-    if (!q.exec()) qWarning() << "[Balance] scolarite query error:" << q.lastError().text();
-    if (q.next()) scolarite = q.value(0).toDouble();
-    qInfo() << "[Balance]   scolarite =" << scolarite;
-
-    // Inscriptions (date_inscription in range, frais payés)
-    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves"
-                             " WHERE valide = 1 AND frais_inscription_paye = 1 AND date_inscription >= ? AND date_inscription <= ?"));
-    q.addBindValue(dateFrom); q.addBindValue(dateTo);
-    if (!q.exec()) qWarning() << "[Balance] inscriptions query error:" << q.lastError().text();
-    if (q.next()) inscriptions = q.value(0).toDouble();
-    qInfo() << "[Balance]   inscriptions =" << inscriptions;
-
-    // Dons (date_don in range)
-    q.prepare(QStringLiteral("SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END),0)"
-                             " FROM dons WHERE valide = 1 AND date_don >= ? AND date_don <= ?"));
-    q.addBindValue(dateFrom); q.addBindValue(dateTo);
-    if (!q.exec()) qWarning() << "[Balance] dons query error:" << q.lastError().text();
-    if (q.next()) dons = q.value(0).toDouble();
-    qInfo() << "[Balance]   dons =" << dons;
-
-    // Dépenses (date in range)
-    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"
-                             " WHERE valide = 1 AND date >= ? AND date <= ?"));
-    q.addBindValue(dateFrom); q.addBindValue(dateTo);
-    if (!q.exec()) qWarning() << "[Balance] depenses query error:" << q.lastError().text();
-    if (q.next()) depenses = q.value(0).toDouble();
-    qInfo() << "[Balance]   depenses =" << depenses;
-
-    // Salaires personnel (date_paiement in range)
-    q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
-                             " WHERE COALESCE(date_paiement, date_modification) >= ? AND COALESCE(date_paiement, date_modification) <= ?"));
-    q.addBindValue(dateFrom); q.addBindValue(dateTo);
-    if (!q.exec()) qWarning() << "[Balance] salaires query error:" << q.lastError().text();
-    if (q.next()) salaires = q.value(0).toDouble();
-    qInfo() << "[Balance]   salaires =" << salaires;
-
-    double entrees = scolarite + inscriptions + dons;
-    double sorties = depenses + salaires;
-    qInfo() << "[Balance]   TOTAL entrees=" << entrees << " sorties=" << sorties << " solde=" << (entrees - sorties);
-    return {
-        {"entrees", entrees}, {"sorties", sorties}, {"solde", entrees - sorties},
-        {"scolarite", scolarite}, {"inscriptions", inscriptions},
-        {"dons", dons}, {"depenses", depenses}, {"salaires", salaires}
-    };
-}
-
 Result<QVariantMap> FinanceService::getAnnualBalance(int year)
 {
-    if (m_connectionName.isEmpty())
-        return Result<QVariantMap>::error("Connexion DB non configuree.");
     return Result<QVariantMap>::success(
-        computeBalance(m_connectionName, QString::number(year)));
+        m_balanceRepo->computeBalance(QString::number(year)));
 }
 
 Result<QVariantMap> FinanceService::getBalanceForAccountingYear(int year, int month)
 {
-    if (m_connectionName.isEmpty())
-        return Result<QVariantMap>::error("Connexion DB non configuree.");
-    auto db = QSqlDatabase::database(m_connectionName);
-    QSqlQuery q(db);
-    bool queryOk = q.exec(QStringLiteral(
-        "SELECT exercice_debut, exercice_fin FROM association_config LIMIT 1"));
-    if (!queryOk) qWarning() << "[Balance] association_config query error:" << q.lastError().text();
+    QVariantMap config = m_balanceRepo->getExerciceConfig();
+    QString debutVal = config.value(QStringLiteral("exerciceDebut"), QStringLiteral("01-01")).toString();
+    QString finVal   = config.value(QStringLiteral("exerciceFin"),   QStringLiteral("12-31")).toString();
 
-    QString debutVal = QStringLiteral("01-01");
-    QString finVal   = QStringLiteral("12-31");
-    if (q.next()) {
-        if (!q.value(0).toString().isEmpty()) debutVal = q.value(0).toString();
-        if (!q.value(1).toString().isEmpty()) finVal   = q.value(1).toString();
-    } else {
-        qWarning() << "[Balance] association_config: no row found, using defaults";
-    }
     qInfo() << "[Balance] getBalanceForAccountingYear: year=" << year << " month=" << month
             << " debutVal=" << debutVal << " finVal=" << finVal;
 
@@ -517,28 +365,24 @@ Result<QVariantMap> FinanceService::getBalanceForAccountingYear(int year, int mo
         qInfo() << "[Balance]   MM-DD mode: dateFrom=" << dateFrom << " dateTo=" << dateTo;
     }
 
-    auto balance = computeBalanceForRange(m_connectionName, dateFrom, dateTo);
-    balance["libelle"]   = libelle;
-    balance["dateDebut"] = dateFrom;
-    balance["dateFin"]   = dateTo;
+    auto balance = m_balanceRepo->computeBalanceForRange(dateFrom, dateTo);
+    balance[QStringLiteral("libelle")]   = libelle;
+    balance[QStringLiteral("dateDebut")] = dateFrom;
+    balance[QStringLiteral("dateFin")]   = dateTo;
     qInfo() << "[Balance]   libelle=" << libelle;
     return Result<QVariantMap>::success(balance);
 }
 
 Result<QVariantMap> FinanceService::getBalanceForDateRange(const QString& dateDebut, const QString& dateFin)
 {
-    if (m_connectionName.isEmpty())
-        return Result<QVariantMap>::error("Connexion DB non configuree.");
     if (dateDebut.isEmpty() || dateFin.isEmpty())
         return Result<QVariantMap>::error("Plage de dates invalide.");
     return Result<QVariantMap>::success(
-        computeBalanceForRange(m_connectionName, dateDebut, dateFin));
+        m_balanceRepo->computeBalanceForRange(dateDebut, dateFin));
 }
 
 Result<QVariantMap> FinanceService::getTotalBalance()
 {
-    if (m_connectionName.isEmpty())
-        return Result<QVariantMap>::error("Connexion DB non configuree.");
     return Result<QVariantMap>::success(
-        computeBalance(m_connectionName, QString()));
+        m_balanceRepo->computeBalance(QString()));
 }

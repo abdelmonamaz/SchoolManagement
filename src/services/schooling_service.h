@@ -25,6 +25,7 @@ public:
 
     // Niveaux
     Result<QList<Niveau>> getAllNiveaux();
+    Result<QList<Niveau>> getAllNiveauxGlobal();
     Result<int> createNiveau(const QString& nom, int parentLevelId = 0);
     Result<bool> updateNiveau(int id, const QString& nom, int parentLevelId = 0);
     Result<bool> deleteNiveau(int id);

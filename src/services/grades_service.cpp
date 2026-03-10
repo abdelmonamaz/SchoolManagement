@@ -106,10 +106,10 @@ Result<double> GradesService::calculateStudentAverage(int eleveId)
     return Result<double>::success(sum / notes.size());
 }
 
-Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId)
+Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, int anneeId)
 {
-    // 1. All séances for the class
-    auto seancesResult = m_seanceRepo->getByClasseId(classeId);
+    // 1. All séances for the class in the specified year (bypasses active-year filter)
+    auto seancesResult = m_seanceRepo->getByClasseIdAndYear(classeId, anneeId);
     if (!seancesResult.isOk())
         return Result<QVariantMap>::error(seancesResult.errorMessage());
 

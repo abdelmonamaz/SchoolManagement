@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QList>
+#include <QVariantMap>
 
 #include "repositories/irepository.h"
 #include "models/finance.h"
@@ -36,4 +37,19 @@ public:
     virtual Result<QList<TarifMensualite>> getAll() = 0;
     virtual Result<QList<TarifMensualite>> getByYear(const QString& anneeScolaireLibelle) = 0;
     virtual Result<QList<TarifMensualite>> getByYearId(int anneeScolaireId) = 0;
+};
+
+// Agrégats financiers multi-tables : bilan, exercice comptable
+class IFinanceBalanceRepository {
+public:
+    virtual ~IFinanceBalanceRepository() = default;
+
+    // Bilan filtré par année (yearFilter = "YYYY", ou vide = toutes années)
+    virtual QVariantMap computeBalance(const QString& yearFilter) = 0;
+
+    // Bilan sur une plage de dates ISO (YYYY-MM-DD)
+    virtual QVariantMap computeBalanceForRange(const QString& dateFrom, const QString& dateTo) = 0;
+
+    // Lit {exerciceDebut, exerciceFin} depuis association_config
+    virtual QVariantMap getExerciceConfig() = 0;
 };

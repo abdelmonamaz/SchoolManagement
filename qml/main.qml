@@ -78,10 +78,25 @@ ApplicationWindow {
 
     Connections {
         target: setupController
+
+        // Fired once the async checkInitialized() result returns.
+        // At this point isInitialized has its real value.
+        function onIsCheckingChanged() {
+            if (!setupController.isChecking) {
+                if (!setupController.isInitialized) {
+                    setupWizard.open()
+                } else {
+                    schoolingController.loadNiveaux()
+                    schoolingController.loadSalles()
+                    schoolingController.loadEquipements()
+                }
+            }
+        }
+
+        // Fired when the wizard completes (isInitialized goes true after setup).
         function onIsInitializedChanged() {
-            if (!setupController.isInitialized) {
-                setupWizard.open()
-            } else {
+            if (setupController.isChecking) return   // still in initial check — ignore
+            if (setupController.isInitialized) {
                 // Wizard vient de se terminer — recharger les données académiques
                 schoolingController.loadNiveaux()
                 schoolingController.loadSalles()
@@ -91,9 +106,8 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        if (!setupController.isInitialized) {
-            setupWizard.open()
-        }
+        // Do NOT open the wizard here: isInitialized is false by default while
+        // the async check is in flight. onIsCheckingChanged() handles this.
     }
 
     // ─── Font Loading ───

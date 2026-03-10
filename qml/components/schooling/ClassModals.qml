@@ -70,6 +70,8 @@ Item {
 
     onShowEditChanged: {
         if (showEdit) {
+            console.log("[ClassModals] onShowEdit: editingClass=" + JSON.stringify(root.editingClass)
+                + " selectedNiveauId=" + root.selectedNiveauId)
             resetFilters()
             initEditState()
             localClassNameText = root.editingClass.nom
@@ -77,6 +79,8 @@ Item {
     }
 
     function reloadUnassigned() {
+        console.log("[ClassModals] reloadUnassigned: selectedNiveauId=" + root.selectedNiveauId
+            + " sexe=" + selectedSexe + " categorie=" + selectedCategorie)
         studentController.loadUnassignedStudents(root.selectedNiveauId, selectedSexe, selectedCategorie)
     }
 

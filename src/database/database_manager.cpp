@@ -889,15 +889,16 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         qInfo() << "[DatabaseManager] Migration 38: added column niveaux.annee_scolaire_id";
     }
 
-    // ── Migration 39 : link existing niveaux to active year in niveaux_actifs_par_annee ──
-    // Ensures niveaux that were not linked show up in the year-filtered getAllNiveaux()
+    // ── Migration 39 : retired — niveaux_actifs_par_annee no longer used for queries ──
+    // Canonical year-niveau link is niveaux.annee_scolaire_id (direct FK).
+
+    // ── Migration 40 : backfill niveaux.annee_scolaire_id for legacy rows with NULL ──
+    // Uses the earliest napa entry as the reference year (one-time, idempotent).
     execStatement(db, QStringLiteral(
-        "INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) "
-        "SELECT a.id, n.id FROM niveaux n, annees_scolaires a "
-        "WHERE n.valide = 1 AND a.statut = 'Active' AND a.valide = 1 "
-        "AND NOT EXISTS ("
-        "  SELECT 1 FROM niveaux_actifs_par_annee napa2 "
-        "  WHERE napa2.annee_scolaire_id = a.id AND napa2.niveau_id = n.id)"));
-    qInfo() << "[DatabaseManager] Migration 39: linked existing niveaux to active year";
+        "UPDATE niveaux SET annee_scolaire_id = ("
+        "  SELECT MIN(napa.annee_scolaire_id) FROM niveaux_actifs_par_annee napa "
+        "  WHERE napa.niveau_id = niveaux.id"
+        ") WHERE annee_scolaire_id IS NULL AND valide = 1"));
+    qInfo() << "[DatabaseManager] Migration 40: backfilled niveaux.annee_scolaire_id for legacy rows";
 }
 

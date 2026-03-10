@@ -5,6 +5,9 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+class DatabaseWorker;
+class IYearClosureRepository;
+
 class YearClosureController : public QObject {
     Q_OBJECT
 
@@ -15,7 +18,9 @@ class YearClosureController : public QObject {
     Q_PROPERTY(bool         isLoading           READ isLoading           NOTIFY isLoadingChanged)
 
 public:
-    explicit YearClosureController(const QString& dbPath, QObject* parent = nullptr);
+    explicit YearClosureController(IYearClosureRepository* repo,
+                                   DatabaseWorker* worker,
+                                   QObject* parent = nullptr);
 
     QVariantMap  closureStats()        const { return m_closureStats; }
     QVariantList studentProgressions() const { return m_studentProgressions; }
@@ -33,9 +38,9 @@ public:
     Q_INVOKABLE void loadArchivageStats();
 
     // Execute the full year closure.
-    // progressions: list of { inscriptionId, resultat, niveauSuivantId }
+    // progressions: list of { inscriptionId, eleveId, niveauActuelId, categorie, resultat, niveauSuivantId }
     // niveauSuivantId = 0 means "diplômé" (no new inscription created)
-    Q_INVOKABLE bool executeYearClosure(const QString& newLabel,
+    Q_INVOKABLE void executeYearClosure(const QString& newLabel,
                                         const QString& dateDebut,
                                         const QString& dateFin,
                                         const QVariantList& progressions);
@@ -50,10 +55,15 @@ signals:
     void closureSuccess(const QString& newYearLabel);
     void closureError(const QString& message);
 
+private slots:
+    void onQueryCompleted(const QString& queryId, const QVariant& result);
+    void onQueryError(const QString& queryId, const QString& error);
+
 private:
     void setIsLoading(bool v);
 
-    QString      m_connectionName;
+    IYearClosureRepository* m_repo    = nullptr;
+    DatabaseWorker*         m_worker  = nullptr;
     QVariantMap  m_closureStats;
     QVariantList m_studentProgressions;
     QVariantList m_incompleteSessions;

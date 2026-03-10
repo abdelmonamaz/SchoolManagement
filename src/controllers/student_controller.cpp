@@ -96,6 +96,8 @@ void StudentController::loadStudentsBySchoolYear(int month, int year) {
 }
 
 void StudentController::loadUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) {
+    qDebug() << "[StudentController::loadUnassignedStudents] niveauId=" << niveauId
+             << "sexe=" << sexe << "categorie=" << categorie;
     setLoading(true);
     m_worker->submit("Student.loadUnassignedStudents", [svc = m_service, niveauId, sexe, categorie]() -> QVariant {
         auto result = svc->getUnassignedStudents(niveauId, sexe, categorie);
@@ -256,6 +258,10 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
         if (!isError) { m_schoolYears = result.toList(); emit schoolYearsChanged(); }
         setLoading(false);
     }
+    else if (queryId == "Student.loadStudentsForBulletin") {
+        if (isError) setError(map["error"].toString());
+        else { m_studentsForBulletin = result.toList(); emit studentsForBulletinChanged(); }
+    }
     else if (queryId == "Student.updateStudent") {
         if (isError) emit operationFailed(map["error"].toString());
         else { emit operationSucceeded("Élève mis à jour"); loadStudents(); }
@@ -407,6 +413,17 @@ void StudentController::loadSchoolYears() {
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return result.value();
+    });
+}
+
+void StudentController::loadStudentsForBulletin(int classeId, int anneeId) {
+    m_worker->submit("Student.loadStudentsForBulletin", [svc = m_service, classeId, anneeId]() -> QVariant {
+        auto result = svc->getStudentsByClasseAndYear(classeId, anneeId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& e : result.value()) list.append(eleveToMap(e));
+        return list;
     });
 }
 

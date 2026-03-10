@@ -4,7 +4,7 @@
 #include <QDebug>
 
 static QVariantMap niveauToMap(const Niveau& n) {
-    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}};
+    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}, {"anneeScolaireId", n.anneeScolaireId}};
 }
 
 static QVariantMap classeToMap(const Classe& c) {
@@ -50,6 +50,17 @@ void SchoolingController::loadNiveaux() {
     setLoading(true);
     m_worker->submit("Schooling.loadNiveaux", [svc = m_service]() -> QVariant {
         auto result = svc->getAllNiveaux();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& n : result.value()) list.append(niveauToMap(n));
+        return list;
+    });
+}
+
+void SchoolingController::loadNiveauxGlobal() {
+    m_worker->submit("Schooling.loadNiveauxGlobal", [svc = m_service]() -> QVariant {
+        auto result = svc->getAllNiveauxGlobal();
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         QVariantList list;
@@ -437,6 +448,10 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
         if (isError) setError(map["error"].toString());
         else { m_niveaux = result.toList(); emit niveauxChanged(); }
         setLoading(false);
+    }
+    else if (queryId == "Schooling.loadNiveauxGlobal") {
+        if (isError) setError(map["error"].toString());
+        else { m_niveauxGlobal = result.toList(); emit niveauxGlobalChanged(); }
     }
     else if (queryId == "Schooling.loadAllClasses") {
         if (isError) setError(map["error"].toString());

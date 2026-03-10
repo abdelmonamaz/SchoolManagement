@@ -37,6 +37,7 @@ Item {
     property bool showManageEquipmentsModal: false
 
     Component.onCompleted: {
+        console.log("[SchoolingPage] onCompleted — loadNiveaux")
         schoolingController.loadNiveaux()
         schoolingController.loadSalles()
         schoolingController.loadEquipements()
@@ -46,8 +47,15 @@ Item {
     Connections {
         target: schoolingController
         function onNiveauxChanged() {
+            var ids = schoolingController.niveaux.map(function(n){ return n.id + "(" + n.nom + ")" })
+            console.log("[SchoolingPage] onNiveauxChanged:", ids.join(", "),
+                        "| selectedNiveauId=", selectedNiveauId)
             if (selectedNiveauId < 0 && schoolingController.niveaux.length > 0)
                 selectNiveau(schoolingController.niveaux[0].id)
+        }
+        function onClassesChanged() {
+            var ids = schoolingController.classes.map(function(c){ return c.id + "(" + c.nom + ",niv=" + c.niveauId + ")" })
+            console.log("[SchoolingPage] onClassesChanged:", ids.join(", "))
         }
         function onOperationSucceeded(msg) {
             console.log("SchoolingPage:", msg)
@@ -72,6 +80,8 @@ Item {
     Connections {
         target: yearClosureController
         function onClosureSuccess(newYearLabel) {
+            console.log("[SchoolingPage] onClosureSuccess:", newYearLabel, "— reset selectedNiveauId, reload niveaux")
+            selectedNiveauId = -1
             schoolingController.loadNiveaux()
             schoolingController.loadSalles()
             schoolingController.loadEquipements()
@@ -93,6 +103,7 @@ Item {
     }
 
     function selectNiveau(niveauId) {
+        console.log("[SchoolingPage] selectNiveau:", niveauId)
         selectedNiveauId = niveauId
         schoolingController.loadClassesByNiveau(niveauId)
         schoolingController.loadMatieresByNiveau(niveauId)

@@ -197,6 +197,28 @@ Result<QList<Eleve>> SqliteEleveRepository::getByClasseId(int classeId) {
     return Result<QList<Eleve>>::success(list);
 }
 
+Result<QList<Eleve>> SqliteEleveRepository::getByClasseAndYear(int classeId, int anneeId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT e.id, e.nom, e.prenom, e.sexe, e.telephone, e.adresse, "
+        "  e.date_naissance, e.nom_parent, e.tel_parent, e.commentaire, "
+        "  e.categorie, COALESCE(e.cin_eleve,''), COALESCE(e.cin_parent,''), "
+        "  1, COALESCE(i.frais_inscription_paye, 0), "
+        "  COALESCE(i.classe_id, 0), COALESCE(i.niveau_id, 0) "
+        "FROM eleves e "
+        "JOIN inscriptions_eleves i ON e.id = i.eleve_id "
+        "WHERE i.classe_id = ? AND i.annee_scolaire_id = ? "
+        "  AND i.valide = 1 AND e.valide = 1 "
+        "ORDER BY e.nom, e.prenom"));
+    query.addBindValue(classeId);
+    query.addBindValue(anneeId);
+    if (!query.exec()) return Result<QList<Eleve>>::error(query.lastError().text());
+    QList<Eleve> list;
+    while (query.next()) list.append(rowToEleveWithStatus(query));
+    return Result<QList<Eleve>>::success(list);
+}
+
 Result<int> SqliteEleveRepository::countAll() {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
@@ -245,6 +267,8 @@ Result<bool> SqliteEleveRepository::assignToClasse(int studentId, int classeId) 
 }
 
 Result<QList<Eleve>> SqliteEleveRepository::getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) {
+    qDebug() << "[SqliteEleveRepo::getUnassignedStudents] niveauId=" << niveauId
+             << "sexe=" << sexe << "categorie=" << categorie;
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
@@ -274,6 +298,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getUnassignedStudents(int niveauId, 
         binds << categorie;
     }
 
+    qDebug() << "[SqliteEleveRepo::getUnassignedStudents] SQL:" << sql << "binds:" << binds;
     query.prepare(sql);
     for (const auto& bind : binds) {
         query.addBindValue(bind);
@@ -285,6 +310,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getUnassignedStudents(int niveauId, 
     while (query.next()) {
         list.append(rowToEleve(query));
     }
+    qDebug() << "[SqliteEleveRepo::getUnassignedStudents] => " << list.size() << "élève(s) trouvé(s)";
     return Result<QList<Eleve>>::success(list);
 }
 

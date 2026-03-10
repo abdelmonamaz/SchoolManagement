@@ -16,9 +16,11 @@ public:
 
     Result<QList<Seance>> getByDateRange(const QDateTime& from, const QDateTime& to) override;
     Result<QList<Seance>> getByClasseId(int classeId) override;
+    Result<QList<Seance>> getByClasseIdAndYear(int classeId, int anneeId) override;
     Result<int> getTotalMinutesByProf(int profId, const QDate& from, const QDate& to) override;
     Result<QStringList> checkConflicts(const Seance& seance, int excludeSeanceId = 0) override;
     Result<bool> setPresenceValide(int seanceId, bool valide) override;
+    int findAnneeScolaireIdForDate(const QString& isoDate) override;
 
 private:
     QString m_connectionName;

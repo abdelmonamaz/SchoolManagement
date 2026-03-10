@@ -50,6 +50,10 @@ Result<QVariantList> StudentService::loadSchoolYears() {
     return m_eleveRepo->getSchoolYears();
 }
 
+Result<QList<Eleve>> StudentService::getStudentsByClasseAndYear(int classeId, int anneeId) {
+    return m_eleveRepo->getByClasseAndYear(classeId, anneeId);
+}
+
 Result<QList<Eleve>> StudentService::getAllStudents()
 {
     return m_eleveRepo->getAll();

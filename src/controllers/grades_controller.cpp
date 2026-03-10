@@ -6,6 +6,8 @@
 #include <QDate>
 #include <QFile>
 #include <QRegularExpression>
+#include <QStringConverter>
+#include <QTextStream>
 #include <QStandardPaths>
 #include <QTextDocument>
 #include <QPdfWriter>
@@ -87,21 +89,27 @@ static QString buildBulletinHtml(const QVariantMap& data,
     );
 
     // ── En-tête école ────────────────────────────────────────────────────────
+    const QString assocNom  = data.value("associationNom",
+                                         QStringLiteral("Ez-Zaytouna")).toString();
+    const QString assocAddr = data.value("associationAdresse", QString()).toString();
+
     html << QStringLiteral(
         "<table style=\"border-bottom:2px solid #2E7D52;margin-bottom:8px;\"><tr>"
         "<td style=\"padding:4px 0;\">"
-        "<span style=\"font-size:20pt;font-weight:bold;color:#2E7D52;\">Ez-Zaytouna</span><br>"
+        "<span style=\"font-size:20pt;font-weight:bold;color:#2E7D52;\">%1</span><br>"
         "<span style=\"font-size:8pt;color:#888;font-weight:bold;\">INSTITUT D'ENSEIGNEMENT ISLAMIQUE</span><br>"
-        "<span style=\"font-size:8pt;color:#AAA;\">123 Rue de la Science, Casablanca, Maroc</span>"
+        "<span style=\"font-size:8pt;color:#AAA;\">%2</span>"
         "</td>"
         "<td align=\"right\" width=\"130\" style=\"padding:4px 0;\">"
         "<table cellspacing=\"0\" cellpadding=\"4\" width=\"120\""
         " style=\"border:2px solid #F59E0B;\"><tr><td align=\"center\">"
         "<div style=\"font-size:7pt;color:#F59E0B;font-weight:bold;\">ANNÉE SCOLAIRE</div>"
-        "<div style=\"font-size:13pt;font-weight:bold;color:#F59E0B;\">%1</div>"
+        "<div style=\"font-size:13pt;font-weight:bold;color:#F59E0B;\">%3</div>"
         "</td></tr></table>"
         "</td></tr></table>"
-    ).arg(anneeScolaire.toHtmlEscaped());
+    ).arg(assocNom.toHtmlEscaped(),
+          assocAddr.isEmpty() ? QString() : assocAddr.toHtmlEscaped(),
+          anneeScolaire.toHtmlEscaped());
 
     // ── Titre ────────────────────────────────────────────────────────────────
     html << QStringLiteral(
@@ -247,10 +255,10 @@ static QString buildBulletinHtml(const QVariantMap& data,
     html << QStringLiteral(
         "<div style=\"text-align:center;font-size:8pt;color:#AAA;"
         "margin-top:16px;border-top:1px solid #EEE;padding-top:8px;\">"
-        "Ez-Zaytouna Institut &bull; T&eacute;l: +212 5 22 XX XX XX"
-        " &bull; Email: contact@ez-zaytouna.ma<br>"
-        "Document g&eacute;n&eacute;r&eacute; le %1</div>"
-    ).arg(QDate::currentDate().toString("dd/MM/yyyy"));
+        "%1<br>"
+        "Document g&eacute;n&eacute;r&eacute; le %2</div>"
+    ).arg(assocNom.toHtmlEscaped(),
+          QDate::currentDate().toString("dd/MM/yyyy"));
 
     html << QStringLiteral("</body></html>");
     return html.join(QString());
@@ -324,9 +332,9 @@ void GradesController::loadClassAverage(int seanceId) {
     });
 }
 
-void GradesController::loadBulletinData(int eleveId, int classeId) {
-    m_worker->submit("Grades.loadBulletinData", [svc = m_service, eleveId, classeId]() -> QVariant {
-        auto result = svc->buildBulletinData(eleveId, classeId);
+void GradesController::loadBulletinData(int eleveId, int classeId, int anneeId) {
+    m_worker->submit("Grades.loadBulletinData", [svc = m_service, eleveId, classeId, anneeId]() -> QVariant {
+        auto result = svc->buildBulletinData(eleveId, classeId, anneeId);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return result.value();
@@ -338,7 +346,8 @@ QString GradesController::exportBulletinPdf(const QVariantMap& bulletinData,
                                              const QString& studentMatricule,
                                              const QString& niveauNom,
                                              const QString& classeNom,
-                                             const QString& anneeScolaire)
+                                             const QString& anneeScolaire,
+                                             const QString& targetPath)
 {
     // Build HTML with placeholder matière names → replace after building
     QString html = buildBulletinHtml(bulletinData, studentName, studentMatricule,
@@ -354,11 +363,27 @@ QString GradesController::exportBulletinPdf(const QVariantMap& bulletinData,
     }
 
     // Output path
-    QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    QString safeName = studentName;
-    safeName.remove(QRegularExpression(QStringLiteral("[^\\w\\s-]")));
-    safeName = safeName.simplified().replace(' ', '_');
-    QString filePath = QStringLiteral("%1/bulletin_%2.pdf").arg(docsPath, safeName);
+    QString filePath;
+    if (!targetPath.isEmpty()) {
+        filePath = targetPath;
+    } else {
+        QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        // Sanitize year: replace / with - (e.g. "2024/2025" → "2024-2025")
+        QString safeYear = anneeScolaire;
+        safeYear.replace('/', '-').replace('\\', '-');
+        safeYear.remove(QRegularExpression(QStringLiteral("[^\\w\\s.-]")));
+        safeYear = safeYear.simplified().replace(' ', '_');
+        // Sanitize name: keep only ASCII word chars (non-ASCII like Arabic becomes empty → use ID)
+        QString safeName = studentName;
+        safeName.remove(QRegularExpression(QStringLiteral("[^\\w\\s-]")));
+        safeName = safeName.simplified().replace(' ', '_');
+        // Build filename: bulletin_[year]_[name or matricule].pdf
+        QString safeMatricule = studentMatricule;
+        safeMatricule.remove(QRegularExpression(QStringLiteral("[^\\w.-]")));
+        QString namePart = safeName.isEmpty() ? safeMatricule : safeName;
+        if (namePart.isEmpty()) namePart = QStringLiteral("eleve");
+        filePath = QStringLiteral("%1/bulletin_%2_%3.pdf").arg(docsPath, safeYear, namePart);
+    }
 
     QPdfWriter writer(filePath);
     writer.setPageSize(QPageSize(QPageSize::A4));
@@ -373,6 +398,101 @@ QString GradesController::exportBulletinPdf(const QVariantMap& bulletinData,
     doc.setPageSize(paintRect.size());
     doc.print(&writer);
 
+    return filePath;
+}
+
+QString GradesController::exportBulletinCsv(const QVariantMap& bulletinData,
+                                             const QString& studentName,
+                                             const QString& niveauNom,
+                                             const QString& classeNom,
+                                             const QString& anneeScolaire,
+                                             const QString& targetPath)
+{
+    // Collect all unique exam titles
+    QVariantList matieres = bulletinData["matieres"].toList();
+    QStringList titres;
+    for (const auto& matV : matieres) {
+        auto mat = matV.toMap();
+        for (const auto& epV : mat["epreuves"].toList()) {
+            QString titre = epV.toMap().value("titre").toString();
+            if (!titre.isEmpty() && !titres.contains(titre))
+                titres.append(titre);
+        }
+    }
+
+    // Build CSV
+    QStringList lines;
+    // Header row
+    QStringList header;
+    header << "Élève" << "Année" << "Niveau" << "Classe" << "Matière";
+    for (const auto& t : titres) header << t;
+    header << "Moyenne" << "Présences" << "Séances totales";
+    lines.append(header.join(";"));
+
+    double moyGenSum = 0.0; int moyGenCount = 0;
+    for (const auto& matV : matieres) {
+        auto mat = matV.toMap();
+        QString matNom = mat.value("nom", QStringLiteral("Matière #%1").arg(mat["matiereId"].toInt())).toString();
+
+        // Build note map by titre
+        QMap<QString, double> noteMap;
+        for (const auto& epV : mat["epreuves"].toList()) {
+            auto ep = epV.toMap();
+            if (ep.value("hasNote").toBool())
+                noteMap[ep["titre"].toString()] = ep["note"].toDouble();
+        }
+
+        double moy = mat.contains("moyenne") && !mat["moyenne"].isNull() ? mat["moyenne"].toDouble() : -1.0;
+        int pres  = mat.value("presenceCount", 0).toInt();
+        int total = mat.value("totalSeances", 0).toInt();
+
+        QStringList row;
+        row << studentName << anneeScolaire << niveauNom << classeNom << matNom;
+        for (const auto& t : titres)
+            row << (noteMap.contains(t) ? QString::number(noteMap[t], 'f', 1) : "");
+        row << (moy >= 0 ? QString::number(moy, 'f', 2) : "");
+        row << QString::number(pres) << QString::number(total);
+        lines.append(row.join(";"));
+
+        if (moy >= 0) { moyGenSum += moy; moyGenCount++; }
+    }
+
+    // Summary row
+    if (moyGenCount > 0) {
+        int totalPres = bulletinData.value("presenceTotale", 0).toInt();
+        int totalSean = bulletinData.value("seancesTotales", 0).toInt();
+        QStringList sumRow;
+        sumRow << studentName << anneeScolaire << niveauNom << classeNom << "MOYENNE GÉNÉRALE";
+        for (int i = 0; i < titres.size(); i++) sumRow << "";
+        sumRow << QString::number(moyGenSum / moyGenCount, 'f', 2);
+        sumRow << QString::number(totalPres) << QString::number(totalSean);
+        lines.append(sumRow.join(";"));
+    }
+
+    // Write file
+    QString filePath;
+    if (!targetPath.isEmpty()) {
+        filePath = targetPath;
+    } else {
+        QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        QString safeYear = anneeScolaire;
+        safeYear.replace('/', '-').replace('\\', '-');
+        safeYear.remove(QRegularExpression(QStringLiteral("[^\\w\\s.-]")));
+        safeYear = safeYear.simplified().replace(' ', '_');
+        QString safeName = studentName;
+        safeName.remove(QRegularExpression(QStringLiteral("[^\\w\\s-]")));
+        safeName = safeName.simplified().replace(' ', '_');
+        if (safeName.isEmpty()) safeName = QStringLiteral("eleve");
+        filePath = QStringLiteral("%1/bulletin_%2_%3.csv").arg(docsPath, safeYear, safeName);
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return QString();
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+    out << lines.join("\n");
+    file.close();
     return filePath;
 }
 

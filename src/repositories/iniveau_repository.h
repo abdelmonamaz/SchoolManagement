@@ -8,6 +8,12 @@
 class INiveauRepository : public IRepository<Niveau> {
 public:
     ~INiveauRepository() override = default;
+
+    // Returns all valid niveaux regardless of active year (used during setup wizard).
+    virtual Result<QList<Niveau>> getAllGlobal() = 0;
+
+    // Soft-delete a niveau and detach any children pointing to it.
+    virtual Result<bool> removeAndDetachChildren(int id) = 0;
 };
 
 class IClasseRepository : public IRepository<Classe> {

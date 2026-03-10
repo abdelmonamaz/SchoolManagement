@@ -1,5 +1,6 @@
 #include "repositories/sqlite/sqlite_finance_repository.h"
 
+#include <QDebug>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -483,4 +484,159 @@ Result<QList<TarifMensualite>> SqliteTarifMensualiteRepository::getByYearId(int 
     QList<TarifMensualite> list;
     while (query.next()) list.append(rowToTarif(query));
     return Result<QList<TarifMensualite>>::success(list);
+}
+
+// ─── SqliteFinanceBalanceRepository ───────────────────────────────────────────
+
+SqliteFinanceBalanceRepository::SqliteFinanceBalanceRepository(const QString& connectionName)
+    : m_connectionName(connectionName)
+{
+}
+
+QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFilter)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    double scolarite = 0.0, inscriptions = 0.0, dons = 0.0, depenses = 0.0, salaires = 0.0;
+
+    // Scolarité
+    if (yearFilter.isEmpty()) {
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"));
+    } else {
+        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
+                                 " WHERE strftime('%Y', date_paiement) = ?"));
+        q.addBindValue(yearFilter);
+        q.exec();
+    }
+    if (q.next()) scolarite = q.value(0).toDouble();
+
+    // Inscriptions
+    if (yearFilter.isEmpty()) {
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves WHERE frais_inscription_paye = 1"));
+    } else {
+        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves"
+                                 " WHERE frais_inscription_paye = 1 AND strftime('%Y', date_inscription) = ?"));
+        q.addBindValue(yearFilter);
+        q.exec();
+    }
+    if (q.next()) inscriptions = q.value(0).toDouble();
+
+    // Dons
+    const QString donSql = QStringLiteral(
+        "SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END),0)"
+        " FROM dons");
+    if (yearFilter.isEmpty()) {
+        q.exec(donSql);
+    } else {
+        q.prepare(donSql + QStringLiteral(" WHERE strftime('%Y', date_don) = ?"));
+        q.addBindValue(yearFilter);
+        q.exec();
+    }
+    if (q.next()) dons = q.value(0).toDouble();
+
+    // Dépenses
+    if (yearFilter.isEmpty()) {
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"));
+    } else {
+        q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"
+                                 " WHERE strftime('%Y', date) = ?"));
+        q.addBindValue(yearFilter);
+        q.exec();
+    }
+    if (q.next()) depenses = q.value(0).toDouble();
+
+    // Salaires personnel
+    if (yearFilter.isEmpty()) {
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"));
+    } else {
+        q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
+                                 " WHERE strftime('%Y', COALESCE(date_paiement, date_modification)) = ?"));
+        q.addBindValue(yearFilter);
+        q.exec();
+    }
+    if (q.next()) salaires = q.value(0).toDouble();
+
+    double entrees = scolarite + inscriptions + dons;
+    double sorties = depenses + salaires;
+    return {
+        {"entrees",      entrees},
+        {"sorties",      sorties},
+        {"solde",        entrees - sorties},
+        {"scolarite",    scolarite},
+        {"inscriptions", inscriptions},
+        {"dons",         dons},
+        {"depenses",     depenses},
+        {"salaires",     salaires}
+    };
+}
+
+QVariantMap SqliteFinanceBalanceRepository::computeBalanceForRange(const QString& dateFrom, const QString& dateTo)
+{
+    qInfo() << "[Balance] computeBalanceForRange:" << dateFrom << "->" << dateTo;
+    auto db = QSqlDatabase::database(m_connectionName);
+    if (!db.isOpen()) { qWarning() << "[Balance] DB not open, conn=" << m_connectionName; }
+    QSqlQuery q(db);
+    double scolarite = 0.0, inscriptions = 0.0, dons = 0.0, depenses = 0.0, salaires = 0.0;
+
+    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
+                             " WHERE date_paiement >= ? AND date_paiement <= ?"));
+    q.addBindValue(dateFrom); q.addBindValue(dateTo);
+    if (!q.exec()) qWarning() << "[Balance] scolarite query error:" << q.lastError().text();
+    if (q.next()) scolarite = q.value(0).toDouble();
+    qInfo() << "[Balance]   scolarite =" << scolarite;
+
+    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves"
+                             " WHERE valide = 1 AND frais_inscription_paye = 1 AND date_inscription >= ? AND date_inscription <= ?"));
+    q.addBindValue(dateFrom); q.addBindValue(dateTo);
+    if (!q.exec()) qWarning() << "[Balance] inscriptions query error:" << q.lastError().text();
+    if (q.next()) inscriptions = q.value(0).toDouble();
+    qInfo() << "[Balance]   inscriptions =" << inscriptions;
+
+    q.prepare(QStringLiteral("SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END),0)"
+                             " FROM dons WHERE valide = 1 AND date_don >= ? AND date_don <= ?"));
+    q.addBindValue(dateFrom); q.addBindValue(dateTo);
+    if (!q.exec()) qWarning() << "[Balance] dons query error:" << q.lastError().text();
+    if (q.next()) dons = q.value(0).toDouble();
+    qInfo() << "[Balance]   dons =" << dons;
+
+    q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"
+                             " WHERE valide = 1 AND date >= ? AND date <= ?"));
+    q.addBindValue(dateFrom); q.addBindValue(dateTo);
+    if (!q.exec()) qWarning() << "[Balance] depenses query error:" << q.lastError().text();
+    if (q.next()) depenses = q.value(0).toDouble();
+    qInfo() << "[Balance]   depenses =" << depenses;
+
+    q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
+                             " WHERE COALESCE(date_paiement, date_modification) >= ? AND COALESCE(date_paiement, date_modification) <= ?"));
+    q.addBindValue(dateFrom); q.addBindValue(dateTo);
+    if (!q.exec()) qWarning() << "[Balance] salaires query error:" << q.lastError().text();
+    if (q.next()) salaires = q.value(0).toDouble();
+    qInfo() << "[Balance]   salaires =" << salaires;
+
+    double entrees = scolarite + inscriptions + dons;
+    double sorties = depenses + salaires;
+    qInfo() << "[Balance]   TOTAL entrees=" << entrees << " sorties=" << sorties << " solde=" << (entrees - sorties);
+    return {
+        {"entrees",      entrees},
+        {"sorties",      sorties},
+        {"solde",        entrees - sorties},
+        {"scolarite",    scolarite},
+        {"inscriptions", inscriptions},
+        {"dons",         dons},
+        {"depenses",     depenses},
+        {"salaires",     salaires}
+    };
+}
+
+QVariantMap SqliteFinanceBalanceRepository::getExerciceConfig()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    QString debut = QStringLiteral("01-01");
+    QString fin   = QStringLiteral("12-31");
+    if (q.exec(QStringLiteral("SELECT exercice_debut, exercice_fin FROM association_config LIMIT 1")) && q.next()) {
+        if (!q.value(0).toString().isEmpty()) debut = q.value(0).toString();
+        if (!q.value(1).toString().isEmpty()) fin   = q.value(1).toString();
+    }
+    return {{"exerciceDebut", debut}, {"exerciceFin", fin}};
 }

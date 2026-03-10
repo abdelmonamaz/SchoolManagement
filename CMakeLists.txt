@@ -39,6 +39,8 @@ add_library(GS_Core STATIC
     src/repositories/ipaiement_repository.h
     src/repositories/ipaiement_personnel_repository.h
     src/repositories/ifinance_repository.h
+    src/repositories/isetup_repository.h
+    src/repositories/iyear_closure_repository.h
 
     # SQLite implementations
     src/repositories/sqlite/sqlite_salle_repository.h
@@ -61,6 +63,10 @@ add_library(GS_Core STATIC
     src/repositories/sqlite/sqlite_paiement_personnel_repository.cpp
     src/repositories/sqlite/sqlite_finance_repository.h
     src/repositories/sqlite/sqlite_finance_repository.cpp
+    src/repositories/sqlite/sqlite_setup_repository.h
+    src/repositories/sqlite/sqlite_setup_repository.cpp
+    src/repositories/sqlite/sqlite_year_closure_repository.h
+    src/repositories/sqlite/sqlite_year_closure_repository.cpp
 
     # Database
     src/database/database_manager.h

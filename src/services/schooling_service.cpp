@@ -24,6 +24,11 @@ Result<QList<Niveau>> SchoolingService::getAllNiveaux()
     return m_niveauRepo->getAll();
 }
 
+Result<QList<Niveau>> SchoolingService::getAllNiveauxGlobal()
+{
+    return m_niveauRepo->getAllGlobal();
+}
+
 Result<int> SchoolingService::createNiveau(const QString& nom, int parentLevelId)
 {
     if (nom.trimmed().isEmpty()) {

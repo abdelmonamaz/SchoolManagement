@@ -21,8 +21,8 @@ public:
     Result<double> calculateAverage(int seanceId);
     Result<double> calculateStudentAverage(int eleveId);
 
-    // Bulletin: grouped grades per matière for a student in a class
-    Result<QVariantMap> buildBulletinData(int eleveId, int classeId);
+    // Bulletin: grouped grades per matière for a student in a class/year
+    Result<QVariantMap> buildBulletinData(int eleveId, int classeId, int anneeId);
 
 private:
     IParticipationRepository* m_participationRepo;

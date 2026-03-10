@@ -45,6 +45,10 @@ class IDonRepository;
 class IPaiementPersonnelRepository;
 class ITarifMensualiteRepository;
 class IDepenseRepository;
+class IFinanceBalanceRepository;
+class IAssociationRepository;
+class ISetupSchoolYearRepository;
+class IYearClosureRepository;
 
 class AppController : public QObject {
     Q_OBJECT
@@ -89,8 +93,12 @@ private:
     std::unique_ptr<IDonateurRepository> m_donateurRepo;
     std::unique_ptr<IDonRepository> m_donRepo;
     std::unique_ptr<IPaiementPersonnelRepository> m_paiementPersonnelRepo;
-    std::unique_ptr<ITarifMensualiteRepository>   m_tarifRepo;
-    std::unique_ptr<IDepenseRepository>           m_depenseRepo;
+    std::unique_ptr<ITarifMensualiteRepository>    m_tarifRepo;
+    std::unique_ptr<IDepenseRepository>            m_depenseRepo;
+    std::unique_ptr<IFinanceBalanceRepository>     m_balanceRepo;
+    std::unique_ptr<IAssociationRepository>        m_assocRepo;
+    std::unique_ptr<ISetupSchoolYearRepository>    m_setupSchoolYearRepo;
+    std::unique_ptr<IYearClosureRepository>        m_yearClosureRepo;
 
     // Services (owned)
     std::unique_ptr<SchoolingService> m_schoolingService;

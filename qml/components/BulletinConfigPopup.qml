@@ -1,41 +1,104 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1
 import UI.Components
 
 // Popup de configuration de la génération des bulletins
 // Signaux :
-//   bulletinRequested(int eleveId, int classeId, bool allStudents)
+//   bulletinRequested(eleveId, classeId, allStudents, csvMode, anneeId, targetFolder)
+//   targetFolder = "" → single student (BulletinPreviewPopup handles the file dialog)
+//   targetFolder = path → batch mode, files saved to this folder with auto-generated names
 ModalOverlay {
     id: root
 
-    signal bulletinRequested(int eleveId, int classeId, bool allStudents)
+    signal bulletinRequested(int eleveId, int classeId, bool allStudents, bool csvMode,
+                             int anneeId, string targetFolder)
 
     // État interne
-    property int    selNiveauId:  -1
-    property int    selClasseId:  -1
-    property int    selEleveId:   -1
-    property bool   allStudents:  true
+    property int    selAnneeId:      -1
+    property int    selNiveauId:     -1
+    property int    selClasseId:     -1
+    property int    selEleveId:      -1
+    property bool   allStudents:     true
+    property bool   _pendingCsvMode: false  // which button opened the folder dialog
+
+    // Convert file/folder URL to local path
+    function urlToPath(url) {
+        var s = url.toString()
+        if (s.startsWith("file:///")) {
+            s = s.slice(8)
+            if (!s.match(/^[A-Za-z]:/)) s = "/" + s  // Unix: restore leading /
+        }
+        return decodeURIComponent(s)
+    }
 
     modalWidth: 560
 
+    // Niveaux filtrés par année sélectionnée (using anneeScolaireId field)
+    readonly property var filteredNiveaux: {
+        if (selAnneeId < 0) return schoolingController.niveaux
+        var all = schoolingController.niveauxGlobal
+        var res = []
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].anneeScolaireId === selAnneeId) res.push(all[i])
+        }
+        return res.length > 0 ? res : schoolingController.niveaux
+    }
+
     onOpened: {
+        // Refresh year list + niveaux in case a year was closed since last open
+        studentController.loadSchoolYears()
+        schoolingController.loadNiveauxGlobal()
+
         selNiveauId  = -1
         selClasseId  = -1
         selEleveId   = -1
         allStudents  = true
+
+        // Pre-select current year (index 0 = most recent, since schoolYears is DESC)
+        var years = studentController.schoolYears
+        if (years.length > 0) {
+            selAnneeId = years[0].id
+            cfgAnneeCombo.currentIndex = 0
+        } else {
+            selAnneeId = -1
+            if (cfgAnneeCombo) cfgAnneeCombo.currentIndex = -1
+        }
+
         if (cfgNiveauCombo)  cfgNiveauCombo.currentIndex  = -1
         if (cfgClasseCombo)  cfgClasseCombo.currentIndex  = -1
         if (cfgEleveCombo)   cfgEleveCombo.currentIndex   = -1
     }
 
-    // Students in selected class
-    readonly property var classStudents: {
-        if (selClasseId < 0) return []
-        var result = [], all = studentController.students
-        for (var i = 0; i < all.length; i++)
-            if (all[i].classeId === selClasseId) result.push(all[i])
-        return result
+    // Students in selected class+year — loaded async via loadStudentsForBulletin
+    readonly property var classStudents: studentController.studentsForBulletin
+
+    Connections {
+        target: studentController
+        function onStudentsForBulletinChanged() {
+            console.log("[BulletinConfig] studentsForBulletin updated:",
+                studentController.studentsForBulletin.length, "élèves")
+        }
+    }
+
+    // ── Folder dialog for batch export ──────────────────────────────────────
+    FolderDialog {
+        id: exportFolderDialog
+        title: root._pendingCsvMode ? "Dossier d'export CSV" : "Dossier d'export PDF"
+        onAccepted: {
+            var folderPath = root.urlToPath(exportFolderDialog.folder)
+            console.log("[BulletinConfig] Folder selected:", folderPath,
+                "csvMode=", root._pendingCsvMode)
+            root.bulletinRequested(
+                -1,  // all students
+                root.selClasseId,
+                true,
+                root._pendingCsvMode,
+                root.selAnneeId,
+                folderPath
+            )
+        }
     }
 
     Column {
@@ -76,36 +139,6 @@ ModalOverlay {
 
         Separator { width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter }
 
-        // ── Bandeau info ────────────────────────────────────────────────────
-        Rectangle {
-            width: parent.width - 64
-            anchors.horizontalCenter: parent.horizontalCenter
-            implicitHeight: infoCol.implicitHeight + 20
-            radius: 12; color: Style.infoBg; border.color: Style.infoBorder
-
-            Column {
-                id: infoCol
-                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
-                spacing: 4
-
-                RowLayout {
-                    spacing: 8
-                    IconLabel { iconName: "info"; iconSize: 14; iconColor: Style.infoColor }
-                    Text {
-                        Layout.fillWidth: true
-                        text: "Information"
-                        font.pixelSize: 12; font.bold: true; color: Style.infoColor
-                    }
-                }
-                Text {
-                    width: parent.width
-                    text: "Les bulletins seront générés au format PDF avec l'en-tête de l'école Ez-Zaytouna et incluront toutes les notes saisies pour la période sélectionnée."
-                    font.pixelSize: 11; color: Style.infoColor
-                    wrapMode: Text.WordWrap; lineHeight: 1.5
-                }
-            }
-        }
-
         // ── CONFIGURATION ────────────────────────────────────────────────────
         Column {
             width: parent.width - 64
@@ -114,6 +147,44 @@ ModalOverlay {
 
             SectionLabel { text: "CONFIGURATION" }
 
+            // ── Année scolaire ──
+            Column {
+                width: parent.width; spacing: 6
+                SectionLabel { text: "ANNÉE SCOLAIRE" }
+                Rectangle {
+                    width: parent.width; height: 44; radius: 12
+                    color: Style.bgPage; border.color: Style.borderLight
+
+                    ComboBox {
+                        id: cfgAnneeCombo
+                        anchors.fill: parent; anchors.margins: 4
+                        model: studentController.schoolYears
+                        textRole: "libelle"; valueRole: "id"
+                        currentIndex: 0
+                        background: Rectangle { color: "transparent" }
+                        contentItem: Text {
+                            leftPadding: 8
+                            text: cfgAnneeCombo.currentIndex >= 0 ? cfgAnneeCombo.currentText : "Sélectionner..."
+                            font.pixelSize: 13; font.bold: true
+                            color: cfgAnneeCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onCurrentValueChanged: {
+                            if (currentIndex < 0) return
+                            root.selAnneeId = currentValue
+                            // Reset downstream combos
+                            cfgNiveauCombo.currentIndex = -1
+                            cfgClasseCombo.currentIndex = -1
+                            if (cfgEleveCombo) cfgEleveCombo.currentIndex = -1
+                            root.selNiveauId = -1
+                            root.selClasseId = -1
+                            root.selEleveId  = -1
+                            // studentsForBulletin reset happens on classe re-selection
+                        }
+                    }
+                }
+            }
+
             // Niveau + Classe — Row avec largeurs explicites pour garantir l'égalité
             Row {
                 id: niveauClasseRow
@@ -121,7 +192,6 @@ ModalOverlay {
                 spacing: 16
 
                 Column {
-                    // Largeur exacte = moitié du parent moins l'espacement
                     width: (niveauClasseRow.width - niveauClasseRow.spacing) / 2
                     spacing: 6
 
@@ -133,7 +203,7 @@ ModalOverlay {
                         ComboBox {
                             id: cfgNiveauCombo
                             anchors.fill: parent; anchors.margins: 4
-                            model: schoolingController.niveaux
+                            model: root.filteredNiveaux
                             textRole: "nom"; valueRole: "id"
                             currentIndex: -1
                             background: Rectangle { color: "transparent" }
@@ -189,6 +259,13 @@ ModalOverlay {
                                 root.selClasseId = currentValue
                                 cfgEleveCombo.currentIndex = -1
                                 root.selEleveId = -1
+                                if (root.selAnneeId >= 0) {
+                                    console.log("[BulletinConfig] loadStudentsForBulletin classeId="
+                                        + currentValue + " anneeId=" + root.selAnneeId)
+                                    studentController.loadStudentsForBulletin(currentValue, root.selAnneeId)
+                                } else {
+                                    console.log("[BulletinConfig] WARNING: selAnneeId is -1, skipping loadStudentsForBulletin")
+                                }
                             }
                         }
                     }
@@ -328,8 +405,11 @@ ModalOverlay {
             spacing: 12
 
             readonly property bool formValid: root.selClasseId >= 0
-                && (root.allStudents || root.selEleveId >= 0)
+                && (root.allStudents
+                    ? root.classStudents.length > 0
+                    : root.selEleveId >= 0)
 
+            // ANNULER
             Rectangle {
                 Layout.fillWidth: true; height: 48; radius: 14
                 color: cancelMa.containsMouse ? Style.bgSecondary : Style.bgPage
@@ -339,6 +419,42 @@ ModalOverlay {
                 MouseArea { id: cancelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.visible = false }
             }
 
+            // EXPORTER CSV
+            Rectangle {
+                Layout.fillWidth: true; height: 48; radius: 14
+                color: parent.formValid
+                       ? (csvMa.containsMouse ? "#166534" : "#22C55E")
+                       : Style.bgTertiary
+                opacity: parent.formValid ? 1.0 : 0.5
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                RowLayout {
+                    anchors.centerIn: parent; spacing: 8
+                    IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
+                    Text { text: "EXPORTER CSV"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                }
+
+                MouseArea {
+                    id: csvMa; anchors.fill: parent
+                    enabled: parent.parent.formValid
+                    hoverEnabled: true; cursorShape: parent.parent.formValid ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: {
+                        console.log("[BulletinConfig] CSV clicked: allStudents=" + root.allStudents
+                            + " classStudents.length=" + root.classStudents.length)
+                        if (root.allStudents) {
+                            // Batch: choose folder first
+                            root._pendingCsvMode = true
+                            exportFolderDialog.open()
+                        } else {
+                            // Single student: emit immediately (BulletinPreviewPopup handles file dialog)
+                            root.bulletinRequested(root.selEleveId, root.selClasseId,
+                                false, true, root.selAnneeId, "")
+                        }
+                    }
+                }
+            }
+
+            // GÉNÉRER PDF
             Rectangle {
                 Layout.fillWidth: true; height: 48; radius: 14
                 color: parent.formValid
@@ -350,7 +466,7 @@ ModalOverlay {
                 RowLayout {
                     anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "printer"; iconSize: 14; iconColor: "white" }
-                    Text { text: "GÉNÉRER LE BULLETIN"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { text: "GÉNÉRER PDF"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
                 }
 
                 MouseArea {
@@ -358,11 +474,17 @@ ModalOverlay {
                     enabled: parent.parent.formValid
                     hoverEnabled: true; cursorShape: parent.parent.formValid ? Qt.PointingHandCursor : Qt.ArrowCursor
                     onClicked: {
-                        root.bulletinRequested(
-                            root.allStudents ? -1 : root.selEleveId,
-                            root.selClasseId,
-                            root.allStudents
-                        )
+                        console.log("[BulletinConfig] PDF clicked: allStudents=" + root.allStudents
+                            + " classStudents.length=" + root.classStudents.length)
+                        if (root.allStudents) {
+                            // Batch: choose folder first
+                            root._pendingCsvMode = false
+                            exportFolderDialog.open()
+                        } else {
+                            // Single student: emit immediately (BulletinPreviewPopup handles file dialog)
+                            root.bulletinRequested(root.selEleveId, root.selClasseId,
+                                false, false, root.selAnneeId, "")
+                        }
                     }
                 }
             }

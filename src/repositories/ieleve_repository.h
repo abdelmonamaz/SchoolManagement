@@ -28,6 +28,9 @@ public:
     virtual Result<QList<Inscription>> getEnrollmentsForActiveYear() = 0;
     virtual Result<bool> deleteEnrollment(int enrollmentId) = 0;
 
+    // Bulletin helpers
+    virtual Result<QList<Eleve>> getByClasseAndYear(int classeId, int anneeId) = 0;
+
     // School years
     virtual Result<QVariantList> getSchoolYears() = 0;
 };

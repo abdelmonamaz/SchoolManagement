@@ -13,7 +13,7 @@ class IEleveRepository;
 class AttendanceService {
 public:
     AttendanceService(ISeanceRepository* seanceRepo, IParticipationRepository* participationRepo,
-                      IEleveRepository* eleveRepo, const QString& connectionName = {});
+                      IEleveRepository* eleveRepo);
 
     Result<QList<Seance>> getSeancesByDateRange(const QDateTime& from, const QDateTime& to);
     Result<QList<Seance>> getSeancesByClasse(int classeId);
@@ -37,5 +37,4 @@ private:
     ISeanceRepository* m_seanceRepo;
     IParticipationRepository* m_participationRepo;
     IEleveRepository* m_eleveRepo;
-    QString m_connectionName;
 };

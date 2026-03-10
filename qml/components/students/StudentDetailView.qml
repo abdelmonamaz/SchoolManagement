@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1
 import UI.Components
 
 ColumnLayout {
@@ -15,6 +16,86 @@ ColumnLayout {
     signal editRequested()
     signal deleteRequested()
 
+    // ── Internal state ───────────────────────────────────────────────────────
+    property bool _bulletinPending: false
+    property bool _csvPending:      false
+
+    // Temp storage for async CSV file dialog
+    property var    _csvData:         ({})
+    property string _csvStudentName:  ""
+    property string _csvNiveauNom:    ""
+    property string _csvClasseNom:    ""
+    property string _csvAnnee:        ""
+
+    function urlToPath(fileUrl) {
+        var s = fileUrl.toString()
+        if (s.startsWith("file:///")) return s.substring(8)
+        if (s.startsWith("file://"))  return s.substring(7)
+        return s
+    }
+
+    FileDialog {
+        id: csvSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: "Enregistrer le bulletin CSV"
+        nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
+        defaultSuffix: "csv"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinCsv(
+                root._csvData, root._csvStudentName,
+                root._csvNiveauNom, root._csvClasseNom, root._csvAnnee, path
+            )
+            if (result.length > 0) Qt.openUrlExternally("file:///" + result)
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Look up niveau name from all niveaux (including historical years)
+    function niveauNomById(niveauId) {
+        var all = schoolingController.niveauxGlobal
+        for (var i = 0; i < all.length; i++)
+            if (all[i].id === niveauId) return all[i].nom
+        // Fallback to active-year niveaux
+        for (var j = 0; j < root.niveaux.length; j++)
+            if (root.niveaux[j].id === niveauId) return root.niveaux[j].nom
+        return niveauId > 0 ? "Niveau " + niveauId : "—"
+    }
+
+    // Most recent enrollment (by annee_scolaire_id)
+    readonly property var currentEnrollment: {
+        var enr = studentController.selectedStudentEnrollments
+        if (!enr || enr.length === 0) return null
+        var best = null
+        for (var i = 0; i < enr.length; i++) {
+            if (!best || enr[i].annee_scolaire_id > best.annee_scolaire_id)
+                best = enr[i]
+        }
+        return best
+    }
+
+    readonly property string statusLabel: {
+        if (!root.currentEnrollment) return "Jamais inscrit"
+        var res = root.currentEnrollment.resultat || "En cours"
+        if (res === "En cours")   return "Inscrit — En cours"
+        if (res === "Réussi")     return "Réussi"
+        if (res === "Redoublant") return "Redoublant"
+        return res
+    }
+
+    readonly property string statusNiveauNom: {
+        if (!root.currentEnrollment) return ""
+        return root.niveauNomById(root.currentEnrollment.niveauId)
+    }
+
+    readonly property string statusAnneeScolaire: {
+        if (!root.currentEnrollment) return ""
+        return root.currentEnrollment.anneeScolaire || ""
+    }
+
+    // ── Connections ──────────────────────────────────────────────────────────
+
     Connections {
         target: studentController
         function onOperationFailed(err) {
@@ -26,13 +107,88 @@ ColumnLayout {
         }
     }
 
+    Connections {
+        target: gradesController
+
+        function onBulletinDataLoaded(data) {
+            if (root._bulletinPending) {
+                root._bulletinPending = false
+
+                var e = root.currentEnrollment
+                var classeNomBul = ""
+                if (e && e.classeId > 0) {
+                    var cls = schoolingController.allClasses
+                    for (var i = 0; i < cls.length; i++) {
+                        if (cls[i].id === e.classeId) { classeNomBul = cls[i].nom; break }
+                    }
+                }
+
+                // Enrich matière names
+                var dataCopy = JSON.parse(JSON.stringify(data))
+                var allM = schoolingController.allMatieres
+                var mats = dataCopy.matieres || []
+                for (var k = 0; k < mats.length; k++) {
+                    for (var m = 0; m < allM.length; m++) {
+                        if (allM[m].id === mats[k].matiereId) { mats[k].nom = allM[m].nom; break }
+                    }
+                }
+                dataCopy.matieres = mats
+
+                bulletinPreview.bulletinData     = dataCopy
+                bulletinPreview.studentName      = (root.student.prenom || "") + " " + (root.student.nom || "")
+                bulletinPreview.studentMatricule = root.student.matricule || ("N°" + root.student.id)
+                bulletinPreview.niveauNom        = root.statusNiveauNom
+                bulletinPreview.classeNom        = classeNomBul
+                bulletinPreview.anneeScolaire    = root.statusAnneeScolaire
+                bulletinPreview.eleveId          = root.student.id
+                bulletinPreview.open()
+
+            } else if (root._csvPending) {
+                root._csvPending = false
+
+                var data2 = JSON.parse(JSON.stringify(data))
+                var allM2 = schoolingController.allMatieres
+                var mats2 = data2.matieres || []
+                for (var p = 0; p < mats2.length; p++) {
+                    for (var q = 0; q < allM2.length; q++) {
+                        if (allM2[q].id === mats2[p].matiereId) { mats2[p].nom = allM2[q].nom; break }
+                    }
+                }
+                data2.matieres = mats2
+
+                var classeNomCsv = ""
+                var e2 = root.currentEnrollment
+                if (e2 && e2.classeId > 0) {
+                    var cls2 = schoolingController.allClasses
+                    for (var r = 0; r < cls2.length; r++) {
+                        if (cls2[r].id === e2.classeId) { classeNomCsv = cls2[r].nom; break }
+                    }
+                }
+
+                // Store data and open file dialog
+                root._csvData        = data2
+                root._csvStudentName = (root.student.prenom || "") + " " + (root.student.nom || "")
+                root._csvNiveauNom   = root.statusNiveauNom
+                root._csvClasseNom   = classeNomCsv
+                root._csvAnnee       = root.statusAnneeScolaire
+                csvSaveDialog.open()
+            }
+        }
+    }
+
+    // ── Modals ───────────────────────────────────────────────────────────────
+
     EnrollmentEditModal {
         id: editEnrollmentModal
         student: root.student
         niveaux: root.niveaux
     }
 
-    // Back button
+    BulletinPreviewPopup {
+        id: bulletinPreview
+    }
+
+    // ── Back button ──────────────────────────────────────────────────────────
     Text {
         text: "← Retour à l'annuaire"
         font.pixelSize: 14; font.bold: true
@@ -75,7 +231,7 @@ ColumnLayout {
                 RowLayout {
                     spacing: 12
                     Text { text: (root.student.prenom || "") + " " + (root.student.nom || ""); font.pixelSize: 28; font.weight: Font.Black; color: Style.textPrimary }
-                    Badge { 
+                    Badge {
                         text: root.student.sexe === "F" ? "FÉMININ" : "MASCULIN"
                         customTextColor: "#FFFFFF"
                         customBgColor: root.student.sexe === "F" ? "#DB2777" : Style.primary
@@ -83,7 +239,7 @@ ColumnLayout {
                     }
                 }
                 Text { text: "ID: " + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
-                
+
                 RowLayout {
                     Layout.topMargin: 10; spacing: 24
                     Row {
@@ -104,11 +260,35 @@ ColumnLayout {
                 PrimaryButton {
                     text: "Bulletin Annuel"
                     iconName: "print"
+                    enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
+                    onClicked: {
+                        var e = root.currentEnrollment
+                        if (!e || e.classeId <= 0) return
+                        schoolingController.loadAllMatieres()
+                        root._bulletinPending = true
+                        root._csvPending = false
+                        gradesController.loadBulletinData(root.student.id, e.classeId,
+                            e.annee_scolaire_id || -1)
+                    }
+                }
+                PrimaryButton {
+                    text: "Exporter CSV"
+                    iconName: "download"
+                    enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
+                    onClicked: {
+                        var e = root.currentEnrollment
+                        if (!e || e.classeId <= 0) return
+                        schoolingController.loadAllMatieres()
+                        root._csvPending = true
+                        root._bulletinPending = false
+                        gradesController.loadBulletinData(root.student.id, e.classeId,
+                            e.annee_scolaire_id || -1)
+                    }
                 }
                 OutlineButton {
                     text: "Supprimer"
                     baseColor: Style.errorColor
-                    hoverColor: "#BE185D" // or a darker red
+                    hoverColor: "#BE185D"
                     textColor: "#FFFFFF"
                     onClicked: root.deleteRequested()
                 }
@@ -119,7 +299,7 @@ ColumnLayout {
     // ─── Profile Content ───
     RowLayout {
         Layout.fillWidth: true; spacing: 24
-        
+
         // Left: Identity & Info
         ColumnLayout {
             Layout.fillWidth: true; Layout.preferredWidth: 3; spacing: 24
@@ -127,10 +307,10 @@ ColumnLayout {
             AppCard {
                 Layout.fillWidth: true
                 title: "Identité de l'Étudiant"
-                
+
                 ColumnLayout {
                     width: parent.width; spacing: 20
-                    
+
                     RowLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
@@ -182,8 +362,8 @@ ColumnLayout {
                     Column {
                         Layout.fillWidth: true; spacing: 4
                         SectionLabel { text: "COMMENTAIRES ET NOTES" }
-                        Text { 
-                            Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire."; 
+                        Text {
+                            Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire.";
                             font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.Wrap
                         }
                     }
@@ -203,7 +383,7 @@ ColumnLayout {
 
                 ColumnLayout {
                     width: parent.width; spacing: 16
-                    
+
                     // Table Header
                     RowLayout {
                         Layout.fillWidth: true; spacing: 24
@@ -228,19 +408,14 @@ ColumnLayout {
                                 RowLayout {
                                     anchors.fill: parent; spacing: 24
                                     Text { Layout.preferredWidth: 120; text: modelData.anneeScolaire; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { 
-                                        Layout.fillWidth: true; 
-                                        text: {
-                                            for (var i = 0; i < root.niveaux.length; i++) {
-                                                if (root.niveaux[i].id === modelData.niveauId) return root.niveaux[i].nom
-                                            }
-                                            return "Niveau " + modelData.niveauId
-                                        }
-                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary 
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: root.niveauNomById(modelData.niveauId)
+                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                     }
                                     Text { text: modelData.resultat; Layout.preferredWidth: 120; font.pixelSize: 13; font.weight: Font.Medium; color: Style.textSecondary }
-                                    Badge { 
-                                        Layout.preferredWidth: 80; 
+                                    Badge {
+                                        Layout.preferredWidth: 80;
                                         text: modelData.fraisInscriptionPaye ? "PAYÉ" : "IMPAYÉ"
                                         variant: modelData.fraisInscriptionPaye ? "success" : "error"
                                     }
@@ -278,17 +453,69 @@ ColumnLayout {
         // Right: Stats / Quick Info
         ColumnLayout {
             Layout.fillWidth: true; Layout.preferredWidth: 1; Layout.alignment: Qt.AlignTop; spacing: 24
-            
+
             AppCard {
                 Layout.fillWidth: true
                 title: "Statut Actuel"
                 Column {
                     spacing: 16
-                    StatCard { 
-                        width: parent.width; label: "MOYENNE GÉNÉRALE"; value: "15.4"; accentColor: Style.primary 
+                    width: parent.width
+
+                    // Status badge
+                    Rectangle {
+                        width: parent.width; height: 64; radius: 12
+                        color: {
+                            var s = root.statusLabel
+                            if (s === "Jamais inscrit")      return Style.bgTertiary
+                            if (s.indexOf("En cours") >= 0)  return Style.primaryBg
+                            if (s === "Réussi")              return "#F0FFF4"
+                            if (s === "Redoublant")           return "#FFF7ED"
+                            return Style.bgPage
+                        }
+
+                        Column {
+                            anchors.centerIn: parent; spacing: 4
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.statusLabel
+                                font.pixelSize: 13; font.weight: Font.Black
+                                color: {
+                                    var s = root.statusLabel
+                                    if (s === "Jamais inscrit")      return Style.textTertiary
+                                    if (s.indexOf("En cours") >= 0)  return Style.primary
+                                    if (s === "Réussi")              return "#166534"
+                                    if (s === "Redoublant")           return "#9A3412"
+                                    return Style.textPrimary
+                                }
+                            }
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.statusNiveauNom
+                                visible: root.statusNiveauNom.length > 0
+                                font.pixelSize: 11; color: Style.textTertiary; font.weight: Font.Medium
+                            }
+                        }
                     }
-                    StatCard { 
-                        width: parent.width; label: "ABSENCES"; value: "2"; accentColor: "#D97706" 
+
+                    // Current year
+                    Column {
+                        width: parent.width; spacing: 4
+                        visible: root.currentEnrollment !== null
+                        SectionLabel { text: "ANNÉE SCOLAIRE" }
+                        Text {
+                            text: root.statusAnneeScolaire || "—"
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                        }
+                    }
+
+                    // Total inscriptions
+                    Column {
+                        width: parent.width; spacing: 4
+                        SectionLabel { text: "INSCRIPTIONS TOTALES" }
+                        Text {
+                            text: studentController.selectedStudentEnrollments.length + " année(s)"
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                        }
                     }
                 }
             }
@@ -320,7 +547,7 @@ ColumnLayout {
             newYearCombo.currentIndex = 2
             isPaid = false
         }
-        
+
         contentItem: ColumnLayout {
             anchors.fill: parent; anchors.margins: 24; spacing: 20
             Text { text: "Nouvelle Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
@@ -333,7 +560,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
             }
-            
+
             Column {
                 Layout.fillWidth: true; spacing: 6
                 SectionLabel { text: "ANNÉE SCOLAIRE" }
@@ -351,7 +578,7 @@ ColumnLayout {
                     }
                 }
             }
-            
+
             Column {
                 Layout.fillWidth: true; spacing: 6
                 SectionLabel { text: "NIVEAU" }
@@ -369,7 +596,7 @@ ColumnLayout {
                     }
                 }
             }
-            
+
             RowLayout {
                 spacing: 16
                 FormField { id: feeField; Layout.fillWidth: true; label: "FRAIS (DT)"; text: "50.0" }
@@ -388,7 +615,7 @@ ColumnLayout {
                             }
                             MouseArea { anchors.fill: parent; onClicked: newEnrollmentPopup.isPaid = !newEnrollmentPopup.isPaid }
                         }
-                        Text { 
+                        Text {
                             text: newEnrollmentPopup.isPaid ? "PAYÉ" : "NON PAYÉ"
                             font.pixelSize: 12; font.weight: Font.Black
                             color: newEnrollmentPopup.isPaid ? Style.successColor : Style.textTertiary
@@ -396,7 +623,7 @@ ColumnLayout {
                     }
                 }
             }
-            
+
             RowLayout {
                 Layout.fillWidth: true; spacing: 16
                 OutlineButton {

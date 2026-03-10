@@ -299,6 +299,22 @@ Result<QList<Seance>> SqliteSeanceRepository::getByClasseId(int classeId) {
     return Result<QList<Seance>>::success(list);
 }
 
+Result<QList<Seance>> SqliteSeanceRepository::getByClasseIdAndYear(int classeId, int anneeId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    // No kActiveYearFilter: filter by the explicit anneeId OR NULL (seances created before migration 36)
+    query.prepare(kSeanceSelect
+        + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"
+                         " AND (s.annee_scolaire_id = ? OR s.annee_scolaire_id IS NULL)"));
+    query.addBindValue(classeId);
+    query.addBindValue(classeId);
+    query.addBindValue(anneeId);
+    if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
+    QList<Seance> list;
+    while (query.next()) list.append(rowToSeance(query));
+    return Result<QList<Seance>>::success(list);
+}
+
 Result<int> SqliteSeanceRepository::getTotalMinutesByProf(int profId, const QDate& from, const QDate& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
@@ -419,6 +435,24 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
     }
 
     return Result<QStringList>::success(conflicts);
+}
+
+int SqliteSeanceRepository::findAnneeScolaireIdForDate(const QString& isoDate) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    // Cherche l'année scolaire dont la plage englobe la date
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires "
+        "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+    q.addBindValue(isoDate);
+    q.addBindValue(isoDate);
+    if (q.exec() && q.next()) return q.value(0).toInt();
+    // Fallback : année scolaire active
+    QSqlQuery q2(db);
+    q2.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+    if (q2.exec() && q2.next()) return q2.value(0).toInt();
+    return 0;
 }
 
 // ═══════════════════════════════════════════════════════════════

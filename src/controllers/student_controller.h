@@ -15,6 +15,7 @@ class StudentController : public QObject {
     Q_PROPERTY(QVariantList selectedStudentEnrollments READ selectedStudentEnrollments NOTIFY selectedStudentEnrollmentsChanged)
     Q_PROPERTY(QVariantList enrollmentsByYear READ enrollmentsByYear NOTIFY enrollmentsByYearChanged)
     Q_PROPERTY(QVariantList schoolYears READ schoolYears NOTIFY schoolYearsChanged)
+    Q_PROPERTY(QVariantList studentsForBulletin READ studentsForBulletin NOTIFY studentsForBulletinChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
@@ -27,6 +28,7 @@ public:
     QVariantList selectedStudentEnrollments() const { return m_selectedStudentEnrollments; }
     QVariantList enrollmentsByYear() const { return m_enrollmentsByYear; }
     QVariantList schoolYears() const { return m_schoolYears; }
+    QVariantList studentsForBulletin() const { return m_studentsForBulletin; }
     bool loading() const { return m_loading; }
     QString errorMessage() const { return m_errorMessage; }
 
@@ -49,6 +51,7 @@ public:
     Q_INVOKABLE void loadEnrollmentsByYear(const QString& anneeScolaire);
     Q_INVOKABLE void loadEnrollmentsForActiveYear();
     Q_INVOKABLE void loadSchoolYears();
+    Q_INVOKABLE void loadStudentsForBulletin(int classeId, int anneeId);
     Q_INVOKABLE void enrollStudent(const QVariantMap& data);
     Q_INVOKABLE void updateEnrollment(int enrollmentId, const QVariantMap& data);
     Q_INVOKABLE void deleteEnrollment(int enrollmentId);
@@ -60,6 +63,7 @@ signals:
     void selectedStudentEnrollmentsChanged();
     void enrollmentsByYearChanged();
     void schoolYearsChanged();
+    void studentsForBulletinChanged();
     void loadingChanged();
     void errorMessageChanged();
     void operationSucceeded(const QString& message);
@@ -81,6 +85,7 @@ private:
     QVariantList m_selectedStudentEnrollments;
     QVariantList m_enrollmentsByYear;
     QVariantList m_schoolYears;
+    QVariantList m_studentsForBulletin;
     bool m_loading = false;
     QString m_errorMessage;
 };

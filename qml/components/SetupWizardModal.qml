@@ -93,6 +93,14 @@ Popup {
         }
     }
 
+    Connections {
+        target: setupController
+        function onSetupCompleted() { root.close() }
+        function onOperationFailed(error) {
+            console.warn("[SetupWizard] completeSetup failed:", error)
+        }
+    }
+
     contentItem: Column {
         width: root.width
         spacing: 0
@@ -912,7 +920,7 @@ Popup {
                             } else if (root.currentStep === 2) {
                                 root.currentStep = 3
                             } else {
-                                var ok = setupController.completeSetup({
+                                setupController.completeSetup({
                                     libelle:                 anneeLibelleField.text.trim(),
                                     dateDebut:               anneeDateDebutField.dateString,
                                     dateFin:                 anneeDateFinField.dateString,
@@ -921,7 +929,7 @@ Popup {
                                     fraisInscriptionJeune:   parseFloat(fraisJeuneInput.text)  || 0,
                                     fraisInscriptionAdulte:  parseFloat(fraisAdulteInput.text) || 0
                                 })
-                                if (ok) root.close()
+                                // La fermeture est gérée par Connections { onSetupCompleted: root.close() }
                             }
                         }
                     }

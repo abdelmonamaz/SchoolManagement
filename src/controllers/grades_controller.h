@@ -29,13 +29,20 @@ public:
     Q_INVOKABLE void loadClassAverage(int seanceId);
 
     // Bulletin
-    Q_INVOKABLE void loadBulletinData(int eleveId, int classeId);
+    Q_INVOKABLE void loadBulletinData(int eleveId, int classeId, int anneeId);
     Q_INVOKABLE QString exportBulletinPdf(const QVariantMap& bulletinData,
                                           const QString& studentName,
                                           const QString& studentMatricule,
                                           const QString& niveauNom,
                                           const QString& classeNom,
-                                          const QString& anneeScolaire);
+                                          const QString& anneeScolaire,
+                                          const QString& targetPath = QString());
+    Q_INVOKABLE QString exportBulletinCsv(const QVariantMap& bulletinData,
+                                          const QString& studentName,
+                                          const QString& niveauNom,
+                                          const QString& classeNom,
+                                          const QString& anneeScolaire,
+                                          const QString& targetPath = QString());
 
 signals:
     void gradesChanged();

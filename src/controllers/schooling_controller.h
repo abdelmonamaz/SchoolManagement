@@ -10,6 +10,7 @@ class DatabaseWorker;
 class SchoolingController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList niveaux READ niveaux NOTIFY niveauxChanged)
+    Q_PROPERTY(QVariantList niveauxGlobal READ niveauxGlobal NOTIFY niveauxGlobalChanged)
     Q_PROPERTY(QVariantList classes READ classes NOTIFY classesChanged)
     Q_PROPERTY(QVariantList allClasses READ allClasses NOTIFY allClassesChanged)
     Q_PROPERTY(QVariantList matieres READ matieres NOTIFY matieresChanged)
@@ -25,6 +26,7 @@ public:
     explicit SchoolingController(SchoolingService* service, DatabaseWorker* worker, QObject* parent = nullptr);
 
     QVariantList niveaux() const { return m_niveaux; }
+    QVariantList niveauxGlobal() const { return m_niveauxGlobal; }
     QVariantList classes() const { return m_classes; }
     QVariantList allClasses() const { return m_allClasses; }
     QVariantList matieres() const { return m_matieres; }
@@ -37,6 +39,7 @@ public:
     QString errorMessage() const { return m_errorMessage; }
 
     Q_INVOKABLE void loadNiveaux();
+    Q_INVOKABLE void loadNiveauxGlobal();
     Q_INVOKABLE void loadAllClasses();
     Q_INVOKABLE void loadClassesByNiveau(int niveauId);
     Q_INVOKABLE void loadAllMatieres();
@@ -76,6 +79,7 @@ public:
 
 signals:
     void niveauxChanged();
+    void niveauxGlobalChanged();
     void classesChanged();
     void allClassesChanged();
     void matieresChanged();
@@ -101,6 +105,7 @@ private:
     SchoolingService* m_service = nullptr;
     DatabaseWorker* m_worker = nullptr;
     QVariantList m_niveaux;
+    QVariantList m_niveauxGlobal;
     QVariantList m_classes;
     QVariantList m_allClasses;
     QVariantList m_matieres;

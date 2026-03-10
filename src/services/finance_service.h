@@ -15,6 +15,7 @@ class IDonRepository;
 class IPaiementPersonnelRepository;
 class ITarifMensualiteRepository;
 class IDepenseRepository;
+class IFinanceBalanceRepository;
 
 class FinanceService {
 public:
@@ -23,7 +24,7 @@ public:
                    IPaiementPersonnelRepository* paiementPersonnelRepo,
                    ITarifMensualiteRepository* tarifRepo,
                    IDepenseRepository* depenseRepo,
-                   const QString& connectionName = QString());
+                   IFinanceBalanceRepository* balanceRepo);
 
     // Paiements mensuels
     Result<QList<PaiementMensualite>> getPaymentsByMonth(int month, int year);
@@ -76,12 +77,12 @@ public:
     Result<bool> savePersonnelPayment(const PaiementMensuelPersonnel& paiement);
 
 private:
-    IPaiementRepository*         m_paiementRepo;
-    IProjetRepository*           m_projetRepo;
-    IDonateurRepository*         m_donateurRepo;
-    IDonRepository*              m_donRepo;
+    IPaiementRepository*          m_paiementRepo;
+    IProjetRepository*            m_projetRepo;
+    IDonateurRepository*          m_donateurRepo;
+    IDonRepository*               m_donRepo;
     IPaiementPersonnelRepository* m_paiementPersonnelRepo;
-    ITarifMensualiteRepository*  m_tarifRepo;
-    IDepenseRepository*          m_depenseRepo;
-    QString                      m_connectionName;
+    ITarifMensualiteRepository*   m_tarifRepo;
+    IDepenseRepository*           m_depenseRepo;
+    IFinanceBalanceRepository*    m_balanceRepo;
 };

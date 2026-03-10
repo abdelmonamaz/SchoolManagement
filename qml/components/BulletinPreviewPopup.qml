@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1
 import UI.Components
 
 // Popup d'aperçu et d'export du bulletin scolaire
@@ -153,9 +154,9 @@ ModalOverlay {
                         Column {
                             width: parent.width - 112
                             spacing: 2
-                            Text { text: "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: "#2E7D52" }
+                            Text { text: setupController.associationData.nomAssociation || "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: "#2E7D52" }
                             Text { text: "INSTITUT D'ENSEIGNEMENT ISLAMIQUE"; font.pixelSize: 8; font.weight: Font.Bold; color: "#888" }
-                            Text { text: "123 Rue de la Science, Casablanca, Maroc"; font.pixelSize: 9; color: "#AAA" }
+                            Text { text: setupController.associationData.adresse || ""; font.pixelSize: 9; color: "#AAA"; visible: text.length > 0 }
                         }
 
                         Item { width: 4; height: 1 }
@@ -413,7 +414,7 @@ ModalOverlay {
 
                     Text {
                         x: 16; width: parent.width - 32
-                        text: "Ez-Zaytouna Institut · Tél: +212 5 22 XX XX XX · Email: contact@ez-zaytouna.ma"
+                        text: setupController.associationData.nomAssociation || "Ez-Zaytouna"
                         font.pixelSize: 8; color: "#AAAAAA"; horizontalAlignment: Text.AlignHCenter
                     }
 
@@ -461,6 +462,27 @@ ModalOverlay {
                 }
             }
 
+            // EXPORTER CSV
+            Rectangle {
+                Layout.fillWidth: true; height: 48; radius: 14
+                color: csvMa.containsMouse ? "#166534" : "#22C55E"
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                RowLayout { anchors.centerIn: parent; spacing: 8
+                    IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
+                    Text { text: "CSV"; font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                }
+
+                MouseArea {
+                    id: csvMa; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root._exportData = root.buildEnrichedData()
+                        csvSaveDialog.open()
+                    }
+                }
+            }
+
             // EXPORTER PDF
             Rectangle {
                 Layout.fillWidth: true; height: 48; radius: 14
@@ -478,22 +500,78 @@ ModalOverlay {
                     hoverEnabled: true; cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                     onClicked: {
                         root.exporting = true
-                        // Enrichit bulletinData avec les noms de matières pour le PDF
-                        var data = JSON.parse(JSON.stringify(root.bulletinData))
-                        var mats = data.matieres || []
-                        for (var i = 0; i < mats.length; i++)
-                            mats[i].nom = root.matiereName(mats[i].matiereId)
-                        data.matieres = mats
-
-                        var path = gradesController.exportBulletinPdf(
-                            data, root.studentName, root.studentMatricule,
-                            root.niveauNom, root.classeNom, root.anneeScolaire
-                        )
-                        root.exporting = false
-                        if (path.length > 0) root.exportedFilePath = path
+                        root._exportData = root.buildEnrichedData()
+                        pdfSaveDialog.open()
                     }
                 }
             }
+        }
+    }
+
+    // ── Temp storage for async file dialogs ──────────────────────────────────
+    property var _exportData: ({})
+
+    function buildEnrichedData() {
+        var data = JSON.parse(JSON.stringify(root.bulletinData))
+        var mats = data.matieres || []
+        for (var i = 0; i < mats.length; i++)
+            if (!mats[i].nom) mats[i].nom = root.matiereName(mats[i].matiereId)
+        data.matieres = mats
+        // Inject association info from setupController
+        var assoc = setupController.associationData
+        data.associationNom      = assoc.nomAssociation || "Ez-Zaytouna"
+        data.associationAdresse  = assoc.adresse || ""
+        return data
+    }
+
+    function urlToPath(fileUrl) {
+        var s = fileUrl.toString()
+        if (s.startsWith("file:///")) return s.substring(8)
+        if (s.startsWith("file://"))  return s.substring(7)
+        return s
+    }
+
+    // ── File dialogs ─────────────────────────────────────────────────────────
+    FileDialog {
+        id: pdfSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: "Enregistrer le bulletin PDF"
+        nameFilters: ["Fichiers PDF (*.pdf)", "Tous les fichiers (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinPdf(
+                root._exportData,
+                root.studentName,
+                root.studentMatricule,
+                root.niveauNom,
+                root.classeNom,
+                root.anneeScolaire,
+                path
+            )
+            root.exporting = false
+            if (result.length > 0) root.exportedFilePath = result
+        }
+        onRejected: { root.exporting = false }
+    }
+
+    FileDialog {
+        id: csvSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: "Enregistrer le bulletin CSV"
+        nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
+        defaultSuffix: "csv"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinCsv(
+                root._exportData,
+                root.studentName,
+                root.niveauNom,
+                root.classeNom,
+                root.anneeScolaire,
+                path
+            )
+            if (result.length > 0) Qt.openUrlExternally("file:///" + result)
         }
     }
 

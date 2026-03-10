@@ -45,6 +45,7 @@ public:
     Result<QList<Inscription>> getEnrollmentsForActiveYear();
     Result<bool> deleteEnrollment(int enrollmentId);
     Result<QVariantList> loadSchoolYears();
+    Result<QList<Eleve>> getStudentsByClasseAndYear(int classeId, int anneeId);
 
 private:
     IEleveRepository* m_eleveRepo;
