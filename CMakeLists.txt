@@ -1,5 +1,24 @@
 cmake_minimum_required(VERSION 3.16)
-project(GestionScolaire VERSION 1.0.0 LANGUAGES CXX)
+
+# ── Git version detection ──────────────────────────────────────
+find_package(Git QUIET)
+set(APP_VERSION "0.0.0")
+if(Git_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --match "v*" --abbrev=0
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE GIT_RESULT
+    )
+    if(GIT_RESULT EQUAL 0 AND GIT_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+        set(APP_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+    endif()
+endif()
+message(STATUS "Ez-Zaytouna version: ${APP_VERSION}")
+
+project(GestionScolaire VERSION ${APP_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
@@ -151,6 +170,10 @@ qt_add_qml_module(GestionScolaire
 # Modules QML secondaires
 add_subdirectory(qml/components)
 add_subdirectory(qml/pages)
+
+target_compile_definitions(GestionScolaire PRIVATE
+    APP_VERSION_STR="${APP_VERSION}"
+)
 
 target_link_libraries(GestionScolaire PRIVATE
     GS_Core

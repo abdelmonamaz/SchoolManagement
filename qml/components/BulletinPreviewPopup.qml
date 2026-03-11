@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
-import Qt.labs.platform 1.1
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform
 import UI.Components
 
 // Popup d'aperçu et d'export du bulletin scolaire

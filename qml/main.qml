@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 // 2. Import du module de vos composants (Style, boutons, badges, etc.)
 import UI.Components 1.0
 
@@ -11,6 +11,7 @@ import UI.Pages 1.0
 ApplicationWindow {
     id: root
     visible: true
+    visibility: Window.FullScreen
     width: 1440
     height: 900
     minimumWidth: 1024
@@ -219,14 +220,6 @@ ApplicationWindow {
                         color: "transparent"
 
                         Rectangle {
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            height: 1
-                            color: Style.borderLight
-                        }
-
-                        Rectangle {
                             anchors.fill: parent
                             anchors.topMargin: 12
                             radius: 16
@@ -234,7 +227,8 @@ ApplicationWindow {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
+                                anchors.margins: 3
+                                anchors.centerIn: parent;
                                 spacing: 10
 
                                 Rectangle {
@@ -265,7 +259,7 @@ ApplicationWindow {
                                         width: parent.width
                                     }
                                     Text {
-                                        text: "Scolarité v2.0"
+                                        text: "Scolarité " + appVersion
                                         font.pixelSize: 11
                                         color: Style.textTertiary
                                         elide: Text.ElideRight
@@ -277,6 +271,7 @@ ApplicationWindow {
                                     iconName: "logout"
                                     iconSize: 18
                                     hoverColor: Style.errorColor
+                                    onClicked: Qt.quit()
                                 }
                             }
                         }

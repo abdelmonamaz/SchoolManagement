@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
-import Qt.labs.platform 1.1 as Platform
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform as Platform
 import UI.Components
 
 Item {
@@ -488,6 +488,7 @@ Item {
             // ── Right column ──
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
                 spacing: 10
 
             // ─── Sauvegarde & Restauration ───
@@ -745,72 +746,6 @@ Item {
                 }
             }
 
-            // System Status
-            AppCard {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
-                title: "État du Système"
-
-                Column {
-                    width: parent.width
-                    spacing: 20
-
-                    // Cloud status
-                    Rectangle {
-                        width: parent.width; height: 64; radius: 16
-                        color: Style.successBg; border.color: Style.successBorder
-
-                        RowLayout {
-                            anchors.fill: parent; anchors.margins: 14; spacing: 14
-
-                            Rectangle {
-                                width: 40; height: 40; radius: 12
-                                color: Style.successBorder
-
-                                Text { anchors.centerIn: parent; text: "☁"; font.pixelSize: 18; color: Style.successColor }
-                            }
-
-                            Column {
-                                Layout.fillWidth: true; spacing: 2
-                                Text { text: "Stockage Cloud"; font.pixelSize: 13; font.bold: true; color: Style.successColor }
-                                Text { text: "CONNECTÉ & SYNCHRONISÉ"; font.pixelSize: 9; font.weight: Font.Bold; color: Style.successColor }
-                            }
-
-                            Text { text: "8.4 GB / 20 GB"; font.pixelSize: 13; font.weight: Font.Black; color: Style.successColor }
-                        }
-                    }
-
-                    // Updates section
-                    Column {
-                        width: parent.width; spacing: 12
-                        Text { text: "MISES À JOUR"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-
-                        Column {
-                            width: parent.width; spacing: 0
-
-                            RowLayout {
-                                width: parent.width; height: 52
-                                Column { Layout.fillWidth: true; spacing: 2
-                                    Text { text: "Version du Logiciel"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { text: "Dernière vérification: Aujourd'hui 08:00"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-                                }
-                                Badge { text: "v2.4.8 (Stable)" }
-                            }
-
-                            Separator { width: parent.width }
-
-                            RowLayout {
-                                width: parent.width; height: 52
-                                Column { Layout.fillWidth: true; spacing: 2
-                                    Text { text: "Base de données"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { text: "Prochaine sauvegarde: Demain 02:00"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-                                }
-                                Badge { text: "Optimisée"; variant: "success" }
-                            }
-                        }
-                    }
-                }
-            }
             } // end right ColumnLayout
         } // end RowLayout
 

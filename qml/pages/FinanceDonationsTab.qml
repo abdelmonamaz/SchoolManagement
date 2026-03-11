@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 AppCard {
@@ -82,7 +82,7 @@ AppCard {
     }
 
     // ── AppCard header ───────────────────────────────────────────────────────
-    title:    tab.viewMode === "dons" ? "Dons & Waqf — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
+    title:    tab.viewMode === "dons" ? "Dons & Revenue — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
     subtitle: tab.viewMode === "dons" ? "Donations enregistrées ce mois" : projetsStats.total + " projet(s) au total"
 
     headerAction: Component {

@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 // Champ de formulaire réutilisable : label + champ texte stylisé.
 // Usage:

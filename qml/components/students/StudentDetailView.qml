@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
-import Qt.labs.platform 1.1
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform
 import UI.Components
 
 ColumnLayout {
@@ -206,17 +206,32 @@ ColumnLayout {
     // ─── Student Header Card ───
     Rectangle {
         Layout.fillWidth: true
-        height: 180; radius: 32
-        color: Style.bgWhite; border.color: Style.borderLight
+        height: 220;
+        topRightRadius: 32
+        bottomRightRadius: 32
+        color: Style.bgWhite;
+        border.color: Style.borderLight
 
         Rectangle {
-            anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom
-            width: 10; radius: 32; color: Style.primary
-            Rectangle { anchors.left: parent.horizontalCenter; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 5; color: Style.primary }
+            anchors.left: parent.left;
+            anchors.top: parent.top;
+            anchors.bottom: parent.bottom
+            width: 10;
+            radius: 32;
+            color: Style.primary
+            Rectangle {
+                anchors.left: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: 5;
+                color: Style.primary
+            }
         }
 
         RowLayout {
-            anchors.fill: parent; anchors.margins: 28; spacing: 28
+            anchors.fill: parent;
+            anchors.margins: 28;
+            spacing: 28
 
             Avatar {
                 size: 110
@@ -227,7 +242,8 @@ ColumnLayout {
             }
 
             ColumnLayout {
-                Layout.fillWidth: true; spacing: 4
+                Layout.fillWidth: true
+                spacing: 4
                 RowLayout {
                     spacing: 12
                     Text { text: (root.student.prenom || "") + " " + (root.student.nom || ""); font.pixelSize: 28; font.weight: Font.Black; color: Style.textPrimary }
@@ -257,6 +273,7 @@ ColumnLayout {
 
             Column {
                 spacing: 10
+                anchors.verticalCenter: parent.verticalCenter;
                 PrimaryButton {
                     text: "Bulletin Annuel"
                     iconName: "print"

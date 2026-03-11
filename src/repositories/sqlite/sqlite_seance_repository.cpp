@@ -276,7 +276,7 @@ static const auto kActiveYearFilter = QStringLiteral(
 Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& from, const QDateTime& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + kActiveYearFilter
+    query.prepare(kSeanceSelect
                   + QStringLiteral(" AND s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
     query.addBindValue(from.toString(Qt::ISODate));
     query.addBindValue(to.toString(Qt::ISODate));
@@ -338,6 +338,29 @@ Result<int> SqliteSeanceRepository::getTotalMinutesByProf(int profId, const QDat
 Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance, int excludeSeanceId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QStringList conflicts;
+
+    // Check that Cours/Examen falls within the active school year date range
+    if (seance.typeSeance == GS::CategorieSeance::Cours ||
+        seance.typeSeance == GS::CategorieSeance::Examen)
+    {
+        QSqlQuery qYear(db);
+        qYear.prepare(QStringLiteral(
+            "SELECT date_debut, date_fin FROM annees_scolaires "
+            "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+        if (qYear.exec() && qYear.next()) {
+            const QDate dateDebut  = QDate::fromString(qYear.value(0).toString(), Qt::ISODate);
+            const QDate dateFin    = QDate::fromString(qYear.value(1).toString(), Qt::ISODate);
+            const QDate dateSeance = seance.dateHeureDebut.date();
+            if (dateSeance < dateDebut || dateSeance > dateFin) {
+                conflicts.append(
+                    QStringLiteral("La date de la séance (%1) est hors de la période de l'année scolaire active (%2 – %3).")
+                        .arg(dateSeance.toString(QStringLiteral("dd/MM/yyyy")),
+                             dateDebut.toString(QStringLiteral("dd/MM/yyyy")),
+                             dateFin.toString(QStringLiteral("dd/MM/yyyy"))));
+                return Result<QStringList>::success(conflicts);
+            }
+        }
+    }
 
     // Compute new session time range in SQLite datetime format (space separator, not T)
     QString newStart = seance.dateHeureDebut.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
@@ -439,19 +462,47 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
 
 int SqliteSeanceRepository::findAnneeScolaireIdForDate(const QString& isoDate) {
     auto db = QSqlDatabase::database(m_connectionName);
-    // Cherche l'année scolaire dont la plage englobe la date
+    // 1. Priorité : année scolaire Active dont la plage englobe la date
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
         "SELECT id FROM annees_scolaires "
-        "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+        "WHERE statut = 'Active' AND date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
     q.addBindValue(isoDate);
     q.addBindValue(isoDate);
     if (q.exec() && q.next()) return q.value(0).toInt();
-    // Fallback : année scolaire active
+    // 2. Fallback : n'importe quelle année couvrant la date (la plus récente en premier)
     QSqlQuery q2(db);
     q2.prepare(QStringLiteral(
-        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+        "SELECT id FROM annees_scolaires "
+        "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 ORDER BY date_debut DESC LIMIT 1"));
+    q2.addBindValue(isoDate);
+    q2.addBindValue(isoDate);
     if (q2.exec() && q2.next()) return q2.value(0).toInt();
+    // 3. Fallback final : année scolaire active (peu importe la plage de dates)
+    QSqlQuery q3(db);
+    q3.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+    if (q3.exec() && q3.next()) return q3.value(0).toInt();
+    return 0;
+}
+
+int SqliteSeanceRepository::getActiveSchoolYearId() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+    if (q.exec() && q.next()) return q.value(0).toInt();
+    return 0;
+}
+
+int SqliteSeanceRepository::getPreviousClosedSchoolYearId() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires "
+        "WHERE statut != 'Active' AND valide = 1 "
+        "ORDER BY date_fin DESC LIMIT 1"));
+    if (q.exec() && q.next()) return q.value(0).toInt();
     return 0;
 }
 

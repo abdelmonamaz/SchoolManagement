@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick
 
 // Avatar avec initiale, réutilisable partout.
 // Usage:

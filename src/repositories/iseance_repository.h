@@ -26,6 +26,12 @@ public:
 
     // Trouve l'id de l'année scolaire couvrant cette date (fallback: année active)
     virtual int findAnneeScolaireIdForDate(const QString& isoDate) = 0;
+
+    // Retourne l'id de l'année scolaire active (statut='Active')
+    virtual int getActiveSchoolYearId() = 0;
+
+    // Retourne l'id de l'année scolaire clôturée la plus récente
+    virtual int getPreviousClosedSchoolYearId() = 0;
 };
 
 class IParticipationRepository : public IRepository<Participation> {

@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.platform 1.1 as Platform
+import QtQuick
+import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import UI.Components
 
 // Wraps both edit modal and edit-confirm modal.

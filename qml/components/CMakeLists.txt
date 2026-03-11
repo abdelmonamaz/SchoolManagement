@@ -57,6 +57,9 @@ qt_add_qml_module(GestionScolaire_Components
         students/EnrollmentEditModal.qml
         exams/PlanningView.qml
         exams/CalendarView.qml
+        exams/FormComboWithReset.qml
+        exams/EpreuvePickerSection.qml
+        exams/SessionSubmitSection.qml
         exams/SessionFormModal.qml
         exams/SessionDetailModal.qml
         BulletinConfigPopup.qml

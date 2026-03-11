@@ -640,23 +640,54 @@ static Result<bool> createNewInscriptions(QSqlDatabase& db,
     return Result<bool>::success(true);
 }
 
-// 9. Soft-delete future sessions of the closing year (non-fatal)
-static void softDeleteFutureSessions(QSqlDatabase& db, int currentId, const QString& now)
+// 9. Hard-delete all future sessions of the closing year (non-fatal)
+static void deleteFutureSessions(QSqlDatabase& db, int currentId)
 {
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "UPDATE seances "
-        "SET valide=0, date_invalidation=datetime('now'), date_modification=:now "
+    // Collect IDs of all future sessions (regardless of presence_valide)
+    QSqlQuery qIds(db);
+    qIds.prepare(QStringLiteral(
+        "SELECT id FROM seances "
         "WHERE annee_scolaire_id=:id "
-        "  AND presence_valide=0 "
         "  AND date_heure_debut > datetime('now') "
         "  AND type_seance IN ('Cours','Examen')"));
-    q.bindValue(":now", now);
-    q.bindValue(":id",  currentId);
-    if (!q.exec())
-        qWarning() << "[YearClosure] Soft-delete sessions failed:" << q.lastError().text();
+    qIds.bindValue(":id", currentId);
+    if (!qIds.exec()) {
+        qWarning() << "[YearClosure] Fetch future sessions failed:" << qIds.lastError().text();
+        return;
+    }
+
+    QStringList ids;
+    while (qIds.next())
+        ids << QString::number(qIds.value(0).toInt());
+
+    if (ids.isEmpty()) {
+        qDebug() << "[YearClosure] No future sessions to delete.";
+        return;
+    }
+
+    const QString inClause = ids.join(QLatin1Char(','));
+
+    // Delete linked participations
+    QSqlQuery qPart(db);
+    if (!qPart.exec(QStringLiteral("DELETE FROM participations WHERE seance_id IN (%1)").arg(inClause)))
+        qWarning() << "[YearClosure] Delete participations failed:" << qPart.lastError().text();
+
+    // Delete linked cours rows
+    QSqlQuery qCours(db);
+    if (!qCours.exec(QStringLiteral("DELETE FROM cours WHERE seance_id IN (%1)").arg(inClause)))
+        qWarning() << "[YearClosure] Delete cours failed:" << qCours.lastError().text();
+
+    // Delete linked examens rows
+    QSqlQuery qExam(db);
+    if (!qExam.exec(QStringLiteral("DELETE FROM examens WHERE seance_id IN (%1)").arg(inClause)))
+        qWarning() << "[YearClosure] Delete examens failed:" << qExam.lastError().text();
+
+    // Hard-delete the seances themselves
+    QSqlQuery qDel(db);
+    if (!qDel.exec(QStringLiteral("DELETE FROM seances WHERE id IN (%1)").arg(inClause)))
+        qWarning() << "[YearClosure] Delete sessions failed:" << qDel.lastError().text();
     else
-        qDebug()   << "[YearClosure] Future sessions soft-deleted:" << q.numRowsAffected();
+        qDebug()   << "[YearClosure] Future sessions deleted:" << qDel.numRowsAffected();
 }
 
 // 10. Mark the closing year as 'Fermée'
@@ -744,8 +775,8 @@ Result<bool> SqliteYearClosureRepository::executeYearClosure(
     YC_CHECK(createNewInscriptions(db, progressions, niveauMapping,
                                    newYearId, now, fraisJeune, fraisAdulte))
 
-    // 9. Soft-delete future sessions of the closing year
-    softDeleteFutureSessions(db, currentId, now);
+    // 9. Hard-delete all future sessions of the closing year
+    deleteFutureSessions(db, currentId);
 
     // 10. Mark closing year as 'Fermée'
     YC_CHECK(closeCurrentYear(db, currentId, now))

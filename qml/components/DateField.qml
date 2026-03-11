@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 // Champ de saisie de date réutilisable : label + JJ / MM / AAAA
 // La catégorie (Jeune/Adulte) est calculée automatiquement selon l'âge.

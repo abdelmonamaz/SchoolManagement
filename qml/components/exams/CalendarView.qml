@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 RowLayout {
@@ -147,7 +147,7 @@ RowLayout {
                 // Pill mois + année (cliquable → MonthYearSelector)
                 Rectangle {
                     id: calPillRect
-                    implicitWidth: calPillRow.implicitWidth + 20
+                    implicitWidth: 155
                     height: 32; radius: 10
                     color: calMonthPicker.show ? Style.bgPage : Style.bgWhite
                     border.color: calMonthPicker.show ? Style.primary : Style.borderLight

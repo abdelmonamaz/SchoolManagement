@@ -21,6 +21,8 @@ public:
     Result<QStringList> checkConflicts(const Seance& seance, int excludeSeanceId = 0) override;
     Result<bool> setPresenceValide(int seanceId, bool valide) override;
     int findAnneeScolaireIdForDate(const QString& isoDate) override;
+    int getActiveSchoolYearId() override;
+    int getPreviousClosedSchoolYearId() override;
 
 private:
     QString m_connectionName;
