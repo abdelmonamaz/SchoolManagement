@@ -59,6 +59,7 @@ public:
     ~AppController() override;
 
     QString dbInitError() const { return m_dbInitError; }
+    QString getLanguage() const;
 
 signals:
     void dbInitErrorChanged();

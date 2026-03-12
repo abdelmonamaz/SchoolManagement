@@ -3,6 +3,8 @@
 #include <QQmlContext>
 #include <QStandardPaths>
 #include <QDir>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 
 #include "database/database_worker.h"
 
@@ -58,6 +60,30 @@ AppController::~AppController() {
     if (m_dbWorker) {
         m_dbWorker->stop();
     }
+}
+
+QString AppController::getLanguage() const {
+    QString lang = "français";
+    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString dbPath = dataDir + "/gestion_scolaire.db";
+
+    if (QFile::exists(dbPath)) {
+        // Create a distinct connection name for the main thread
+        QString connName = QStringLiteral("MainThread_Init_Lang");
+        {
+            auto db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            db.setDatabaseName(dbPath);
+            if (db.open()) {
+                QSqlQuery q(db);
+                if (q.exec(QStringLiteral("SELECT langue FROM association_config LIMIT 1")) && q.next()) {
+                    lang = q.value(0).toString();
+                }
+                db.close();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    }
+    return lang;
 }
 
 void AppController::setupDatabase() {

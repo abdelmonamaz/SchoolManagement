@@ -20,10 +20,17 @@ QVariantMap SqliteAssociationRepository::getConfig()
         "       exercice_debut, exercice_fin, age_passage_adulte, langue "
         "FROM association_config LIMIT 1"));
 
-    if (!q.next()) return {};
+    if (!q.next()) {
+        qDebug() << "[SqliteAssociationRepository] getConfig: No row found in association_config";
+        return {};
+    }
 
     const bool init = q.value(0).toInt() == 1;
     const int  age  = q.value(5).toInt();
+    const QString langue = q.value(6).toString();
+    
+    qDebug() << "[SqliteAssociationRepository] getConfig: retrieved langue =" << langue;
+
     return {
         {"initialized", init},
         {"associationData", QVariantMap{
@@ -32,7 +39,7 @@ QVariantMap SqliteAssociationRepository::getConfig()
             {"exerciceDebut",    q.value(3).toString()},
             {"exerciceFin",      q.value(4).toString()},
             {"agePassageAdulte", age > 0 ? age : 12},
-            {"langue",           q.value(6).toString()}
+            {"langue",           langue}
         }}
     };
 }

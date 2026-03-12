@@ -5,6 +5,7 @@
 #include <QFont>
 #include <QQuickWindow>
 #include <QTimer>
+#include <QTranslator>
 
 #include "app/app_controller.h"
 
@@ -45,6 +46,27 @@ int main(int argc, char *argv[])
     // Bootstrap the entire C++ backend
     AppController appController(engine);
 
+    // ── Translation Setup ──
+    QTranslator translator;
+    QString lang = appController.getLanguage();
+    
+    qDebug() << "[Main] Langue récupérée depuis la base de données :" << lang;
+
+    if (lang == "arabe") {
+        qDebug() << "[Main] Tentative de chargement du fichier de traduction ar_AE.qm...";
+        if (translator.load(":/i18n/ar_AE.qm") ||
+            translator.load(":/qt/qml/GestionScolaire/i18n/ar_AE.qm") ||
+            translator.load(":/GestionScolaire/i18n/ar_AE.qm") ||
+            translator.load("ar_AE", ":/i18n/")) {
+            app.installTranslator(&translator);
+            qInfo() << "[Main] Traduction arabe chargée et installée avec succès.";
+        } else {
+            qWarning() << "[Main] ERREUR : Impossible de trouver ou charger le fichier ar_AE.qm !";
+        }
+    } else {
+        qDebug() << "[Main] Pas de traduction chargée (langue actuelle :" << lang << ")";
+    }
+
     const QUrl url(QStringLiteral("qrc:/qt/qml/GestionScolaire/qml/main.qml"));
 
     QObject::connect(
@@ -75,3 +97,6 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
+
+
