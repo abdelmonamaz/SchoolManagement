@@ -150,8 +150,8 @@ ModalOverlay {
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.overwrite = false }
                 }
                 Rectangle { width: (parent.width - 6) / 2; height: 38; radius: 10
-                    color: root.overwrite ? "#EF4444" : Style.bgPage
-                    border.color: root.overwrite ? "#EF4444" : Style.borderLight
+                    color: root.overwrite ? Style.errorColor : Style.bgPage
+                    border.color: root.overwrite ? Style.errorColor : Style.borderLight
                     Text { anchors.centerIn: parent; text: "ÉCRASER"
                            font.pixelSize: 10; font.weight: Font.Black; font.letterSpacing: 0.5
                            color: root.overwrite ? "white" : Style.textTertiary }
@@ -160,7 +160,7 @@ ModalOverlay {
             }
             Text { width: parent.width; visible: root.overwrite
                    text: "Tous les paiements existants du mois seront supprimés et remplacés par ce montant."
-                   font.pixelSize: 10; color: "#EF4444"; wrapMode: Text.WordWrap }
+                   font.pixelSize: 10; color: Style.errorColor; wrapMode: Text.WordWrap }
         }
 
         ModalButtons {

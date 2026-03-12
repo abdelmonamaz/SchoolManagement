@@ -111,7 +111,7 @@ Popup {
         }
     }
 
-    Overlay.modal: Rectangle { color: "#0F172ACC" }
+    Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.80) }
     background: Rectangle { radius: 20; color: Style.bgWhite }
 
     Connections {
@@ -276,12 +276,12 @@ Popup {
                                 x: (parent.width - width) / 2   // center 52px circle in 80px column
                                 width: 52; height: 52; radius: 26
                                 color: {
-                                    if (index + 1 < currentStep) return "#22C55E"
+                                    if (index + 1 < currentStep) return Style.successColor
                                     if (index + 1 === currentStep) return Style.textPrimary
                                     return "transparent"
                                 }
                                 border.color: {
-                                    if (index + 1 < currentStep) return "#22C55E"
+                                    if (index + 1 < currentStep) return Style.successColor
                                     if (index + 1 === currentStep) return Style.textPrimary
                                     return Style.borderMedium
                                 }
@@ -291,8 +291,11 @@ Popup {
                                     anchors.centerIn: parent
                                     text: (index + 1 < currentStep) ? "✓" : modelData.icon
                                     font.pixelSize: (index + 1 < currentStep) ? 18 : 20
-                                    color: (index + 1 <= currentStep) ? "white"
-                                           : Style.textTertiary
+                                    color: {
+                                        if (index + 1 < currentStep) return "white"
+                                        if (index + 1 === currentStep) return "white"
+                                        return Style.textTertiary
+                                    }
                                 }
                             }
                             Text {
@@ -302,7 +305,7 @@ Popup {
                                 font.pixelSize: 11
                                 font.bold: index + 1 === currentStep
                                 color: {
-                                    if (index + 1 < currentStep) return "#22C55E"
+                                    if (index + 1 < currentStep) return Style.successColor
                                     if (index + 1 === currentStep) return Style.textPrimary
                                     return Style.textTertiary
                                 }
@@ -315,7 +318,7 @@ Popup {
                             visible: index < 4
                             width: 60; height: 2
                             y: 26
-                            color: (index + 1 < currentStep) ? "#22C55E" : Style.borderLight
+                            color: (index + 1 < currentStep) ? Style.successColor : Style.borderLight
                         }
                     }
                 }
@@ -346,8 +349,8 @@ Popup {
                         width: parent.width
                         height: warnCol.implicitHeight + 32
                         radius: 12
-                        color: "#FFFBEB"
-                        border.color: "#F59E0B"
+                        color: Style.warningBg
+                        border.color: Style.warningColor
                         border.width: 1
 
                         Column {
@@ -363,14 +366,14 @@ Popup {
                                 Text {
                                     text: "Attention : Action Critique"
                                     font.pixelSize: 15; font.bold: true
-                                    color: "#B45309"
+                                    color: Style.warningColor
                                 }
                             }
                             Text {
                                 width: parent.width
                                 text: "La clôture d'année scolaire est une opération <b>irréversible</b> qui va :"
                                 textFormat: Text.RichText
-                                font.pixelSize: 13; color: "#92400E"
+                                font.pixelSize: 13; color: Style.warningColor
                                 wrapMode: Text.WordWrap
                             }
                             Repeater {
@@ -382,10 +385,10 @@ Popup {
                                 ]
                                 delegate: Row {
                                     spacing: 8
-                                    Text { text: "•"; font.pixelSize: 13; color: "#92400E" }
+                                    Text { text: "•"; font.pixelSize: 13; color: Style.warningColor }
                                     Text {
                                         width: warnCol.width - 16
-                                        text: modelData; font.pixelSize: 13; color: "#92400E"
+                                        text: modelData; font.pixelSize: 13; color: Style.warningColor
                                         wrapMode: Text.WordWrap
                                     }
                                 }
@@ -402,13 +405,13 @@ Popup {
                         Repeater {
                             model: [
                                 { label: "Étudiants Inscrits", sub: "Année " + (stats ? stats.anneeActiveLibelle : ""),
-                                  value: stats ? stats.studentsInscrits : 0, color: "#F0FDF4", accent: "#16A34A" },
+                                  value: stats ? stats.studentsInscrits : 0, color: Style.successBg, accent: Style.successColor },
                                 { label: "Taux de Réussite", sub: "Global tous niveaux",
-                                  value: (stats ? stats.tauxReussite : 0) + "%", color: "#EFF6FF", accent: "#2563EB" },
+                                  value: (stats ? stats.tauxReussite : 0) + "%", color: Style.bgWhite, accent: Style.chart3 },
                                 { label: "Diplômés", sub: "Niveau terminal complété",
-                                  value: stats ? stats.diplomes : 0, color: "#FAF5FF", accent: "#7C3AED" },
+                                  value: stats ? stats.diplomes : 0, color: Style.background, accent: Style.chart3 },
                                 { label: "Redoublants", sub: "Tous niveaux confondus",
-                                  value: stats ? stats.redoublants : 0, color: "#FFF1F2", accent: "#E11D48" }
+                                  value: stats ? stats.redoublants : 0, color: Style.errorBg, accent: Style.errorColor }
                             ]
                             delegate: Rectangle {
                                 width: (step1Scroll.width - 12) / 2
@@ -444,8 +447,8 @@ Popup {
                         width: parent.width
                         visible: incomplete && incomplete.length > 0
                         height: visible ? incomplCol.implicitHeight + 24 : 0
-                        radius: 12; color: "#FFF7ED"
-                        border.color: "#F97316"; border.width: 1
+                        radius: 12; color: Style.warningBg
+                        border.color: Style.chart1; border.width: 1
 
                         Column {
                             id: incomplCol
@@ -456,13 +459,13 @@ Popup {
                                 Text { text: "⚠️"; font.pixelSize: 14 }
                                 Text {
                                     text: (incomplete ? incomplete.length : 0) + " séance(s) non validée(s)"
-                                    font.pixelSize: 13; font.bold: true; color: "#C2410C"
+                                    font.pixelSize: 13; font.bold: true; color: Style.warningColor
                                 }
                             }
                             Text {
                                 width: parent.width
                                 text: "Ces séances passées n'ont pas d'enregistrement de présence. Vous pouvez continuer, elles seront archivées telles quelles."
-                                font.pixelSize: 12; color: "#9A3412"
+                                font.pixelSize: 12; color: Style.warningColor
                                 wrapMode: Text.WordWrap
                             }
                         }
@@ -472,8 +475,8 @@ Popup {
                     Rectangle {
                         width: parent.width
                         height: backupRow.implicitHeight + 24
-                        radius: 12; color: "#EFF6FF"
-                        border.color: "#BFDBFE"; border.width: 1
+                        radius: 12; color: Style.chart3
+                        border.color: Style.chart3; border.width: 1
 
                         Row {
                             id: backupRow
@@ -483,7 +486,7 @@ Popup {
                             Text {
                                 width: parent.width - 30
                                 text: "Sauvegarde recommandée : Avant de procéder à la clôture, assurez-vous d'avoir effectué une sauvegarde complète de la base de données dans l'onglet \"Sauvegarde & Data\" des Paramètres."
-                                font.pixelSize: 12; color: "#1D4ED8"
+                                font.pixelSize: 12; color: Style.chart3
                                 wrapMode: Text.WordWrap
                             }
                         }
@@ -502,8 +505,8 @@ Popup {
                 Rectangle {
                     width: parent.width
                     height: 40; radius: 10
-                    color: step2Valid ? "#F0FDF4" : "#FFFBEB"
-                    border.color: step2Valid ? "#86EFAC" : "#FCD34D"; border.width: 1
+                    color: step2Valid ? Style.successBg : Style.warningBg
+                    border.color: step2Valid ? Style.successColor : Style.warningBorder; border.width: 1
 
                     Row {
                         anchors.centerIn: parent
@@ -513,7 +516,7 @@ Popup {
                             text: nbDecides + " / " + progressions.length + " résultats décidés"
                                   + (step2Valid ? " — Prêt à continuer" : " — Décidez tous les résultats")
                             font.pixelSize: 13; font.bold: true
-                            color: step2Valid ? "#15803D" : "#92400E"
+                            color: step2Valid ? Style.zitouna : Style.warningColor
                         }
                     }
                 }
@@ -538,8 +541,8 @@ Popup {
                         color: Style.bgWhite
                         border.color: {
                             var r = modelData.resultat
-                            if (r === "Réussi")     return "#86EFAC"
-                            if (r === "Redoublant") return "#FCA5A5"
+                            if (r === "Réussi")     return Style.successColor
+                            if (r === "Redoublant") return Style.errorBorder
                             return Style.borderLight
                         }
                         border.width: 1
@@ -554,8 +557,8 @@ Popup {
                                 width: 38; height: 38; radius: 19
                                 color: {
                                     var r = modelData.resultat
-                                    if (r === "Réussi")     return "#DCFCE7"
-                                    if (r === "Redoublant") return "#FEE2E2"
+                                    if (r === "Réussi")     return Style.successBg
+                                    if (r === "Redoublant") return Style.errorBorder
                                     return Style.bgPage
                                 }
                                 Text {
@@ -564,8 +567,8 @@ Popup {
                                     font.pixelSize: 15; font.bold: true
                                     color: {
                                         var r = modelData.resultat
-                                        if (r === "Réussi")     return "#15803D"
-                                        if (r === "Redoublant") return "#DC2626"
+                                        if (r === "Réussi")     return Style.zitouna
+                                        if (r === "Redoublant") return Style.errorColor
                                         return Style.textSecondary
                                     }
                                 }
@@ -594,13 +597,13 @@ Popup {
                                 visible: modelData.moyenneAnnuelle !== undefined
                                 color: {
                                     var m = modelData.moyenneAnnuelle
-                                    if (m < 0) return "#F1F5F9"
-                                    return m >= 10 ? "#DCFCE7" : "#FEE2E2"
+                                    if (m < 0) return Style.secondary
+                                    return m >= 10 ? Style.successBg : Style.errorBorder
                                 }
                                 border.color: {
                                     var m = modelData.moyenneAnnuelle
                                     if (m < 0) return Style.borderLight
-                                    return m >= 10 ? "#86EFAC" : "#FCA5A5"
+                                    return m >= 10 ? Style.successColor : Style.errorBorder
                                 }
                                 border.width: 1
                                 Text {
@@ -613,7 +616,7 @@ Popup {
                                     color: {
                                         var m = modelData.moyenneAnnuelle
                                         if (m < 0) return Style.textTertiary
-                                        return m >= 10 ? "#16A34A" : "#DC2626"
+                                        return m >= 10 ? Style.successColor : Style.errorColor
                                     }
                                 }
                             }
@@ -623,8 +626,8 @@ Popup {
                             // Réussi button
                             Rectangle {
                                 width: 80; height: 30; radius: 8
-                                color: modelData.resultat === "Réussi" ? "#16A34A" : Style.bgPage
-                                border.color: modelData.resultat === "Réussi" ? "#16A34A" : Style.borderMedium
+                                color: modelData.resultat === "Réussi" ? Style.successColor : Style.bgPage
+                                border.color: modelData.resultat === "Réussi" ? Style.successColor : Style.borderMedium
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
@@ -652,8 +655,8 @@ Popup {
                             // Redoublant button
                             Rectangle {
                                 width: 90; height: 30; radius: 8
-                                color: modelData.resultat === "Redoublant" ? "#DC2626" : Style.bgPage
-                                border.color: modelData.resultat === "Redoublant" ? "#DC2626" : Style.borderMedium
+                                color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.bgPage
+                                border.color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.borderMedium
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
@@ -715,9 +718,9 @@ Popup {
                                         font.pixelSize: 11; font.bold: true
                                         color: {
                                             var r = modelData.resultat
-                                            if (r === "Redoublant") return "#DC2626"
-                                            if (r === "Réussi" && modelData.niveauSuivantId <= 0) return "#7C3AED"
-                                            return "#16A34A"
+                                            if (r === "Redoublant") return Style.errorColor
+                                            if (r === "Réussi" && modelData.niveauSuivantId <= 0) return Style.chart3
+                                            return Style.successColor
                                         }
                                         elide: Text.ElideRight
                                         width: (modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1) ? 100 : 130
@@ -788,9 +791,9 @@ Popup {
                         width: parent.width; columns: 3; spacing: 10
                         Repeater {
                             model: [
-                                { label: "Cours prévus",    value: parent.parent.arch ? parent.parent.arch.coursTotal   : 0, accent: "#2563EB", bg: "#EFF6FF" },
-                                { label: "Cours validés",   value: parent.parent.arch ? parent.parent.arch.coursValides : 0, accent: "#16A34A", bg: "#F0FDF4" },
-                                { label: "Examens",         value: parent.parent.arch ? parent.parent.arch.examensTotal : 0, accent: "#7C3AED", bg: "#FAF5FF" }
+                                { label: "Cours prévus",    value: parent.parent.arch ? parent.parent.arch.coursTotal   : 0, accent: Style.bgWhite, bg: Style.chart3 },
+                                { label: "Cours validés",   value: parent.parent.arch ? parent.parent.arch.coursValides : 0, accent: Style.successColor, bg: Style.successBg },
+                                { label: "Examens",         value: parent.parent.arch ? parent.parent.arch.examensTotal : 0, accent: Style.chart3, bg: Style.background }
                             ]
                             delegate: Rectangle {
                                 width: (step3Scroll.width - 20) / 3; height: 64
@@ -808,7 +811,7 @@ Popup {
                     // ── Global presence rate ──────────────────────────────────
                     Rectangle {
                         width: parent.width; height: presRow.implicitHeight + 20
-                        radius: 10; color: "#F8FAFC"
+                        radius: 10; color: Style.background
                         border.color: Style.borderLight; border.width: 1
                         Row {
                             id: presRow
@@ -821,7 +824,7 @@ Popup {
                                 font.pixelSize: 15; font.bold: true
                                 color: {
                                     var r = parent.parent.parent.arch ? parent.parent.parent.arch.tauxPresenceGlobal : 0
-                                    return r >= 75 ? "#16A34A" : r >= 50 ? "#D97706" : "#DC2626"
+                                    return r >= 75 ? Style.successColor : r >= 50 ? Style.warningColor : Style.errorColor
                                 }
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -864,7 +867,7 @@ Popup {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: "Présence : " + modelData.presenceRate + "%"
                                         font.pixelSize: 11; font.bold: true
-                                        color: modelData.presenceRate >= 75 ? "#16A34A" : modelData.presenceRate >= 50 ? "#D97706" : "#DC2626"
+                                        color: modelData.presenceRate >= 75 ? Style.successColor : modelData.presenceRate >= 50 ? Style.warningColor : Style.errorColor
                                     }
                                 }
 
@@ -883,7 +886,7 @@ Popup {
                                         Rectangle {
                                             width: modelData.coursTotal > 0 ? parent.width * modelData.coursValides / modelData.coursTotal : 0
                                             height: parent.height; radius: parent.radius
-                                            color: "#16A34A"
+                                            color: Style.successColor
                                         }
                                     }
                                 }
@@ -905,7 +908,7 @@ Popup {
                                                        ? "Notes incomplètes (" + modelData.notesSaisies + "/" + modelData.totalPart + ")"
                                                        : "Aucune participation enregistrée")
                                             font.pixelSize: 11
-                                            color: modelData.notesEntrees ? "#16A34A" : "#D97706"
+                                            color: modelData.notesEntrees ? Style.successColor : Style.warningColor
                                         }
                                     }
                                 }
@@ -918,8 +921,8 @@ Popup {
                         width: parent.width
                         visible: incomplete && incomplete.length > 0
                         height: visible ? incompl3Col.implicitHeight + 24 : 0
-                        radius: 12; color: "#FFF7ED"
-                        border.color: "#F97316"; border.width: 1
+                        radius: 12; color: Style.warningBg
+                        border.color: Style.chart1; border.width: 1
 
                         Column {
                             id: incompl3Col
@@ -930,17 +933,17 @@ Popup {
                                 Text { text: "⚠️"; font.pixelSize: 14 }
                                 Text {
                                     text: (incomplete ? incomplete.length : 0) + " séance(s) sans enregistrement de présence"
-                                    font.pixelSize: 13; font.bold: true; color: "#C2410C"
+                                    font.pixelSize: 13; font.bold: true; color: Style.warningColor
                                 }
                             }
                             Repeater {
                                 model: incomplete
                                 delegate: Row {
                                     spacing: 8
-                                    Text { text: "•"; font.pixelSize: 12; color: "#9A3412" }
+                                    Text { text: "•"; font.pixelSize: 12; color: Style.warningColor }
                                     Text {
                                         text: "[" + modelData.type + "] " + modelData.titre + " — " + modelData.date
-                                        font.pixelSize: 12; color: "#9A3412"
+                                        font.pixelSize: 12; color: Style.warningColor
                                     }
                                 }
                             }
@@ -991,9 +994,9 @@ Popup {
 
                         Repeater {
                             model: [
-                                { label: "Promus",      icon: "↑", value: parent.parent.nbPromus,      color: "#F0FDF4", accent: "#16A34A" },
-                                { label: "Redoublants", icon: "↩", value: parent.parent.nbRedoublants, color: "#FFF1F2", accent: "#E11D48" },
-                                { label: "Diplômés",    icon: "🎓", value: parent.parent.nbDiplomesStep, color: "#FAF5FF", accent: "#7C3AED" }
+                                { label: "Promus",      icon: "↑", value: parent.parent.nbPromus,      color: Style.successBg, accent: Style.successColor },
+                                { label: "Redoublants", icon: "↩", value: parent.parent.nbRedoublants, color: Style.errorBg, accent: Style.errorColor },
+                                { label: "Diplômés",    icon: "🎓", value: parent.parent.nbDiplomesStep, color: Style.background, accent: Style.chart3 }
                             ]
                             delegate: Rectangle {
                                 width: (step4Scroll.width - 24) / 3; height: 80
@@ -1010,7 +1013,7 @@ Popup {
                                     Row {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         spacing: 4
-                                        Text { text: modelData.icon; font.pixelSize: 13 }
+                                        Text { text: modelData.icon; font.pixelSize: 13; color: modelData.accent }
                                         Text { text: modelData.label; font.pixelSize: 12; font.bold: true; color: modelData.accent }
                                     }
                                 }
@@ -1140,8 +1143,8 @@ Popup {
                     // Warning important
                     Rectangle {
                         width: parent.width; height: impWarn.implicitHeight + 24
-                        radius: 12; color: "#FFFBEB"
-                        border.color: "#F59E0B"; border.width: 1
+                        radius: 12; color: Style.warningBg
+                        border.color: Style.warningColor; border.width: 1
 
                         Column {
                             id: impWarn
@@ -1150,12 +1153,12 @@ Popup {
                             Row {
                                 spacing: 8
                                 Text { text: "⚠️"; font.pixelSize: 14 }
-                                Text { text: "Avertissement Important"; font.pixelSize: 14; font.bold: true; color: "#B45309" }
+                                Text { text: "Avertissement Important"; font.pixelSize: 14; font.bold: true; color: Style.warningColor }
                             }
                             Text {
                                 width: parent.width
                                 text: "Une fois la clôture effectuée, il sera <b>impossible de revenir en arrière</b>. Assurez-vous d'avoir vérifié toutes les données et effectué une sauvegarde complète avant de continuer."
-                                textFormat: Text.RichText; font.pixelSize: 13; color: "#92400E"
+                                textFormat: Text.RichText; font.pixelSize: 13; color: Style.warningColor
                                 wrapMode: Text.WordWrap
                             }
                         }
@@ -1164,13 +1167,13 @@ Popup {
                     // Final close button
                     Rectangle {
                         width: parent.width; height: 52; radius: 14
-                        color: step5Valid ? "#DC2626" : Style.borderMedium
+                        color: step5Valid ? Style.errorColor : Style.borderLight
 
                         Behavior on color { ColorAnimation { duration: 200 } }
 
                         Row {
                             anchors.centerIn: parent; spacing: 10
-                            Text { text: "🔒"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "🔒"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter; color: "white" }
                             Text {
                                 text: "CLÔTURER L'ANNÉE SCOLAIRE " + (stats ? stats.anneeActiveLibelle.toUpperCase() : "")
                                 font.pixelSize: 13; font.bold: true; color: "white"

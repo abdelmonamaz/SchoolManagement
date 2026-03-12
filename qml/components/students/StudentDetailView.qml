@@ -238,7 +238,7 @@ ColumnLayout {
                 initials: root.student.nom ? root.student.nom.charAt(0) : ""
                 bgColor: Style.sandBg
                 textColor: Style.primary
-                border.color: "#FFFFFF"; border.width: 4
+                border.color: Style.background; border.width: 4
             }
 
             ColumnLayout {
@@ -249,9 +249,9 @@ ColumnLayout {
                     Text { text: (root.student.prenom || "") + " " + (root.student.nom || ""); font.pixelSize: 28; font.weight: Font.Black; color: Style.textPrimary }
                     Badge {
                         text: root.student.sexe === "F" ? "FÉMININ" : "MASCULIN"
-                        customTextColor: "#FFFFFF"
-                        customBgColor: root.student.sexe === "F" ? "#DB2777" : Style.primary
-                        customBorderColor: root.student.sexe === "F" ? "#BE185D" : Style.primaryDark
+                        customTextColor: Style.background
+                        customBgColor: root.student.sexe === "F" ? Style.errorColor : Style.primary
+                        customBorderColor: root.student.sexe === "F" ? Style.errorColor : Style.primaryDark
                     }
                 }
                 Text { text: "ID: " + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
@@ -305,8 +305,8 @@ ColumnLayout {
                 OutlineButton {
                     text: "Supprimer"
                     baseColor: Style.errorColor
-                    hoverColor: "#BE185D"
-                    textColor: "#FFFFFF"
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
                     onClicked: root.deleteRequested()
                 }
             }
@@ -485,8 +485,8 @@ ColumnLayout {
                             var s = root.statusLabel
                             if (s === "Jamais inscrit")      return Style.bgTertiary
                             if (s.indexOf("En cours") >= 0)  return Style.primaryBg
-                            if (s === "Réussi")              return "#F0FFF4"
-                            if (s === "Redoublant")           return "#FFF7ED"
+                            if (s === "Réussi")              return Style.successBg
+                            if (s === "Redoublant")           return Style.warningBg
                             return Style.bgPage
                         }
 
@@ -500,8 +500,8 @@ ColumnLayout {
                                     var s = root.statusLabel
                                     if (s === "Jamais inscrit")      return Style.textTertiary
                                     if (s.indexOf("En cours") >= 0)  return Style.primary
-                                    if (s === "Réussi")              return "#166534"
-                                    if (s === "Redoublant")           return "#9A3412"
+                                    if (s === "Réussi")              return Style.zitouna
+                                    if (s === "Redoublant")           return Style.warningColor
                                     return Style.textPrimary
                                 }
                             }
@@ -627,7 +627,7 @@ ColumnLayout {
                             color: newEnrollmentPopup.isPaid ? Style.successColor : Style.bgTertiary
                             Rectangle {
                                 x: newEnrollmentPopup.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                color: "#FFFFFF"
+                                color: Style.background
                                 Behavior on x { NumberAnimation { duration: 150 } }
                             }
                             MouseArea { anchors.fill: parent; onClicked: newEnrollmentPopup.isPaid = !newEnrollmentPopup.isPaid }

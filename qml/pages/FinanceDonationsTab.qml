@@ -217,9 +217,9 @@ AppCard {
         Column { width: parent.width; spacing: 16
             visible: !financeController.loading && tab.viewMode === "dons" && tab.filteredDons.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#FEF3C7"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.warningBorder
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "heart"; iconSize: 24; iconColor: "#D97706" } }
+                IconLabel { anchors.centerIn: parent; iconName: "heart"; iconSize: 24; iconColor: Style.warningColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: page.searchTerm !== "" ? "Aucun résultat pour \"" + page.searchTerm + "\""
                                                 : "Aucun don pour " + page.selectedMonth + " " + page.selectedYear
@@ -234,9 +234,9 @@ AppCard {
         Column { width: parent.width; spacing: 16
             visible: !financeController.loading && tab.viewMode === "projets" && tab.filteredProjets.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#ECFDF5"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.successBg
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: "#059669" } }
+                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: Style.successColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: tab.projectSearch !== "" || tab.projectStatusFilter !== "Tous"
                          ? "Aucun résultat pour cette recherche"
@@ -304,12 +304,12 @@ AppCard {
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: 76; height: 22; radius: 6
-                                    color: modelData.natureDon === "Nature" ? "#FEF3C7" : Style.primaryBg
+                                    color: modelData.natureDon === "Nature" ? Style.warningBorder : Style.primaryBg
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.natureDon === "Nature" ? "EN NATURE" : "NUMÉRAIRE"
                                         font.pixelSize: 8; font.weight: Font.Black
-                                        color: modelData.natureDon === "Nature" ? "#D97706" : Style.primary
+                                        color: modelData.natureDon === "Nature" ? Style.warningColor : Style.primary
                                     }
                                 }
                             }

@@ -69,7 +69,7 @@ Canvas {
         ctx.stroke();
 
         // X labels
-        ctx.fillStyle = "#94A3B8";
+        ctx.fillStyle = Style.textSecondary;
         ctx.font = "11px sans-serif";
         ctx.textAlign = "center";
         for (var n = 0; n < data.length; n++) {

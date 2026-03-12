@@ -620,7 +620,7 @@ Item {
                                         Avatar {
                                             initials: gradesPage.studentInitials(modelData.eleveId)
                                             size: 34
-                                            bgColor: modelData.statut === "Absent" ? "#FEE2E2" : Style.bgSecondary
+                                            bgColor: modelData.statut === "Absent" ? Style.errorBorder : Style.bgSecondary
                                             textColor: modelData.statut === "Absent" ? Style.errorColor : Style.primary
                                         }
 
@@ -850,8 +850,8 @@ Item {
                             width: parent.width
                             implicitHeight: sideWarnCol.implicitHeight + 24
                             radius: 12
-                            color: gradesPage.allEntered ? "#F0FDF4" : "#FEF3C7"
-                            border.color: gradesPage.allEntered ? "#BBF7D0" : "#FCD34D"
+                            color: gradesPage.allEntered ? Style.successBg : Style.warningBorder
+                            border.color: gradesPage.allEntered ? Style.successColor : Style.warningBorder
                             Behavior on color { ColorAnimation { duration: 300 } }
 
                             Column {
@@ -862,7 +862,7 @@ Item {
                                 Text {
                                     text: gradesPage.allEntered ? "Prêt pour les bulletins ✓" : "Attention"
                                     font.pixelSize: 11; font.bold: true
-                                    color: gradesPage.allEntered ? "#166534" : "#92400E"
+                                    color: gradesPage.allEntered ? Style.zitouna : Style.warningColor
                                 }
                                 Text {
                                     width: parent.width
@@ -870,7 +870,7 @@ Item {
                                           ? "Toutes les notes sont saisies. Le bouton « Générer les Bulletins » est maintenant actif."
                                           : "Les bulletins ne peuvent être générés que si 100% des notes sont saisies pour cette épreuve."
                                     font.pixelSize: 10
-                                    color: gradesPage.allEntered ? "#166534" : "#92400E"
+                                    color: gradesPage.allEntered ? Style.zitouna : Style.warningColor
                                     wrapMode: Text.WordWrap
                                 }
                             }

@@ -423,7 +423,7 @@ ModalOverlay {
             Rectangle {
                 Layout.fillWidth: true; height: 48; radius: 14
                 color: parent.formValid
-                       ? (csvMa.containsMouse ? "#166534" : "#22C55E")
+                       ? (csvMa.containsMouse ? Style.zitouna : Style.successColor)
                        : Style.bgTertiary
                 opacity: parent.formValid ? 1.0 : 0.5
                 Behavior on color { ColorAnimation { duration: 100 } }
@@ -431,7 +431,7 @@ ModalOverlay {
                 RowLayout {
                     anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
-                    Text { text: "EXPORTER CSV"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { text: "EXPORTER CSV"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                 }
 
                 MouseArea {
@@ -466,7 +466,7 @@ ModalOverlay {
                 RowLayout {
                     anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "printer"; iconSize: 14; iconColor: "white" }
-                    Text { text: "GÉNÉRER PDF"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { text: "GÉNÉRER PDF"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                 }
 
                 MouseArea {

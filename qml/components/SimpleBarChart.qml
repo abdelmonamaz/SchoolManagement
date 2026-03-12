@@ -37,7 +37,7 @@ Canvas {
         var startX = padding.left + (chartW - totalW) / 2;
 
         // Grid lines
-        ctx.strokeStyle = "#F1F5F9";
+        ctx.strokeStyle = Style.secondary;
         ctx.lineWidth = 1;
         for (var g = 0; g <= 4; g++) {
             var y = padding.top + (chartH / 4) * g;
@@ -49,7 +49,7 @@ Canvas {
 
             // Y axis labels
             ctx.setLineDash([]);
-            ctx.fillStyle = "#94A3B8";
+            ctx.fillStyle = Style.textSecondary;
             ctx.font = "11px sans-serif";
             ctx.textAlign = "right";
             var val = Math.round(maxVal - (maxVal / 4) * g);
@@ -79,7 +79,7 @@ Canvas {
             }
 
             // X label
-            ctx.fillStyle = "#94A3B8";
+            ctx.fillStyle = Style.textSecondary;
             ctx.font = "11px sans-serif";
             ctx.textAlign = "center";
             ctx.fillText(data[gi].label, groupX + groupW / 2, height - 10);

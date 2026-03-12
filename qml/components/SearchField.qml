@@ -8,7 +8,7 @@ Rectangle {
 
     implicitHeight: 48
     radius: 16
-    color: "#FFFFFF"
+    color: Style.inputBackground
     border.color: input.activeFocus ? Style.primary : Style.borderLight
     border.width: 1
 

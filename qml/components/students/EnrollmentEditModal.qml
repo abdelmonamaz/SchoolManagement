@@ -63,8 +63,8 @@ ModalOverlay {
 
         RowLayout {
             width: parent.width - 64; spacing: 14
-            Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || "#FEF3C7"
-                IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || "#D97706" } }
+            Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || Style.warningBorder
+                IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || Style.warningColor } }
             Column { Layout.fillWidth: true; spacing: 2
                 Text { text: "Modifier l'Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
                 Text { text: root.student ? root.student.prenom + " " + root.student.nom : ""
@@ -140,7 +140,7 @@ ModalOverlay {
                             color: root.isPaid ? Style.successColor : Style.bgTertiary
                             Rectangle {
                                 x: root.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                color: "#FFFFFF"
+                                color: Style.background
                                 Behavior on x { NumberAnimation { duration: 150 } }
                             }
                             MouseArea { anchors.fill: parent; onClicked: root.isPaid = !root.isPaid }
@@ -200,7 +200,7 @@ ModalOverlay {
                     anchors.centerIn: parent
                     text: parent.isEnrolled ? "Désinscrire" : "Inscrire"
                     font.pixelSize: 13; font.weight: Font.Bold
-                    color: actionMa.containsMouse ? "#FFFFFF"
+                    color: actionMa.containsMouse ? Style.background
                            : (parent.isEnrolled ? Style.errorColor : Style.successColor)
                 }
                 MouseArea {

@@ -82,7 +82,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.equipName; font.pixelSize: 11; font.bold: true
-                                    color: parent.selected ? "#FFFFFF" : Style.textSecondary
+                                    color: parent.selected ? Style.background : Style.textSecondary
                                 }
 
                                 MouseArea {
@@ -196,7 +196,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.equipName; font.pixelSize: 11; font.bold: true
-                                    color: parent.selected ? "#FFFFFF" : Style.textSecondary
+                                    color: parent.selected ? Style.background : Style.textSecondary
                                 }
 
                                 MouseArea {
@@ -316,7 +316,7 @@ Item {
                         text: "SUPPRIMER"
                         font.pixelSize: 11
                         font.weight: Font.Black
-                        color: "#FFFFFF"
+                        color: Style.background
                         font.letterSpacing: 0.5
                     }
 

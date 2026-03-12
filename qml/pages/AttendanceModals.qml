@@ -32,7 +32,7 @@ Item {
         id: callModalOverlay
         show: page.showCallModal
         modalWidth: Math.min(parent.width - 64, 900)
-        modalColor: "#FAFBFC"
+        modalColor: Style.background
         onClose: page.showCallModal = false
 
         Column {
@@ -109,7 +109,7 @@ Item {
                                 implicitHeight: cardCol.implicitHeight + 32
                                 radius: 24
                                 color: Style.bgWhite
-                                border.color: isGuest ? "#BAE6FD" : Style.borderLight
+                                border.color: isGuest ? Style.chart2 : Style.borderLight
 
                                 // Staged statut: updated locally; defaults to "Présent" until explicitly changed
                                 property string statut: {
@@ -138,14 +138,14 @@ Item {
                                     anchors.top: parent.top; anchors.right: parent.right
                                     anchors.topMargin: 8; anchors.rightMargin: 8
                                     width: 24; height: 24; radius: 8
-                                    color: removeMa.containsMouse ? Style.errorColor : "#FEE2E2"
+                                    color: removeMa.containsMouse ? Style.errorColor : Style.errorBorder
                                     Behavior on color { ColorAnimation { duration: 120 } }
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: "✕"
                                         font.pixelSize: 10; font.bold: true
-                                        color: removeMa.containsMouse ? "#FFFFFF" : Style.errorColor
+                                        color: removeMa.containsMouse ? Style.background : Style.errorColor
                                     }
                                     MouseArea {
                                         id: removeMa; anchors.fill: parent
@@ -166,13 +166,13 @@ Item {
                                     Rectangle {
                                         width: 56; height: 56; radius: 20
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        color: isGuest ? "#E0F2FE" : Style.bgSecondary
-                                        border.color: "#FFFFFF"; border.width: 2
+                                        color: isGuest ? Style.chart2 : Style.bgSecondary
+                                        border.color: Style.background; border.width: 2
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.prenom.charAt(0)
                                             font.pixelSize: 18; font.bold: true
-                                            color: isGuest ? "#0284C7" : Style.primary
+                                            color: isGuest ? Style.chart2 : Style.primary
                                         }
                                     }
 
@@ -190,13 +190,13 @@ Item {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         implicitWidth: guestLbl.implicitWidth + 12
                                         height: 18; radius: 6
-                                        color: "#E0F2FE"
+                                        color: Style.chart2
                                         Text {
                                             id: guestLbl
                                             anchors.centerIn: parent
                                             text: "INVITÉ"
                                             font.pixelSize: 8; font.weight: Font.Black
-                                            color: "#0284C7"; font.letterSpacing: 0.5
+                                            color: Style.chart2; font.letterSpacing: 0.5
                                         }
                                     }
 
@@ -207,7 +207,7 @@ Item {
                                             width: 40; height: 32; radius: 10
                                             color: statut === "Présent" ? Style.successColor : Style.bgPage
                                             border.color: statut === "Présent" ? Style.successColor : Style.borderLight
-                                            Text { anchors.centerIn: parent; text: "P"; font.pixelSize: 12; font.bold: true; color: statut === "Présent" ? "#FFFFFF" : Style.textTertiary }
+                                            Text { anchors.centerIn: parent; text: "P"; font.pixelSize: 12; font.bold: true; color: statut === "Présent" ? Style.background : Style.textTertiary }
                                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.setStagedStatut(modelData.id, "Présent") }
                                         }
 
@@ -215,7 +215,7 @@ Item {
                                             width: 40; height: 32; radius: 10
                                             color: statut === "Absent" ? Style.errorColor : Style.bgPage
                                             border.color: statut === "Absent" ? Style.errorColor : Style.borderLight
-                                            Text { anchors.centerIn: parent; text: "A"; font.pixelSize: 12; font.bold: true; color: statut === "Absent" ? "#FFFFFF" : Style.textTertiary }
+                                            Text { anchors.centerIn: parent; text: "A"; font.pixelSize: 12; font.bold: true; color: statut === "Absent" ? Style.background : Style.textTertiary }
                                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.setStagedStatut(modelData.id, "Absent") }
                                         }
                                     }
@@ -244,7 +244,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true; Layout.preferredWidth: 1
                         height: 48; radius: 16; color: Style.primary
-                        Text { anchors.centerIn: parent; text: "CONFIRMER L'APPEL"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 1 }
+                        Text { anchors.centerIn: parent; text: "CONFIRMER L'APPEL"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 1 }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                             onClicked: {
@@ -269,7 +269,7 @@ Item {
         id: guestModalOverlay
         show: page.showGuestModal
         modalWidth: 440
-        modalColor: "#FAFBFC"
+        modalColor: Style.background
         onClose: { page.showGuestModal = false; guestSearch.text = "" }
 
         Column {
@@ -368,7 +368,7 @@ Item {
 
                                 Rectangle {
                                     width: 60; height: 30; radius: 8; color: Style.primary
-                                    Text { anchors.centerIn: parent; text: "INVITER"; font.pixelSize: 9; font.weight: Font.Black; color: "#FFFFFF" }
+                                    Text { anchors.centerIn: parent; text: "INVITER"; font.pixelSize: 9; font.weight: Font.Black; color: Style.background }
                                 }
                             }
 
@@ -415,8 +415,8 @@ Item {
 
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
-                Rectangle { width: 48; height: 48; radius: 20; color: "#FEF3C7"
-                    IconLabel { anchors.centerIn: parent; iconName: "alert"; iconSize: 24; iconColor: "#D97706" } }
+                Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBorder
+                    IconLabel { anchors.centerIn: parent; iconName: "alert"; iconSize: 24; iconColor: Style.warningColor } }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: "Séance dans le futur"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: "Date : " + Qt.formatDateTime(new Date(page.selectedSessionDate), "dd/MM/yyyy HH:mm"); font.pixelSize: 11; color: Style.textTertiary; font.weight: Font.Medium }
@@ -425,10 +425,10 @@ Item {
             }
 
             Rectangle { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                implicitHeight: futText.implicitHeight + 28; radius: 14; color: "#FEF3C7"; border.color: "#F59E0B"
+                implicitHeight: futText.implicitHeight + 28; radius: 14; color: Style.warningBorder; border.color: Style.warningColor
                 Text { id: futText; anchors.fill: parent; anchors.margins: 14
                     text: "Vous êtes sur le point de valider l'appel pour une séance qui n'a pas encore eu lieu. Êtes-vous sûr de vouloir continuer ?"
-                    font.pixelSize: 13; font.weight: Font.Medium; color: "#92400E"
+                    font.pixelSize: 13; font.weight: Font.Medium; color: Style.warningColor
                     wrapMode: Text.WordWrap; textFormat: Text.RichText; lineHeight: 1.5 }
             }
 

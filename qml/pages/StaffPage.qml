@@ -160,14 +160,14 @@ Item {
                     IconLabel {
                         iconName: "users"
                         iconSize: 14
-                        iconColor: showAllMode ? "#FFFFFF" : Style.textSecondary
+                        iconColor: showAllMode ? Style.background : Style.textSecondary
                     }
 
                     Text {
                         text: "AFFICHER TOUT"
                         font.pixelSize: 10
                         font.weight: Font.Black
-                        color: showAllMode ? "#FFFFFF" : Style.textSecondary
+                        color: showAllMode ? Style.background : Style.textSecondary
                         font.letterSpacing: 0.5
                     }
                 }

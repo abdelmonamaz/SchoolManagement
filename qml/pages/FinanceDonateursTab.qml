@@ -249,9 +249,9 @@ AppCard {
         Column { width: parent.width; spacing: 16
             visible: tab.viewMode === "donateurs" && tab.filteredDonateurs.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#FEF3C7"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.warningBorder
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "users"; iconSize: 24; iconColor: "#D97706" } }
+                IconLabel { anchors.centerIn: parent; iconName: "users"; iconSize: 24; iconColor: Style.warningColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: tab.localSearch !== "" || tab.filterType !== "Tous"
                          ? "Aucun résultat"
@@ -264,9 +264,9 @@ AppCard {
         Column { width: parent.width; spacing: 16
             visible: tab.viewMode === "projets" && tab.filteredProjets.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#ECFDF5"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.successBg
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: "#059669" } }
+                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: Style.successColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: tab.localSearch !== "" || tab.projectStatusFilter !== "Tous"
                          ? "Aucun résultat pour cette recherche"

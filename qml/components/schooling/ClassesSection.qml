@@ -65,7 +65,7 @@ AppCard {
                                 text: modelData.nom
                                 font.pixelSize: 18
                                 font.weight: Font.Black
-                                color: classCardHover.hovered ? "#FFFFFF" : Style.primary
+                                color: classCardHover.hovered ? Style.background : Style.primary
                             }
                         }
 

@@ -58,8 +58,8 @@ Item {
 
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
-                Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || "#FEF3C7"
-                    IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || "#D97706" } }
+                Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || Style.warningBorder
+                    IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || Style.warningColor } }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: "Modifier un paiement"; font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: page.editingEleveNom + " · " + page.selectedMonth + " " + page.selectedYear
@@ -109,10 +109,10 @@ Item {
                                     }
                                 }
                                 Rectangle { width: 32; height: 32; radius: 8
-                                    color: delInlineMa.containsMouse ? "#FEE2E2" : Style.bgPage
-                                    border.color: delInlineMa.containsMouse ? "#EF4444" : Style.borderLight
+                                    color: delInlineMa.containsMouse ? Style.errorBorder : Style.bgPage
+                                    border.color: delInlineMa.containsMouse ? Style.errorColor : Style.borderLight
                                     IconLabel { anchors.centerIn: parent; iconName: "trash"; iconSize: 14
-                                                iconColor: delInlineMa.containsMouse ? "#EF4444" : Style.textTertiary }
+                                                iconColor: delInlineMa.containsMouse ? Style.errorColor : Style.textTertiary }
                                     MouseArea { id: delInlineMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
                                             page.deleteType     = "payment"
@@ -209,10 +209,10 @@ Item {
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
                 Rectangle { width: 48; height: 48; radius: 20
-                    color: page.editingNewAmount === 0 ? Style.errorBg : (Style.warningBg || "#FEF3C7")
+                    color: page.editingNewAmount === 0 ? Style.errorBg : (Style.warningBg || Style.warningBorder)
                     IconLabel { anchors.centerIn: parent
                         iconName: page.editingNewAmount === 0 ? "trash" : "edit"; iconSize: 24
-                        iconColor: page.editingNewAmount === 0 ? Style.errorColor : (Style.warningColor || "#D97706") }
+                        iconColor: page.editingNewAmount === 0 ? Style.errorColor : (Style.warningColor || Style.warningColor) }
                 }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: page.editingNewAmount === 0 ? "Confirmer la suppression" : "Confirmer la modification"
@@ -225,15 +225,15 @@ Item {
 
             Rectangle { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
                 implicitHeight: confirmEditText.implicitHeight + 28; radius: 14
-                color: page.editingNewAmount === 0 ? Style.errorBg : "#FEF3C7"
-                border.color: page.editingNewAmount === 0 ? Style.errorBorder : "#F59E0B"
+                color: page.editingNewAmount === 0 ? Style.errorBg : Style.warningBorder
+                border.color: page.editingNewAmount === 0 ? Style.errorBorder : Style.warningColor
                 Text { id: confirmEditText; anchors.fill: parent; anchors.margins: 14
                     text: page.editingNewAmount === 0
                         ? "Supprimer ce paiement de <b>" + page.editingCurrentAmount.toFixed(2) + " DT</b> ?"
                         : "Modifier ce paiement de <b>" + page.editingCurrentAmount.toFixed(2)
                           + " DT</b> à <b>" + page.editingNewAmount.toFixed(2) + " DT</b> ?"
                     font.pixelSize: 13; font.weight: Font.Medium
-                    color: page.editingNewAmount === 0 ? Style.errorColor : "#92400E"
+                    color: page.editingNewAmount === 0 ? Style.errorColor : Style.warningColor
                     wrapMode: Text.WordWrap; textFormat: Text.RichText; lineHeight: 1.5
                 }
             }

@@ -201,14 +201,14 @@ Rectangle {
                         IconLabel {
                             iconName: "edit"
                             iconSize: 12
-                            iconColor: "#F59E0B"
+                            iconColor: Style.warningColor
                         }
 
                         Text {
                             text: "Modifier le contrat"
                             font.pixelSize: 12
                             font.weight: Font.Medium
-                            color: "#F59E0B"
+                            color: Style.warningColor
                             Layout.fillWidth: true
                         }
                     }
@@ -455,9 +455,9 @@ Rectangle {
     function getPostColor(post) {
         switch(post) {
             case "Enseignant": return Style.primary
-            case "Administration": return "#0EA5E9"
-            case "Sécurité": return "#F97316"
-            case "Entretien": return "#8B5CF6"
+            case "Administration": return Style.chart2
+            case "Sécurité": return Style.chart1
+            case "Entretien": return Style.chart3
             default: return Style.primary
         }
     }
@@ -465,9 +465,9 @@ Rectangle {
     function getPostBgColor(post) {
         switch(post) {
             case "Enseignant": return Style.primary + "20"
-            case "Administration": return "#0EA5E920"
-            case "Sécurité": return "#F9731620"
-            case "Entretien": return "#8B5CF620"
+            case "Administration": return Qt.alpha(Style.chart2, 0.13)
+            case "Sécurité": return Qt.alpha(Style.chart1, 0.13)
+            case "Entretien": return Qt.alpha(Style.chart3, 0.13)
             default: return Style.primary + "20"
         }
     }

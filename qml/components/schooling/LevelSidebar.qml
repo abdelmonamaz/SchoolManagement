@@ -47,7 +47,7 @@ Column {
                         text: modelData.nom
                         font.pixelSize: 13
                         font.bold: true
-                        color: root.selectedNiveauId === modelData.id ? "#FFFFFF" : Style.textPrimary
+                        color: root.selectedNiveauId === modelData.id ? Style.background : Style.textPrimary
                     }
 
                     Row {
@@ -56,7 +56,7 @@ Column {
                         IconButton {
                             iconName: "edit"
                             iconSize: 12
-                            hoverColor: "#FFFFFF"
+                            hoverColor: Style.background
                             onClicked: root.niveauEditRequested(modelData.id, modelData.nom)
                         }
                         IconButton {

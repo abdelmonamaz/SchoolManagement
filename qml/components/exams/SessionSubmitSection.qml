@@ -47,15 +47,15 @@ Column {
         readonly property bool isAtLim:  lim > 0 && cnt >= lim
         readonly property bool isNearLim: lim > 0 && cnt >= lim - 2 && cnt < lim
 
-        color:        isAtLim   ? "#FEE2E2" : isNearLim ? "#FFF7ED" : "#F0FDF4"
-        border.color: isAtLim   ? "#FECACA" : isNearLim ? "#FED7AA" : "#BBF7D0"
+        color:        isAtLim   ? Style.errorBorder : isNearLim ? Style.warningBg : Style.successBg
+        border.color: isAtLim   ? Style.errorBorder : isNearLim ? Style.warningBorder : Style.successColor
 
         RowLayout {
             anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14; spacing: 8
             Text {
                 text: parent.parent.isAtLim || parent.parent.isNearLim ? "⚠" : "✓"
                 font.pixelSize: 14
-                color: parent.parent.isAtLim ? "#DC2626" : parent.parent.isNearLim ? "#D97706" : "#16A34A"
+                color: parent.parent.isAtLim ? Style.errorColor : parent.parent.isNearLim ? Style.warningColor : Style.successColor
             }
             Text {
                 Layout.fillWidth: true
@@ -66,7 +66,7 @@ Column {
                            + (b.isAtLim ? "  — Limite annuelle atteinte" : "")
                 }
                 font.pixelSize: 11; font.weight: Font.Bold
-                color: parent.parent.isAtLim ? "#DC2626" : parent.parent.isNearLim ? "#92400E" : "#166534"
+                color: parent.parent.isAtLim ? Style.errorColor : parent.parent.isNearLim ? Style.warningColor : Style.zitouna
             }
         }
     }
@@ -78,7 +78,7 @@ Column {
         height: isVisible ? 104 : 0; visible: isVisible
         readonly property bool isVisible:
             root.showOverLimitWarning && root.isCourse && root.formRecurrence === "none"
-        radius: 14; color: "#FEF3C7"; border.color: "#FCD34D"; clip: true
+        radius: 14; color: Style.warningBorder; border.color: Style.warningBorder; clip: true
         Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
         Column {
@@ -86,13 +86,13 @@ Column {
             spacing: 10
             RowLayout {
                 width: parent.width; spacing: 8
-                Text { text: "⚠"; font.pixelSize: 16; color: "#D97706" }
+                Text { text: "⚠"; font.pixelSize: 16; color: Style.warningColor }
                 Text {
                     Layout.fillWidth: true
                     text: "Le nombre de séances prévu ("
                           + (examsController.courseCountInfo["limit"] || 0)
                           + "/an) est déjà atteint. Continuer quand même ?"
-                    font.pixelSize: 12; font.weight: Font.Bold; color: "#78350F"
+                    font.pixelSize: 12; font.weight: Font.Bold; color: Style.warningColor
                     wrapMode: Text.WordWrap
                 }
             }
@@ -109,9 +109,9 @@ Column {
                 }
                 Rectangle {
                     Layout.fillWidth: true; height: 36; radius: 10
-                    color: forceCreateMa.containsMouse ? "#D97706" : "#F59E0B"
+                    color: forceCreateMa.containsMouse ? Style.warningColor : Style.warningColor
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "CRÉER QUAND MÊME"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { anchors.centerIn: parent; text: "CRÉER QUAND MÊME"; font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
                     MouseArea { id: forceCreateMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { root.showOverLimitWarning = false; root.showConfirmSubmit = true } }
                 }
@@ -123,7 +123,7 @@ Column {
     Rectangle {
         width: parent.width
         height: root.showConfirmSubmit ? 96 : 0; visible: root.showConfirmSubmit
-        radius: 14; color: "#F0FDF4"; border.color: "#BBF7D0"; clip: true
+        radius: 14; color: Style.successBg; border.color: Style.successColor; clip: true
         Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
         Column {
@@ -134,7 +134,7 @@ Column {
                 text: root.isCourse ? "Confirmer la planification du cours ?"
                     : root.isExam   ? "Confirmer la planification de l'épreuve \"" + root.formTitre + "\" ?"
                     :                 "Confirmer l'organisation de l'événement ?"
-                font.pixelSize: 12; font.weight: Font.Bold; color: "#14532D"
+                font.pixelSize: 12; font.weight: Font.Bold; color: Style.zitounaDark
                 wrapMode: Text.WordWrap
             }
             RowLayout {
@@ -150,9 +150,9 @@ Column {
                 }
                 Rectangle {
                     Layout.fillWidth: true; height: 36; radius: 10
-                    color: okConfirmMa.containsMouse ? "#16A34A" : Style.successColor
+                    color: okConfirmMa.containsMouse ? Style.successColor : Style.successColor
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "OUI, CONFIRMER"; font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { anchors.centerIn: parent; text: "OUI, CONFIRMER"; font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
                     MouseArea {
                         id: okConfirmMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
@@ -203,14 +203,14 @@ Column {
         color: !root.formValid
                ? Style.bgTertiary
                : submitMa.containsMouse
-                   ? (root.isExam ? Style.primaryDark : root.isEvent ? "#D97706" : "#1D4ED8")
+                   ? (root.isExam ? Style.primaryDark : root.isEvent ? Style.warningColor : Style.chart3)
                    : (root.isExam ? Style.primary     : root.isEvent ? Style.warningColor : Style.infoColor)
         Behavior on color { ColorAnimation { duration: 150 } }
 
         RowLayout {
             anchors.centerIn: parent; spacing: 8
-            Text { text: "Confirmer l'Organisation"; font.pixelSize: 12; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 0.5 }
-            Text { text: "→"; font.pixelSize: 16; color: "#FFFFFF" }
+            Text { text: "Confirmer l'Organisation"; font.pixelSize: 12; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
+            Text { text: "→"; font.pixelSize: 16; color: Style.background }
         }
 
         MouseArea {

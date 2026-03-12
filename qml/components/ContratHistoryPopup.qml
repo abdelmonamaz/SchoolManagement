@@ -109,10 +109,10 @@ ModalOverlay {
                         implicitHeight: contratItemCol.implicitHeight + 32
                         radius: 16
                         color: contratStatus === "encours" ? Style.primary + "08"
-                             : contratStatus === "avenir" ? "#3B82F608"
+                             : contratStatus === "avenir" ? Qt.alpha(Style.chart3, 0.03)
                              : Style.bgPage
                         border.color: contratStatus === "encours" ? Style.primary + "30"
-                                    : contratStatus === "avenir" ? "#3B82F630"
+                                    : contratStatus === "avenir" ? Qt.alpha(Style.chart3, 0.19)
                                     : Style.borderLight
 
                         Column {
@@ -133,7 +133,7 @@ ModalOverlay {
                                     height: 20
                                     radius: 8
                                     color: contratStatus === "encours" ? Style.primary
-                                         : contratStatus === "avenir" ? "#3B82F6"
+                                         : contratStatus === "avenir" ? Style.chart3
                                          : Style.textTertiary + "20"
 
                                     Text {

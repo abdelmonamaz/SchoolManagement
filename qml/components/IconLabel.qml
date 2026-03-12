@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 Item {
     id: control
@@ -9,61 +10,23 @@ Item {
     implicitWidth: iconSize
     implicitHeight: iconSize
 
-    Text {
+    Image {
+        id: img
         anchors.centerIn: parent
-        font.pixelSize: control.iconSize
-        font.family: "Segoe UI Symbol"
-        color: control.iconColor
-        text: {
-            // Map icon names to Unicode symbols
-            switch (control.iconName) {
-                case "dashboard":  return "▣";
-                case "book":       return "📖";
-                case "users":      return "👥";
-                case "calendar":   return "📅";
-                case "wallet":     return "💰";
-                case "settings":   return "⚙";
-                case "search":     return "🔍";
-                case "bell":       return "🔔";
-                case "logout":     return "⏻";
-                case "plus":       return "+";
-                case "filter":     return "⏞";
-                case "eye":        return "👁";
-                case "edit":       return "✎";
-                case "trash":      return "🗑";
-                case "mail":       return "✉";
-                case "phone":      return "📞";
-                case "check":      return "✓";
-                case "alert":      return "⚠";
-                case "close":      return "✕";
-                case "left":       return "‹";
-                case "right":      return "›";
-                case "down":       return "▾";
-                case "up-right":   return "↗";
-                case "down-right": return "↘";
-                case "save":       return "💾";
-                case "download":   return "⬇";
-                case "file":       return "📄";
-                case "clock":      return "🕐";
-                case "pin":        return "📍";
-                case "grid":       return "▦";
-                case "list":       return "☰";
-                case "heart":      return "♥";
-                case "history":    return "↻";
-                case "receipt":    return "🧾";
-                case "printer":    return "🖨";
-                case "cloud":      return "☁";
-                case "shield":     return "🛡";
-                case "school":     return "🏫";
-                case "database":   return "🗄";
-                case "user":       return "👤";
-                case "more":       return "⋯";
-                case "more-v":     return "⋮";
-                case "calculator": return "🔢";
-                case "trending":   return "📈";
-                case "upload":     return "⬆";
-                default:           return "●";
-            }
-        }
+        source: control.iconName !== "" ? "qrc:/qt/qml/GestionScolaire/qml/icons/" + control.iconName + ".svg" : ""
+        sourceSize.width: control.iconSize
+        sourceSize.height: control.iconSize
+        width: control.iconSize
+        height: control.iconSize
+        visible: false // Hidden because MultiEffect handles rendering
+        fillMode: Image.PreserveAspectFit
+    }
+
+    MultiEffect {
+        source: img
+        anchors.fill: img
+        colorization: 1.0
+        colorizationColor: control.iconColor
+        visible: control.iconName !== ""
     }
 }

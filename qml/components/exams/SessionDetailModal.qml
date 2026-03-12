@@ -216,7 +216,7 @@ ModalOverlay {
                         anchors.centerIn: parent
                         text: root.showDeleteConfirm ? "CONFIRMER" : "SUPPRIMER"
                         font.pixelSize: 10; font.weight: Font.Black
-                        color: root.showDeleteConfirm ? "#FFFFFF" : Style.errorColor
+                        color: root.showDeleteConfirm ? Style.background : Style.errorColor
                         font.letterSpacing: 0.5
                     }
 
@@ -509,7 +509,7 @@ ModalOverlay {
                                     }
                                 }
 
-                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: "#FFFFFF" }
+                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: Style.background }
                             }
                         }
                     }
@@ -600,7 +600,7 @@ ModalOverlay {
                                     }
                                 }
 
-                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: "#FFFFFF" }
+                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: Style.background }
                             }
                         }
                     }
@@ -727,7 +727,7 @@ ModalOverlay {
 
                     Text {
                         anchors.centerIn: parent; text: "ENREGISTRER"
-                        font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF"
+                        font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                         font.letterSpacing: 0.5
                     }
 

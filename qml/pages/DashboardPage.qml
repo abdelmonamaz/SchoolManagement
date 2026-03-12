@@ -198,7 +198,7 @@ Item {
                 Layout.fillWidth: true
                 label: "Cours Actifs"; value: dashboardController.activeCourses.toString()
                 iconName: "book"; trend: ""; trendUp: true
-                accentColor: Style.successColor; accentBg: Style.successBg
+                accentColor: Style.zitouna; accentBg: Style.successBg
             }
             StatCard {
                 Layout.fillWidth: true

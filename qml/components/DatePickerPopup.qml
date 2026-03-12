@@ -25,7 +25,7 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 
     // Internal state
@@ -260,7 +260,7 @@ Popup {
                                 text: parent.parent.dayNum.toString()
                                 font.pixelSize: 13
                                 font.weight: parent.parent.isSelected || parent.parent.isToday ? Font.Black : Font.Medium
-                                color: parent.parent.isSelected ? "#FFFFFF"
+                                color: parent.parent.isSelected ? Style.background
                                      : parent.parent.isToday ? Style.primary
                                      : Style.textPrimary
                             }
@@ -271,7 +271,7 @@ Popup {
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 2
                                 width: 4; height: 4; radius: 2
-                                color: parent.parent.isSelected ? "#FFFFFF" : Style.primary
+                                color: parent.parent.isSelected ? Style.background : Style.primary
                                 visible: parent.parent.isToday
                             }
                         }
@@ -357,7 +357,7 @@ Popup {
                         anchors.centerIn: parent
                         text: "CONFIRMER"
                         font.pixelSize: 10; font.weight: Font.Black
-                        color: "#FFFFFF"; font.letterSpacing: 0.5
+                        color: Style.background; font.letterSpacing: 0.5
                     }
 
                     MouseArea {

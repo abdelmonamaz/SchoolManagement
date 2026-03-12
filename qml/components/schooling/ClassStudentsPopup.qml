@@ -21,7 +21,7 @@ Item {
     // Dimmer
     Rectangle {
         anchors.fill: parent
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
         MouseArea {
             anchors.fill: parent
             onClicked: classStudentsOverlay.closeRequested()

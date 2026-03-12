@@ -20,7 +20,6 @@ ApplicationWindow {
     color: Style.bgPage
 
     property string currentPage: "dashboard"
-    property bool showNotifications: false
     property int pendingStudentId: 0
 
     // ─── Wizard de Mise en Marche ───
@@ -36,8 +35,8 @@ ApplicationWindow {
         width: 460; padding: 0
         modal: true
         closePolicy: Popup.NoAutoClose
-        Overlay.modal: Rectangle { color: "#0F172ACC" }
-        background: Rectangle { radius: 16; color: Style.bgWhite; border.color: "#FCA5A5"; border.width: 2 }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.80) }
+        background: Rectangle { radius: 16; color: Style.bgWhite; border.color: Style.errorBorder; border.width: 2 }
 
         Column {
             width: dbErrorPopup.width
@@ -48,7 +47,7 @@ ApplicationWindow {
                 Text { text: "🚫"; font.pixelSize: 24 }
                 Text {
                     text: "Erreur d'initialisation"
-                    font.pixelSize: 17; font.weight: Font.Black; color: "#DC2626"
+                    font.pixelSize: 17; font.weight: Font.Black; color: Style.errorColor
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
@@ -60,7 +59,7 @@ ApplicationWindow {
             }
             Rectangle {
                 width: dbErrorPopup.width - 56; height: 42; radius: 10
-                color: "#DC2626"
+                color: Style.errorColor
                 Text { anchors.centerIn: parent; text: "Fermer l'application"; font.pixelSize: 13; font.bold: true; color: "white" }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -127,7 +126,7 @@ ApplicationWindow {
         Rectangle {
             Layout.preferredWidth: 280
             Layout.fillHeight: true
-            color: "#FFFFFF"
+            color: Style.sidebar
             border.color: Style.borderLight
             border.width: 1
 
@@ -151,7 +150,7 @@ ApplicationWindow {
                             text: "Z"
                             font.pixelSize: 18
                             font.bold: true
-                            color: "#FFFFFF"
+                            color: Style.background
                         }
                     }
 
@@ -235,7 +234,7 @@ ApplicationWindow {
                                     width: 40; height: 40
                                     radius: 20
                                     color: Style.bgSecondary
-                                    border.color: "#FFFFFF"
+                                    border.color: Style.background
                                     border.width: 2
 
                                     Text {
@@ -292,7 +291,7 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
-                color: "#FFFFFF"
+                color: Style.background
 
                 Rectangle {
                     anchors.bottom: parent.bottom
@@ -332,45 +331,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // Notification Bell
-                    Rectangle {
-                        width: 42
-                        height: 42
-                        radius: 12
-                        color: notifMa.containsMouse || showNotifications ? Style.bgPage : "transparent"
-                        border.color: Style.borderLight
-                        border.width: 1
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-
-                        IconLabel {
-                            anchors.centerIn: parent
-                            iconName: "bell"
-                            iconSize: 20
-                            iconColor: Style.textSecondary
-                        }
-
-                        Rectangle {
-                            x: parent.width - 14
-                            y: 8
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: Style.errorColor
-                            border.color: "#FFFFFF"
-                            border.width: 2
-                        }
-
-                        MouseArea {
-                            id: notifMa
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            hoverEnabled: true
-                            onClicked: showNotifications = !showNotifications
-                        }
-                    }
                 }
             }
 
@@ -431,204 +391,6 @@ ApplicationWindow {
                     GradesPage     { id: gradesPage;     width: parent.width; opacity: root.currentPage === "grades"     ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     FinancePage    { id: financePage;    width: parent.width; opacity: root.currentPage === "finance"    ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     SettingsPage   { id: settingsPage;   width: parent.width; opacity: root.currentPage === "settings"   ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
-                }
-            }
-        }
-    }
-
-    // ─── Notifications Panel ───
-    Rectangle {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: 90
-        anchors.rightMargin: 32
-        width: 360
-        implicitHeight: notifCol.implicitHeight
-        radius: 20
-        color: "#FFFFFF"
-        border.color: Style.borderLight
-        visible: showNotifications
-        opacity: showNotifications ? 1.0 : 0.0
-        scale: showNotifications ? 1.0 : 0.95
-
-        Behavior on opacity {
-            NumberAnimation { duration: 200 }
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        layer.enabled: true
-
-        Column {
-            id: notifCol
-            width: parent.width
-            spacing: 0
-
-            Rectangle {
-                width: parent.width
-                height: 56
-                color: "transparent"
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: "Notifications"
-                        font.pixelSize: 16
-                        font.weight: Font.Black
-                        color: Style.textPrimary
-                    }
-
-                    Rectangle {
-                        width: 24
-                        height: 24
-                        radius: 8
-                        color: Style.errorBg
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "3"
-                            font.pixelSize: 10
-                            font.weight: Font.Black
-                            color: Style.errorColor
-                        }
-                    }
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 1
-                    color: Style.borderLight
-                }
-            }
-
-            Repeater {
-                model: ListModel {
-                    ListElement {
-                        title: "Nouveau paiement reçu"
-                        message: "Sara Khalil - 150 DT"
-                        time: "Il y a 5 min"
-                        type_: "success"
-                    }
-                    ListElement {
-                        title: "Absence non justifiée"
-                        message: "Amine Ben Salem - Cours d'Arabe"
-                        time: "Il y a 1 heure"
-                        type_: "warning"
-                    }
-                    ListElement {
-                        title: "Nouvel examen planifié"
-                        message: "Coran - Niveau 3 - 15/02"
-                        time: "Il y a 2 heures"
-                        type_: "info"
-                    }
-                }
-
-                delegate: Column {
-                    width: parent.width
-
-                    Rectangle {
-                        width: parent.width
-                        height: 80
-                        color: notifItemMa.containsMouse ? Style.bgPage : "transparent"
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 16
-                            spacing: 12
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 12
-                                color: model.type_ === "success" ? Style.successBg :
-                                       model.type_ === "warning" ? Style.warningBg : Style.primaryBg
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: model.type_ === "success" ? "✓" :
-                                          model.type_ === "warning" ? "⚠" : "📅"
-                                    font.pixelSize: 16
-                                }
-                            }
-
-                            Column {
-                                Layout.fillWidth: true
-                                spacing: 3
-
-                                Text {
-                                    width: parent.width
-                                    text: model.title
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                    color: Style.textPrimary
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    width: parent.width
-                                    text: model.message
-                                    font.pixelSize: 11
-                                    color: Style.textSecondary
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    text: model.time
-                                    font.pixelSize: 9
-                                    font.weight: Font.Bold
-                                    color: Style.textTertiary
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: notifItemMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: Style.borderLight
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 48
-                color: "transparent"
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "TOUT MARQUER COMME LU"
-                    font.pixelSize: 10
-                    font.weight: Font.Black
-                    color: Style.primary
-                    font.letterSpacing: 1
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: showNotifications = false
                 }
             }
         }

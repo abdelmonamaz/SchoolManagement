@@ -105,7 +105,7 @@ Rectangle {
                     }
                 }
             }
-            background: Rectangle { radius: 8; border.color: Style.borderLight; color: "#FFFFFF" }
+            background: Rectangle { radius: 8; border.color: Style.borderLight; color: Style.background }
         }
     }
 }

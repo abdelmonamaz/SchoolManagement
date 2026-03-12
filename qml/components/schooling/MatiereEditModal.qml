@@ -6,7 +6,7 @@ import UI.Components
 ModalOverlay {
     id: root
     modalWidth: 520
-    modalColor: "#FAFBFC"
+    modalColor: Style.background
 
     required property bool show
     required property int  editingMatiereId
@@ -222,7 +222,7 @@ ModalOverlay {
                                     text: parent.parent.editing ? "✓" : "✎"
                                     font.pixelSize: parent.parent.editing ? 14 : 13
                                     color: editConfirmMa.containsMouse
-                                           ? (parent.parent.editing ? "#FFFFFF" : Style.primary)
+                                           ? (parent.parent.editing ? Style.background : Style.primary)
                                            : Style.textTertiary
                                 }
                                 MouseArea {
@@ -247,7 +247,7 @@ ModalOverlay {
                             // Bouton Supprimer
                             Rectangle {
                                 width: 30; height: 30; radius: 9
-                                color: delExMa.containsMouse ? "#FEE2E2" : "transparent"
+                                color: delExMa.containsMouse ? Style.errorBorder : "transparent"
                                 Behavior on color { ColorAnimation { duration: 120 } }
                                 Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: delExMa.containsMouse ? Style.errorColor : Style.textTertiary }
                                 MouseArea {
@@ -347,7 +347,7 @@ ModalOverlay {
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                         color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.primary : Style.primaryBg
                         Behavior on color { ColorAnimation { duration: 150 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? "#FFFFFF" : Style.primary }
+                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.background : Style.primary }
 
                         function doAdd() {
                             var t = newExamenCombo.editText.trim()
@@ -414,7 +414,7 @@ ModalOverlay {
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 height: 44; radius: 14; color: Style.primary
-                Text { anchors.centerIn: parent; text: "ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 0.5 }
+                Text { anchors.centerIn: parent; text: "ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: {
@@ -445,15 +445,15 @@ ModalOverlay {
             // Message
             Rectangle {
                 width: parent.width; height: 32; radius: 10
-                color: "#FFF7ED"
-                border.color: "#FED7AA"
+                color: Style.warningBg
+                border.color: Style.warningBorder
 
                 RowLayout {
                     anchors.centerIn: parent; spacing: 6
-                    Text { text: "⚠"; font.pixelSize: 14; color: "#F97316" }
+                    Text { text: "⚠"; font.pixelSize: 14; color: Style.chart1 }
                     Text {
                         text: "Confirmer les modifications de la matière ?"
-                        font.pixelSize: 12; font.weight: Font.Bold; color: "#92400E"
+                        font.pixelSize: 12; font.weight: Font.Bold; color: Style.warningColor
                     }
                 }
             }
@@ -475,9 +475,9 @@ ModalOverlay {
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredWidth: 1
                     height: 40; radius: 12
-                    color: okConfirmMa.containsMouse ? "#16A34A" : Style.successColor
+                    color: okConfirmMa.containsMouse ? Style.successColor : Style.successColor
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "OUI, ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { anchors.centerIn: parent; text: "OUI, ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                     MouseArea {
                         id: okConfirmMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor

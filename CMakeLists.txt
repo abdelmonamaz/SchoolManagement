@@ -165,6 +165,74 @@ qt_add_qml_module(GestionScolaire
         fonts/Inter-Medium.ttf
         fonts/Inter-Bold.ttf
         fonts/Inter-Black.ttf
+        qml/icons/alert.svg
+        qml/icons/bell.svg
+        qml/icons/book.svg
+        qml/icons/building.svg
+        qml/icons/calculator.svg
+        qml/icons/calendar.svg
+        qml/icons/check.svg
+        qml/icons/chevron-down.svg
+        qml/icons/chevron-left.svg
+        qml/icons/chevron-right.svg
+        qml/icons/chevron-up.svg
+        qml/icons/clipboard-check.svg
+        qml/icons/clipboard.svg
+        qml/icons/clock.svg
+        qml/icons/close.svg
+        qml/icons/cloud.svg
+        qml/icons/contact-2.svg
+        qml/icons/contact.svg
+        qml/icons/dashboard.svg
+        qml/icons/database.svg
+        qml/icons/delete.svg
+        qml/icons/dollar-sign.svg
+        qml/icons/down-right.svg
+        qml/icons/down.svg
+        qml/icons/download.svg
+        qml/icons/edit.svg
+        qml/icons/eye.svg
+        qml/icons/file.svg
+        qml/icons/filter.svg
+        qml/icons/graduation-cap.svg
+        qml/icons/graduation.svg
+        qml/icons/grid.svg
+        qml/icons/heart.svg
+        qml/icons/history.svg
+        qml/icons/info.svg
+        qml/icons/left.svg
+        qml/icons/list.svg
+        qml/icons/location.svg
+        qml/icons/lock.svg
+        qml/icons/log-out.svg
+        qml/icons/logout.svg
+        qml/icons/mail.svg
+        qml/icons/moon.svg
+        qml/icons/more-v.svg
+        qml/icons/more.svg
+        qml/icons/phone.svg
+        qml/icons/pin.svg
+        qml/icons/plus.svg
+        qml/icons/printer.svg
+        qml/icons/receipt.svg
+        qml/icons/refresh-cw.svg
+        qml/icons/refresh.svg
+        qml/icons/right.svg
+        qml/icons/save.svg
+        qml/icons/school.svg
+        qml/icons/search.svg
+        qml/icons/settings.svg
+        qml/icons/shield.svg
+        qml/icons/sun.svg
+        qml/icons/target.svg
+        qml/icons/trash.svg
+        qml/icons/trending.svg
+        qml/icons/up-right.svg
+        qml/icons/upload.svg
+        qml/icons/user.svg
+        qml/icons/users.svg
+        qml/icons/wallet.svg
+        qml/icons/warning.svg
 )
 
 # Modules QML secondaires

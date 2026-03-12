@@ -157,7 +157,7 @@ Item {
                             text: "NIVEAUX & MATIÈRES"
                             font.pixelSize: 10
                             font.weight: Font.Black
-                            color: activeTab === "levels" ? "#FFFFFF" : Style.textTertiary
+                            color: activeTab === "levels" ? Style.background : Style.textTertiary
                             font.letterSpacing: 0.5
                         }
 
@@ -180,7 +180,7 @@ Item {
                             text: "GESTION DES SALLES"
                             font.pixelSize: 10
                             font.weight: Font.Black
-                            color: activeTab === "rooms" ? "#FFFFFF" : Style.textTertiary
+                            color: activeTab === "rooms" ? Style.background : Style.textTertiary
                             font.letterSpacing: 0.5
                         }
 

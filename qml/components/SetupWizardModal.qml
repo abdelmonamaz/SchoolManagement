@@ -68,7 +68,7 @@ Popup {
         return d.getFullYear() + "-" + (m < 10 ? "0" + m : "" + m) + "-" + (day < 10 ? "0" + day : "" + day)
     }
 
-    Overlay.modal: Rectangle { color: "#0F172ACC" }
+    Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.80) }
     background: Rectangle { radius: 32; color: Style.bgWhite }
 
     onOpened: {
@@ -314,7 +314,7 @@ Popup {
 
                             Rectangle {
                                 Layout.fillWidth: true; height: 40; radius: 10
-                                color: "#FFFFFF"; border.color: Style.borderLight
+                                color: Style.background; border.color: Style.borderLight
                                 HoverHandler { cursorShape: Qt.IBeamCursor }
                                 TextInput {
                                     id: niveauNomInput
@@ -335,7 +335,7 @@ Popup {
 
                             Rectangle {
                                 width: 170; height: 40; radius: 10
-                                color: "#FFFFFF"; border.color: Style.borderLight
+                                color: Style.background; border.color: Style.borderLight
                                 ComboBox {
                                     id: parentCombo
                                     anchors.fill: parent; anchors.margins: 2
@@ -367,7 +367,7 @@ Popup {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "+ Ajouter"
-                                    font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF"
+                                    font.pixelSize: 11; font.weight: Font.Black; color: Style.background
                                 }
                                 function click() {
                                     if (root.newNiveauNom.trim() === "") return
@@ -422,7 +422,7 @@ Popup {
                                 height: root.editingNiveauId === modelData.id ? 68 : 48
                                 radius: 12
                                 color: rowHover.containsMouse && root.editingNiveauId !== modelData.id
-                                       ? Style.bgPage : "#FFFFFF"
+                                       ? Style.bgPage : Style.background
                                 border.color: root.editingNiveauId === modelData.id
                                               ? Style.primary : Style.borderLight
                                 Behavior on height { NumberAnimation { duration: 150 } }
@@ -579,7 +579,7 @@ Popup {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "✓"
-                                            font.pixelSize: 16; font.bold: true; color: "#FFFFFF"
+                                            font.pixelSize: 16; font.bold: true; color: Style.background
                                         }
                                         function save() {
                                             if (root.editingNom.trim() === "") return
@@ -738,7 +738,7 @@ Popup {
                                         verticalAlignment: TextInput.AlignVCenter
                                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
                                         background: Rectangle {
-                                            radius: 10; color: "#FFFFFF"
+                                            radius: 10; color: Style.background
                                             border.width: parent.activeFocus ? 2 : 1
                                             border.color: parent.activeFocus ? Style.primary : Style.borderLight
                                             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -766,7 +766,7 @@ Popup {
                                         verticalAlignment: TextInput.AlignVCenter
                                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
                                         background: Rectangle {
-                                            radius: 10; color: "#FFFFFF"
+                                            radius: 10; color: Style.background
                                             border.width: parent.activeFocus ? 2 : 1
                                             border.color: parent.activeFocus ? Style.primary : Style.borderLight
                                             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -807,7 +807,7 @@ Popup {
                                         verticalAlignment: TextInput.AlignVCenter
                                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
                                         background: Rectangle {
-                                            radius: 10; color: "#FFFFFF"
+                                            radius: 10; color: Style.background
                                             border.width: parent.activeFocus ? 2 : 1
                                             border.color: parent.activeFocus ? Style.primary : Style.borderLight
                                             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -835,7 +835,7 @@ Popup {
                                         verticalAlignment: TextInput.AlignVCenter
                                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
                                         background: Rectangle {
-                                            radius: 10; color: "#FFFFFF"
+                                            radius: 10; color: Style.background
                                             border.width: parent.activeFocus ? 2 : 1
                                             border.color: parent.activeFocus ? Style.primary : Style.borderLight
                                             Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -900,7 +900,7 @@ Popup {
                         anchors.centerIn: parent
                         text: root.currentStep < root.totalSteps ? "CONTINUER →" : "TERMINER LA CONFIGURATION"
                         font.pixelSize: 12; font.weight: Font.Black
-                        color: "#FFFFFF"; font.letterSpacing: 1
+                        color: Style.background; font.letterSpacing: 1
                     }
 
                     MouseArea {

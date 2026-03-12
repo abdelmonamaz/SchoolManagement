@@ -87,7 +87,7 @@ Popup {
                     text: "SUPPRIMER"
                     font.pixelSize: 11
                     font.weight: Font.Black
-                    color: "#FFFFFF"
+                    color: Style.background
                     font.letterSpacing: 0.5
                 }
 

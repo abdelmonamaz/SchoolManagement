@@ -28,7 +28,7 @@ Rectangle {
         IconLabel {
             iconName: control.iconName
             iconSize: 20
-            iconColor: control.active ? "#FFFFFF" : Style.textTertiary
+            iconColor: control.active ? Style.primaryForeground : Style.textSecondary
         }
 
         Text {
@@ -36,7 +36,7 @@ Rectangle {
             text: control.text
             font.pixelSize: 14
             font.weight: Font.Medium
-            color: control.active ? "#FFFFFF" : Style.textSecondary
+            color: control.active ? Style.primaryForeground : Style.textSecondary
             elide: Text.ElideRight
         }
 
@@ -45,7 +45,7 @@ Rectangle {
             text: "›"
             font.pixelSize: 18
             font.bold: true
-            color: "#FFFFFF"
+            color: Style.primaryForeground
         }
     }
 

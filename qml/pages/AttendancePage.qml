@@ -335,7 +335,7 @@ Item {
 
                         Rectangle {
                             width: parent.width; height: 60
-                            color: validated ? "#F0FDF4" : "transparent"
+                            color: validated ? Style.successBg : "transparent"
 
                             Row {
                                 anchors.fill: parent
@@ -391,12 +391,12 @@ Item {
                                         implicitWidth: valLbl.implicitWidth + 24
                                         height: 32; radius: 10
                                         color: validated
-                                               ? (valMa.containsMouse ? "#059669" : Style.successColor)
+                                               ? (valMa.containsMouse ? Style.successColor : Style.successColor)
                                                : (valMa.containsMouse ? Style.primaryDark : Style.primary)
                                         Text {
                                             id: valLbl; anchors.centerIn: parent
                                             text: validated ? "Modifier Présence" : "Valider Présence"
-                                            font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF"
+                                            font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                                         }
                                         MouseArea {
                                             id: valMa; anchors.fill: parent

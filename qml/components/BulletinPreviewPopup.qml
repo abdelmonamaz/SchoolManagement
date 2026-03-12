@@ -41,15 +41,15 @@ ModalOverlay {
     }
 
     function apprBg(note) {
-        if (note >= 15) return "#d4edda"
-        if (note >= 10) return "#fff3cd"
-        return "#f8d7da"
+        if (note >= 15) return Style.successBg
+        if (note >= 10) return Style.warningBg
+        return Style.errorBg
     }
 
     function apprFg(note) {
-        if (note >= 15) return "#155724"
-        if (note >= 10) return "#856404"
-        return "#721c24"
+        if (note >= 15) return Style.zitounaDark
+        if (note >= 10) return Style.warningColor
+        return Style.errorColor
     }
 
     // Tous les titres d'épreuves uniques (ordre d'apparition)
@@ -129,7 +129,7 @@ ModalOverlay {
             width: parent.width - 48
             anchors.horizontalCenter: parent.horizontalCenter
             height: Math.min(billScroll.contentHeight + 2, 560)
-            radius: 12; color: "#FFFFFF"
+            radius: 12; color: Style.background
             border.color: Style.borderLight
             clip: true
 
@@ -154,9 +154,9 @@ ModalOverlay {
                         Column {
                             width: parent.width - 112
                             spacing: 2
-                            Text { text: setupController.associationData.nomAssociation || "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: "#2E7D52" }
-                            Text { text: "INSTITUT D'ENSEIGNEMENT ISLAMIQUE"; font.pixelSize: 8; font.weight: Font.Bold; color: "#888" }
-                            Text { text: setupController.associationData.adresse || ""; font.pixelSize: 9; color: "#AAA"; visible: text.length > 0 }
+                            Text { text: setupController.associationData.nomAssociation || "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: Style.zitouna }
+                            Text { text: "INSTITUT D'ENSEIGNEMENT ISLAMIQUE"; font.pixelSize: 8; font.weight: Font.Bold; color: Style.textTertiary }
+                            Text { text: setupController.associationData.adresse || ""; font.pixelSize: 9; color: Style.textTertiary; visible: text.length > 0 }
                         }
 
                         Item { width: 4; height: 1 }
@@ -164,23 +164,23 @@ ModalOverlay {
                         // Badge année
                         Rectangle {
                             width: 108; height: 52; radius: 4
-                            color: "transparent"; border.color: "#F59E0B"; border.width: 2
+                            color: "transparent"; border.color: Style.warningColor; border.width: 2
                             Column {
                                 anchors.centerIn: parent; spacing: 2
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ANNÉE SCOLAIRE"; font.pixelSize: 7; font.weight: Font.Black; color: "#F59E0B" }
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.anneeScolaire || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#F59E0B" }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ANNÉE SCOLAIRE"; font.pixelSize: 7; font.weight: Font.Black; color: Style.warningColor }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.anneeScolaire || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.warningColor }
                             }
                         }
                     }
 
                     Item { width: 1; height: 8 }
-                    Rectangle { x: 16; width: parent.width - 32; height: 2; color: "#2E7D52" }
+                    Rectangle { x: 16; width: parent.width - 32; height: 2; color: Style.zitouna }
                     Item { width: 1; height: 10 }
 
                     // ── Titre ────────────────────────────────────────────────
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 34
-                        color: "#2E7D52"
+                        color: Style.zitouna
                         Text { anchors.centerIn: parent; text: "BULLETIN SCOLAIRE"; font.pixelSize: 14; font.weight: Font.Black; color: "white" }
                     }
 
@@ -190,7 +190,7 @@ ModalOverlay {
                     Rectangle {
                         x: 16; width: parent.width - 32
                         height: infoGrid.implicitHeight + 20
-                        radius: 6; color: "#F8F9FA"; border.color: "#E0E0E0"
+                        radius: 6; color: Style.background; border.color: Style.sidebarBorder
 
                         GridLayout {
                             id: infoGrid
@@ -198,20 +198,20 @@ ModalOverlay {
                             columns: 2; rowSpacing: 8; columnSpacing: 16
 
                             Column { spacing: 2
-                                Text { text: "NOM DE L'ÉLÈVE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.studentName || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: "NOM DE L'ÉLÈVE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.studentName || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "MATRICULE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.studentMatricule || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: "MATRICULE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.studentMatricule || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "NIVEAU"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.niveauNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: "NIVEAU"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.niveauNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "CLASSE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.classeNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: "CLASSE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.classeNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                         }
                     }
@@ -221,8 +221,8 @@ ModalOverlay {
                     // Label section
                     Row {
                         x: 16; width: parent.width - 32; spacing: 8
-                        Rectangle { width: 3; height: 14; radius: 2; color: "#2E7D52"; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: "RÉSULTATS ACADÉMIQUES"; font.pixelSize: 10; font.weight: Font.Black; color: "#1a1a2e"; anchors.verticalCenter: parent.verticalCenter }
+                        Rectangle { width: 3; height: 14; radius: 2; color: Style.zitouna; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "RÉSULTATS ACADÉMIQUES"; font.pixelSize: 10; font.weight: Font.Black; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
                     }
 
                     Item { width: 1; height: 8 }
@@ -230,7 +230,7 @@ ModalOverlay {
                     // ── En-tête du tableau ───────────────────────────────────
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 32
-                        color: "#2E7D52"; radius: 2
+                        color: Style.zitouna; radius: 2
 
                         Row {
                             width: parent.width; height: parent.height
@@ -268,8 +268,8 @@ ModalOverlay {
                         delegate: Rectangle {
                             id: matRow
                             x: 16; width: parent.width - 32; height: 40
-                            color: index % 2 === 0 ? "#FFFFFF" : "#F8FFFE"
-                            border.color: "#F0F0F0"
+                            color: index % 2 === 0 ? Style.background : Style.secondary
+                            border.color: Style.secondary
 
                             // Capture outer modelData before nested Repeater
                             property var mat:  modelData
@@ -293,7 +293,7 @@ ModalOverlay {
                                 // Nom matière
                                 Item {
                                     width: root.cMat; height: parent.height
-                                    Text { anchors.fill: parent; leftPadding: 8; text: root.matiereName(matRow.mat.matiereId); font.pixelSize: 10; font.weight: Font.Bold; color: "#1a1a2e"; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                    Text { anchors.fill: parent; leftPadding: 8; text: root.matiereName(matRow.mat.matiereId); font.pixelSize: 10; font.weight: Font.Bold; color: Style.foreground; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                                 }
 
                                 // Notes épreuves
@@ -307,7 +307,7 @@ ModalOverlay {
                                             text: nv >= 0 ? nv.toFixed(1) + "/20" : "—"
                                             font.pixelSize: 10
                                             font.weight: nv >= 0 ? Font.Bold : Font.Normal
-                                            color: nv >= 0 ? "#1a1a2e" : "#CCCCCC"
+                                            color: nv >= 0 ? Style.foreground : Style.textTertiary
                                         }
                                     }
                                 }
@@ -319,7 +319,7 @@ ModalOverlay {
                                         anchors.centerIn: parent
                                         text: matRow.moy >= 0 ? matRow.moy.toFixed(2) + "/20" : "—"
                                         font.pixelSize: 11; font.weight: Font.Black
-                                        color: matRow.moy >= 0 ? "#2E7D52" : "#CCCCCC"
+                                        color: matRow.moy >= 0 ? Style.zitouna : Style.textTertiary
                                     }
                                 }
 
@@ -333,7 +333,7 @@ ModalOverlay {
                                         color: root.apprBg(matRow.moy)
                                         Text { anchors.centerIn: parent; text: root.appreciation(matRow.moy); font.pixelSize: 8; font.weight: Font.Bold; color: root.apprFg(matRow.moy) }
                                     }
-                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: "—"; font.pixelSize: 10; color: "#CCCCCC" }
+                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: "—"; font.pixelSize: 10; color: Style.textTertiary }
                                 }
 
                                 // Présence
@@ -344,8 +344,8 @@ ModalOverlay {
                                         text: matRow.presPres + "/" + matRow.presTotal
                                         font.pixelSize: 10; font.weight: Font.Bold
                                         color: matRow.presTotal > 0 && matRow.presPres === matRow.presTotal
-                                               ? "#2E7D52"
-                                               : matRow.presPres < matRow.presTotal ? "#856404" : "#1a1a2e"
+                                               ? Style.zitouna
+                                               : matRow.presPres < matRow.presTotal ? Style.warningColor : Style.foreground
                                     }
                                 }
                             }
@@ -355,7 +355,7 @@ ModalOverlay {
                     // ── Moyenne générale ─────────────────────────────────────
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 44
-                        color: "#F0FFF4"; border.color: "#2E7D52"; border.width: 1; radius: 2
+                        color: Style.successBg; border.color: Style.zitouna; border.width: 1; radius: 2
 
                         Row {
                             width: parent.width; height: parent.height
@@ -363,14 +363,14 @@ ModalOverlay {
                             Item {
                                 width: root.cMat + root.allTitres.length * root.cEp
                                 height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: "MOYENNE GÉNÉRALE"; font.pixelSize: 10; font.weight: Font.Black; color: "#2E7D52"; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; leftPadding: 8; text: "MOYENNE GÉNÉRALE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter }
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
                                 Text {
                                     anchors.centerIn: parent
                                     text: root.moyenneGenerale >= 0 ? root.moyenneGenerale.toFixed(2) + "/20" : "—"
-                                    font.pixelSize: 14; font.weight: Font.Black; color: "#2E7D52"
+                                    font.pixelSize: 14; font.weight: Font.Black; color: Style.zitouna
                                 }
                             }
                             Item { width: root.cApp; height: parent.height }
@@ -379,7 +379,7 @@ ModalOverlay {
                                 Text {
                                     anchors.centerIn: parent
                                     text: root.presenceTotale + "/" + root.seancesTotales
-                                    font.pixelSize: 11; font.weight: Font.Black; color: "#2E7D52"
+                                    font.pixelSize: 11; font.weight: Font.Black; color: Style.zitouna
                                 }
                             }
                         }
@@ -393,29 +393,29 @@ ModalOverlay {
 
                         Column {
                             width: (parent.width - 80) / 2; spacing: 4
-                            Rectangle { width: parent.width; height: 1; color: "#CCCCCC" }
+                            Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "ENSEIGNANT"; font.pixelSize: 8; font.weight: Font.Black; color: "#999" }
+                            Text { text: "ENSEIGNANT"; font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
 
                         Item { width: 80; height: 1 }
 
                         Column {
                             width: (parent.width - 80) / 2; spacing: 4
-                            Rectangle { width: parent.width; height: 1; color: "#CCCCCC" }
+                            Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "DIRECTEUR"; font.pixelSize: 8; font.weight: Font.Black; color: "#999" }
+                            Text { text: "DIRECTEUR"; font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
                     }
 
                     Item { width: 1; height: 12 }
-                    Rectangle { x: 16; width: parent.width - 32; height: 1; color: "#EEEEEE" }
+                    Rectangle { x: 16; width: parent.width - 32; height: 1; color: Style.muted }
                     Item { width: 1; height: 6 }
 
                     Text {
                         x: 16; width: parent.width - 32
                         text: setupController.associationData.nomAssociation || "Ez-Zaytouna"
-                        font.pixelSize: 8; color: "#AAAAAA"; horizontalAlignment: Text.AlignHCenter
+                        font.pixelSize: 8; color: Style.textTertiary; horizontalAlignment: Text.AlignHCenter
                     }
 
                     Item { width: 1; height: 8 }
@@ -428,15 +428,15 @@ ModalOverlay {
             width: parent.width - 48
             anchors.horizontalCenter: parent.horizontalCenter
             height: 36; radius: 10
-            color: "#F0FDF4"; border.color: "#BBF7D0"
+            color: Style.successBg; border.color: Style.successColor
             visible: root.exportedFilePath.length > 0
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 10; spacing: 8
-                Text { text: "✓"; font.pixelSize: 14; color: "#166534" }
-                Text { Layout.fillWidth: true; text: "PDF : " + root.exportedFilePath; font.pixelSize: 9; color: "#166534"; elide: Text.ElideMiddle }
+                Text { text: "✓"; font.pixelSize: 14; color: Style.zitouna }
+                Text { Layout.fillWidth: true; text: "PDF : " + root.exportedFilePath; font.pixelSize: 9; color: Style.zitouna; elide: Text.ElideMiddle }
                 Rectangle {
-                    width: 60; height: 22; radius: 6; color: "#166534"
+                    width: 60; height: 22; radius: 6; color: Style.zitouna
                     Text { anchors.centerIn: parent; text: "OUVRIR"; font.pixelSize: 8; font.weight: Font.Black; color: "white" }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally("file:///" + root.exportedFilePath) }
                 }
@@ -465,7 +465,7 @@ ModalOverlay {
             // EXPORTER CSV
             Rectangle {
                 Layout.fillWidth: true; height: 48; radius: 14
-                color: csvMa.containsMouse ? "#166534" : "#22C55E"
+                color: csvMa.containsMouse ? Style.zitouna : Style.successColor
                 Behavior on color { ColorAnimation { duration: 100 } }
 
                 RowLayout { anchors.centerIn: parent; spacing: 8

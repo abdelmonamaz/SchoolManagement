@@ -50,7 +50,7 @@ Popup {
     }
 
     background: Rectangle { radius: 32; color: Style.bgWhite }
-    Overlay.modal: Rectangle { color: "#0F172A99" }
+    Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
 
     contentItem: Column {
         width: root.width; spacing: 0

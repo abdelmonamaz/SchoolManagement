@@ -411,7 +411,7 @@ Item {
                                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
                                             Avatar { initials: modelData.nom.charAt(0); size: 24; Layout.alignment: Qt.AlignVCenter }
                                             Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
-                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? "#DB2777" : Style.primary; customTextColor: "#FFFFFF"; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? Style.errorColor : Style.primary; customTextColor: Style.background; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
                                             Badge { text: modelData.categorie; variant: "neutral"; Layout.alignment: Qt.AlignVCenter }
                                             IconButton {
                                                 iconName: "close"; iconSize: 14; hoverColor: Style.errorColor; Layout.alignment: Qt.AlignVCenter
@@ -643,7 +643,7 @@ Item {
                         text: "SUPPRIMER"
                         font.pixelSize: 11
                         font.weight: Font.Black
-                        color: "#FFFFFF"
+                        color: Style.background
                         font.letterSpacing: 0.5
                     }
 

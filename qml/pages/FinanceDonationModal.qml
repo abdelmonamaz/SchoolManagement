@@ -109,15 +109,15 @@ ModalOverlay {
             width: parent.width; padding: 36; bottomPadding: 20; spacing: 16
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
-                Rectangle { width: 48; height: 48; radius: 20; color: editMode ? Style.primaryBg : "#FEF3C7"
+                Rectangle { width: 48; height: 48; radius: 20; color: editMode ? Style.primaryBg : Style.warningBorder
                     IconLabel { anchors.centerIn: parent
                                 iconName: editMode ? "edit" : "heart"; iconSize: 24
-                                iconColor: editMode ? Style.primary : "#D97706" } }
+                                iconColor: editMode ? Style.primary : Style.warningColor } }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: editMode ? "Modifier le Don" : "Nouveau Don"
                            font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: "Conforme Décret-loi 2011-88"
-                           font.pixelSize: 10; color: editMode ? Style.primary : "#D97706"; font.weight: Font.Bold }
+                           font.pixelSize: 10; color: editMode ? Style.primary : Style.warningColor; font.weight: Font.Bold }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: _close() }
             }

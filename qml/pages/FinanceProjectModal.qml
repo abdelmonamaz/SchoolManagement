@@ -49,10 +49,10 @@ ModalOverlay {
             RowLayout {
                 width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
                 Rectangle { width: 48; height: 48; radius: 20
-                    color: editMode ? Style.primaryBg : "#ECFDF5"
+                    color: editMode ? Style.primaryBg : Style.successBg
                     IconLabel { anchors.centerIn: parent
                                 iconName: editMode ? "edit" : "target"; iconSize: 24
-                                iconColor: editMode ? Style.primary : "#059669" } }
+                                iconColor: editMode ? Style.primary : Style.successColor } }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: editMode ? "Modifier le Projet" : "Nouveau Projet"
                            font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }

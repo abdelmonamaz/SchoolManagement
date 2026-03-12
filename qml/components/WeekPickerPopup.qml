@@ -26,7 +26,7 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 
     // Helpers
@@ -352,7 +352,7 @@ Popup {
                         text: "CONFIRMER"
                         font.pixelSize: 10
                         font.weight: Font.Black
-                        color: parent.isValid ? "#FFFFFF" : Style.textTertiary
+                        color: parent.isValid ? Style.background : Style.textTertiary
                         font.letterSpacing: 0.5
                     }
 

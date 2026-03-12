@@ -77,7 +77,7 @@ RowLayout {
     function sessionTypeColor(type) {
         if (type === "Examen") return Style.errorColor
         if (type === "Événement") return Style.warningColor
-        return "#374151"
+        return Style.foreground
     }
 
     function navigateMonth(delta) {
@@ -201,7 +201,7 @@ RowLayout {
                     spacing: 16
                     Repeater {
                         model: [
-                            { label: "COURS", clr: "#374151" },
+                            { label: "COURS", clr: Style.foreground },
                             { label: "EXAMEN", clr: Style.errorColor },
                             { label: "ÉVÈNEMENT", clr: Style.warningColor }
                         ]
@@ -420,8 +420,8 @@ RowLayout {
 
                                 Row {
                                     spacing: 3; visible: coursCount > 0
-                                    Rectangle { width: 8; height: 8; radius: 4; color: "#374151"; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: coursCount.toString(); font.pixelSize: 9; font.weight: Font.Bold; color: "#374151"; anchors.verticalCenter: parent.verticalCenter }
+                                    Rectangle { width: 8; height: 8; radius: 4; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: coursCount.toString(); font.pixelSize: 9; font.weight: Font.Bold; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
                                 }
                                 Row {
                                     spacing: 3; visible: examCount > 0

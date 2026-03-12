@@ -90,7 +90,7 @@ Item {
                         implicitHeight: childCol.implicitHeight + 48
                         radius: 24
                         color: Style.chartBlueLight
-                        border.color: "#BFDBFE"; border.width: 1
+                        border.color: Style.chart3; border.width: 1
 
                         Column {
                             id: childCol
@@ -121,10 +121,10 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#93C5FD" : "#BFDBFE"
+                                                    : parent.hovered ? Style.chart3 : Style.chart3
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
@@ -139,7 +139,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: adultCol.implicitHeight + 48
                         radius: 24
-                        color: "#FEF3C7"; border.color: "#FCD34D"; border.width: 1
+                        color: Style.warningBorder; border.color: Style.warningBorder; border.width: 1
 
                         Column {
                             id: adultCol
@@ -149,7 +149,7 @@ Item {
                             Text {
                                 text: "TARIF ADULTE (mensuel)"
                                 font.pixelSize: 10; font.weight: Font.Black
-                                color: "#D97706"; font.letterSpacing: 2
+                                color: Style.warningColor; font.letterSpacing: 2
                             }
 
                             RowLayout {
@@ -160,7 +160,7 @@ Item {
                                     Layout.fillWidth: true
                                     height: 48
                                     text: (setupController.activeTarifs.tarifAdulte || 250).toString()
-                                    font.pixelSize: 16; font.weight: Font.Black; color: "#D97706"
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.warningColor
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
@@ -170,15 +170,15 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#FDE68A" : "#FCD34D"
+                                                    : parent.hovered ? Style.warningBorder : Style.warningBorder
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: "#D97706" }
+                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: Style.warningColor }
                             }
                         }
                     }
@@ -233,7 +233,7 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
                                                     : parent.hovered ? Style.successColor : Style.successBorder
@@ -251,7 +251,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: fraisACol.implicitHeight + 48
                         radius: 24
-                        color: "#FDF4FF"; border.color: "#E9D5FF"; border.width: 1
+                        color: Style.background; border.color: Style.border; border.width: 1
 
                         Column {
                             id: fraisACol
@@ -261,7 +261,7 @@ Item {
                             Text {
                                 text: "FRAIS ADULTE"
                                 font.pixelSize: 10; font.weight: Font.Black
-                                color: "#7C3AED"; font.letterSpacing: 2
+                                color: Style.chart3; font.letterSpacing: 2
                             }
 
                             RowLayout {
@@ -272,7 +272,7 @@ Item {
                                     Layout.fillWidth: true
                                     height: 48
                                     text: (setupController.activeTarifs.fraisInscriptionAdulte || 50).toString()
-                                    font.pixelSize: 16; font.weight: Font.Black; color: "#7C3AED"
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.chart3
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
@@ -282,15 +282,15 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#C4B5FD" : "#E9D5FF"
+                                                    : parent.hovered ? Style.chart3 : Style.border
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: "#7C3AED" }
+                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: Style.chart3 }
                             }
                         }
                     }
@@ -587,7 +587,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: modelData.label
                                             font.pixelSize: 12; font.bold: true
-                                            color: sel ? "#FFFFFF" : Style.textSecondary
+                                            color: sel ? Style.background : Style.textSecondary
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -665,8 +665,8 @@ Item {
                     Rectangle {
                         width: parent.width
                         implicitHeight: warnRow.implicitHeight + 24
-                        radius: 14; color: "#FEF3C7"
-                        border.color: "#FCD34D"; border.width: 1
+                        radius: 14; color: Style.warningBorder
+                        border.color: Style.warningBorder; border.width: 1
 
                         RowLayout {
                             id: warnRow
@@ -678,7 +678,7 @@ Item {
                                 Layout.fillWidth: true
                                 text: "Charger une base de données remplacera toutes les données actuelles. L'application devra redémarrer."
                                 font.pixelSize: 11; font.weight: Font.Bold
-                                color: "#D97706"; wrapMode: Text.WordWrap; lineHeight: 1.4
+                                color: Style.warningColor; wrapMode: Text.WordWrap; lineHeight: 1.4
                             }
                         }
                     }
@@ -687,7 +687,7 @@ Item {
                         id: loadDbButton
                         width: parent.width; height: 42; radius: 10
                         property bool loading: false
-                        color: loadDbMa.containsMouse ? "#D97706" : "#F59E0B"
+                        color: loadDbMa.containsMouse ? Style.warningColor : Style.warningColor
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Row {
@@ -724,8 +724,8 @@ Item {
                         height: feedbackText.implicitHeight + 16
                         radius: 10
                         visible: feedbackText.text.length > 0
-                        color: feedbackIsError ? "#FEE2E2" : Style.successBg
-                        border.color: feedbackIsError ? "#FCA5A5" : Style.successBorder
+                        color: feedbackIsError ? Style.errorBorder : Style.successBg
+                        border.color: feedbackIsError ? Style.errorBorder : Style.successBorder
 
                         property bool feedbackIsError: false
 
@@ -734,7 +734,7 @@ Item {
                             anchors.fill: parent; anchors.margins: 10
                             font.pixelSize: 11; font.weight: Font.Bold
                             wrapMode: Text.WordWrap; lineHeight: 1.4
-                            color: feedbackBar.feedbackIsError ? "#DC2626" : Style.successColor
+                            color: feedbackBar.feedbackIsError ? Style.errorColor : Style.successColor
                         }
 
                         Timer {
@@ -758,10 +758,10 @@ Item {
             radius: 20
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#FFF1F2" }
-                GradientStop { position: 1.0; color: "#FFE4E6" }
+                GradientStop { position: 0.0; color: Style.errorBg }
+                GradientStop { position: 1.0; color: Style.errorBg }
             }
-            border.color: "#FECDD3"; border.width: 1
+            border.color: Style.errorBorder; border.width: 1
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 20; spacing: 16
@@ -769,7 +769,7 @@ Item {
                 // Lock icon
                 Rectangle {
                     width: 52; height: 52; radius: 14
-                    color: "#E11D48"
+                    color: Style.errorColor
                     Text { anchors.centerIn: parent; text: "🔒"; font.pixelSize: 22 }
                 }
 
@@ -778,24 +778,24 @@ Item {
                     Layout.fillWidth: true; spacing: 4
                     Text {
                         text: "Clôture d'Année Scolaire"
-                        font.pixelSize: 16; font.bold: true; color: "#881337"
+                        font.pixelSize: 16; font.bold: true; color: Style.errorColor
                     }
                     Text {
                         text: "Archivez l'année " + (setupController.activeTarifs.libelle || "en cours")
                               + ", faites passer les étudiants au niveau supérieur et générez les rapports finaux."
-                        font.pixelSize: 12; color: "#BE123C"
+                        font.pixelSize: 12; color: Style.errorColor
                         wrapMode: Text.WordWrap; width: parent.width
                     }
                     Row {
                         spacing: 16
                         Row {
                             spacing: 5
-                            Rectangle { width: 7; height: 7; radius: 4; color: "#E11D48"; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "ACTION IRRÉVERSIBLE"; font.pixelSize: 10; font.bold: true; color: "#E11D48"; font.letterSpacing: 0.5 }
+                            Rectangle { width: 7; height: 7; radius: 4; color: Style.errorColor; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "ACTION IRRÉVERSIBLE"; font.pixelSize: 10; font.bold: true; color: Style.errorColor; font.letterSpacing: 0.5 }
                         }
                         Text {
                             text: "Année en cours : " + (setupController.activeTarifs.libelle || "-")
-                            font.pixelSize: 11; font.bold: true; color: "#9F1239"
+                            font.pixelSize: 11; font.bold: true; color: Style.errorColor
                         }
                     }
                 }
@@ -803,7 +803,7 @@ Item {
                 // Button
                 Rectangle {
                     width: 180; height: 44; radius: 12
-                    color: "#E11D48"
+                    color: Style.errorColor
 
                     Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -821,8 +821,8 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onEntered: parent.color = "#BE123C"
-                        onExited:  parent.color = "#E11D48"
+                        onEntered: parent.color = Style.errorColor
+                        onExited:  parent.color = Style.errorColor
                         onClicked: {
                             yearClosureController.loadStats()
                             yearClosureController.loadStudentProgressions()
@@ -901,7 +901,7 @@ Item {
         width: 480; padding: 0
         modal: true
         closePolicy: Popup.NoAutoClose
-        Overlay.modal: Rectangle { color: "#0F172A99" }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
         background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
 
         contentItem: Column {
@@ -944,7 +944,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "Quitter l'application"
-                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                        font.pixelSize: 12; font.bold: true; color: Style.background
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -964,7 +964,7 @@ Item {
         width: 540; padding: 0
         modal: true
         closePolicy: Popup.CloseOnEscape
-        Overlay.modal: Rectangle { color: "#0F172A99" }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
         background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
 
         contentItem: Column {
@@ -1009,7 +1009,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "Oui, recalculer tout"
-                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                        font.pixelSize: 12; font.bold: true; color: Style.background
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor

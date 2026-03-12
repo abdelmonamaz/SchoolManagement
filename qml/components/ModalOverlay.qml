@@ -59,6 +59,6 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 }

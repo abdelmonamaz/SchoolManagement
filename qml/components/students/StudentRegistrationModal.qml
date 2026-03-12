@@ -60,7 +60,7 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 
     contentItem: Column {
@@ -420,7 +420,7 @@ Popup {
                                             color: root.isPaid ? Style.successColor : Style.bgTertiary
                                             Rectangle {
                                                 x: root.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                                color: "#FFFFFF"
+                                                color: Style.background
                                                 Behavior on x { NumberAnimation { duration: 150 } }
                                             }
                                             MouseArea { anchors.fill: parent; onClicked: root.isPaid = !root.isPaid }
@@ -488,7 +488,7 @@ Popup {
                     Text {
                         anchors.centerIn: parent
                         text: root.currentStep === 1 ? "CONTINUER" : "CONFIRMER L'INSCRIPTION"
-                        font.pixelSize: 12; font.weight: Font.Black; color: "#FFFFFF"
+                        font.pixelSize: 12; font.weight: Font.Black; color: Style.background
                         font.letterSpacing: 1
                     }
                     MouseArea {

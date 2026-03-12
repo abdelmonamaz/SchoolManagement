@@ -41,7 +41,7 @@ Column {
                 border.width: 1.5
                 Text {
                     anchors.centerIn: parent; text: "✓"
-                    font.pixelSize: 9; font.weight: Font.Bold; color: "#FFFFFF"
+                    font.pixelSize: 9; font.weight: Font.Bold; color: Style.background
                     visible: root.showAllEpreuves
                 }
                 MouseArea {
@@ -111,7 +111,7 @@ Column {
                     Rectangle {
                         anchors.fill: parent; radius: 12
                         color: isSelected ? Style.primary
-                             : isDone     ? "#F1F5F9"
+                             : isDone     ? Style.secondary
                              : epreuveMa.containsMouse ? Style.primaryBg : Style.bgPage
                         border.color: isSelected ? Style.primary
                                     : isDone     ? Style.borderLight
@@ -125,7 +125,7 @@ Column {
                             Text {
                                 text: isDone ? "✓ " + modelData.titre : modelData.titre
                                 font.pixelSize: 12; font.weight: Font.Bold
-                                color: isSelected ? "#FFFFFF"
+                                color: isSelected ? Style.background
                                      : isDone     ? Style.textTertiary
                                      : epreuveMa.containsMouse ? Style.primary : Style.textPrimary
                             }

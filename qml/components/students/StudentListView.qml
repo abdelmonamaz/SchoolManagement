@@ -250,7 +250,7 @@ ColumnLayout {
 
                     delegate: Rectangle {
                         width: parent.width; height: 64
-                        color: rowHover.hovered ? "#FAFBFC" : "transparent"
+                        color: rowHover.hovered ? Style.background : "transparent"
 
                         HoverHandler { id: rowHover }
                         Separator { anchors.bottom: parent.bottom; width: parent.width }
@@ -291,9 +291,9 @@ ColumnLayout {
                                 Badge {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.s.sexe === "F" ? "F" : "M"
-                                    customTextColor:   "#FFFFFF"
-                                    customBgColor:     modelData.s.sexe === "F" ? "#DB2777"  : Style.primary
-                                    customBorderColor: modelData.s.sexe === "F" ? "#BE185D"  : Style.primaryDark
+                                    customTextColor:   Style.background
+                                    customBgColor:     modelData.s.sexe === "F" ? Style.errorColor  : Style.primary
+                                    customBorderColor: modelData.s.sexe === "F" ? Style.errorColor  : Style.primaryDark
                                 }
                             }
                             // CATÉGORIE
@@ -310,7 +310,7 @@ ColumnLayout {
                                 Badge {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.s.inscritAnneeActive ? "INSCRIT" : "NON INSCRIT"
-                                    customTextColor: "#FFFFFF"
+                                    customTextColor: Style.background
                                     customBgColor: modelData.s.inscritAnneeActive ? Style.successColor : Style.textTertiary
                                     customBorderColor: modelData.s.inscritAnneeActive ? Style.successColor : Style.borderMedium
                                 }
@@ -322,7 +322,7 @@ ColumnLayout {
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: modelData.s.inscritAnneeActive
                                     text: modelData.s.fraisPayeAnneeActive ? "PAYÉ" : "IMPAYÉ"
-                                    customTextColor: "#FFFFFF"
+                                    customTextColor: Style.background
                                     customBgColor: modelData.s.fraisPayeAnneeActive ? Style.successColor : Style.errorColor
                                     customBorderColor: modelData.s.fraisPayeAnneeActive ? Style.successColor : Style.errorColor
                                 }
@@ -345,7 +345,7 @@ ColumnLayout {
                                     anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                     spacing: 4
                                     IconButton { iconName: "eye";    iconSize: 16; onClicked: root.studentViewClicked(modelData.idx) }
-                                    IconButton { iconName: "edit";   iconSize: 16; hoverColor: Style.warningColor || "#D97706"; onClicked: root.enrollmentEditClicked(modelData.idx, modelData.s.id) }
+                                    IconButton { iconName: "edit";   iconSize: 16; hoverColor: Style.warningColor || Style.warningColor; onClicked: root.enrollmentEditClicked(modelData.idx, modelData.s.id) }
                                     IconButton { iconName: "delete"; iconSize: 16; hoverColor: Style.errorColor; onClicked: root.studentDeleteClicked(modelData.s.id) }
                                 }
                             }
@@ -394,7 +394,7 @@ ColumnLayout {
                             Text {
                                 anchors.centerIn: parent; text: modelData + 1
                                 font.pixelSize: 12; font.bold: root.currentPage === modelData
-                                color: root.currentPage === modelData ? "#FFFFFF" : Style.textPrimary
+                                color: root.currentPage === modelData ? Style.background : Style.textPrimary
                             }
                             MouseArea { id: pgMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.currentPage = modelData }
                         }

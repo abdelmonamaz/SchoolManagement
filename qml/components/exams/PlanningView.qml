@@ -136,7 +136,7 @@ RowLayout {
 
                     Rectangle {
                         width: 10; height: 10; radius: 5
-                        color: "#374151"
+                        color: Style.foreground
                         Layout.alignment: Qt.AlignVCenter
                     }
 
@@ -614,7 +614,7 @@ RowLayout {
                                 text: modelData.num
                                 font.pixelSize: 11
                                 font.weight: Font.Black
-                                color: "#FFFFFF"
+                                color: Style.background
                             }
                         }
 

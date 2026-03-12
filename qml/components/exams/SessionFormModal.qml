@@ -63,8 +63,8 @@ ModalOverlay {
     // ─── Header ─────────────────────────────────────────────────────
     Rectangle {
         width: parent.width; height: 90
-        color: "#FAFBFC"; radius: 32
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 45; color: "#FAFBFC" }
+        color: Style.background; radius: 32
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 45; color: Style.background }
         Separator  { anchors.bottom: parent.bottom; width: parent.width }
 
         RowLayout {
@@ -409,7 +409,7 @@ ModalOverlay {
                                     color: root.formRecurrence === modelData.key ? Style.primary : "transparent"
                                     border.color: root.formRecurrence === modelData.key ? Style.primary : Style.borderMedium
                                     border.width: 1.5
-                                    Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 10; font.weight: Font.Bold; color: "#FFFFFF"; visible: root.formRecurrence === modelData.key }
+                                    Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.background; visible: root.formRecurrence === modelData.key }
                                 }
                                 Text { Layout.fillWidth: true; text: modelData.label; font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary }
                             }

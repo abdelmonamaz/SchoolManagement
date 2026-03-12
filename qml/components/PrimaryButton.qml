@@ -26,14 +26,14 @@ Rectangle {
             visible: control.iconName !== ""
             iconName: control.iconName
             iconSize: 18
-            iconColor: "#FFFFFF"
+            iconColor: Style.primaryForeground
         }
 
         Text {
             text: control.text
             font.pixelSize: 14
             font.bold: true
-            color: "#FFFFFF"
+            color: Style.primaryForeground
         }
     }
 

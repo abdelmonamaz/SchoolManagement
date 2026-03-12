@@ -56,7 +56,7 @@ RowLayout {
             text: root.confirmText
             font.pixelSize: 10
             font.weight: Font.Black
-            color: "#FFFFFF"
+            color: Style.background
         }
 
         MouseArea {

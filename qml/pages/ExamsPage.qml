@@ -212,12 +212,12 @@ Item {
                         anchors.centerIn: parent
                         spacing: 6
 
-                        IconLabel { iconName: "check"; iconSize: 14; iconColor: "#FFFFFF" }
+                        IconLabel { iconName: "check"; iconSize: 14; iconColor: Style.background }
 
                         Text {
                             text: "EXAMEN"
                             font.pixelSize: 10; font.weight: Font.Black
-                            color: "#FFFFFF"; font.letterSpacing: 0.5
+                            color: Style.background; font.letterSpacing: 0.5
                         }
                     }
 
@@ -237,7 +237,7 @@ Item {
                     implicitWidth: eventRow.implicitWidth + 24
                     height: 40
                     radius: 12
-                    color: eventMa.containsMouse ? "#D97706" : Style.warningColor
+                    color: eventMa.containsMouse ? Style.warningColor : Style.warningColor
 
                     RowLayout {
                         id: eventRow
@@ -249,7 +249,7 @@ Item {
                         Text {
                             text: "ÉVÈNEMENT"
                             font.pixelSize: 10; font.weight: Font.Black
-                            color: "#FFFFFF"; font.letterSpacing: 0.5
+                            color: Style.background; font.letterSpacing: 0.5
                         }
                     }
 
@@ -382,7 +382,7 @@ Item {
 
                     Rectangle {
                         width: 36; height: 36; radius: 12
-                        color: "#FEE2E2"
+                        color: Style.errorBorder
 
                         Text {
                             anchors.centerIn: parent

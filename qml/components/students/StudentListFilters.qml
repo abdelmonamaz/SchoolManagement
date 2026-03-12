@@ -173,7 +173,7 @@ ColumnLayout {
                         Text {
                             id: sxLbl; anchors.centerIn: parent
                             text: modelData.label; font.pixelSize: 10; font.weight: Font.Black
-                            color: root.selectedSexe === modelData.key ? "#FFFFFF" : Style.textTertiary
+                            color: root.selectedSexe === modelData.key ? Style.background : Style.textTertiary
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -236,7 +236,7 @@ ColumnLayout {
             Text {
                 id: allClsTxt; anchors.centerIn: parent; text: "Toutes"
                 font.pixelSize: 10; font.weight: Font.Black
-                color: root.selectedClass === "all" ? "#FFFFFF" : Style.textTertiary
+                color: root.selectedClass === "all" ? Style.background : Style.textTertiary
             }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -252,7 +252,7 @@ ColumnLayout {
                 Text {
                     id: clsTxt; anchors.centerIn: parent; text: modelData.nom
                     font.pixelSize: 10; font.weight: Font.Black
-                    color: root.selectedClass === modelData.nom ? "#FFFFFF" : Style.textTertiary
+                    color: root.selectedClass === modelData.nom ? Style.background : Style.textTertiary
                 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
