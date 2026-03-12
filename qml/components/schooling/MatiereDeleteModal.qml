@@ -35,7 +35,7 @@ Popup {
         padding: 28
 
         Text {
-            text: "Supprimer la matière ?"
+            text: qsTr("Supprimer la matière ?")
             font.pixelSize: 18
             font.weight: Font.Black
             color: Style.textPrimary
@@ -43,7 +43,7 @@ Popup {
 
         Text {
             width: parent.width - 56
-            text: "Cette matière sera définitivement supprimée de ce niveau."
+            text: qsTr("Cette matière sera définitivement supprimée de ce niveau.")
             font.pixelSize: 13
             color: Style.textSecondary
             wrapMode: Text.WordWrap
@@ -62,7 +62,7 @@ Popup {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "ANNULER"
+                    text: qsTr("ANNULER")
                     font.pixelSize: 11
                     font.weight: Font.Black
                     color: Style.textSecondary
@@ -84,7 +84,7 @@ Popup {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "SUPPRIMER"
+                    text: qsTr("SUPPRIMER")
                     font.pixelSize: 11
                     font.weight: Font.Black
                     color: Style.background

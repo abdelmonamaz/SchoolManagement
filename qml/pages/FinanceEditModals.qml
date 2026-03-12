@@ -16,7 +16,7 @@ Item {
 
     Platform.FileDialog {
         id: editFileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -61,7 +61,7 @@ Item {
                 Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || Style.warningBorder
                     IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || Style.warningColor } }
                 Column { Layout.fillWidth: true; spacing: 2
-                    Text { text: "Modifier un paiement"; font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("Modifier un paiement"); font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: page.editingEleveNom + " · " + page.selectedMonth + " " + page.selectedYear
                            font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium
                            elide: Text.ElideRight; width: parent.width }
@@ -72,7 +72,7 @@ Item {
 
             // ── Payment list ─────────────────────────────────────────────────
             Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 8
-                SectionLabel { text: "PAIEMENTS DU MOIS" }
+                SectionLabel { text: qsTr("PAIEMENTS DU MOIS") }
                 Column { width: parent.width; spacing: 6
                     Repeater {
                         model: page.currentEditingPayments
@@ -86,7 +86,7 @@ Item {
                                 }
                                 Rectangle { width: 90; height: 32; radius: 8
                                     color: editPayMa.containsMouse ? Style.primary : Style.primaryBg
-                                    Text { anchors.centerIn: parent; text: "MODIFIER"
+                                    Text { anchors.centerIn: parent; text: qsTr("MODIFIER")
                                            font.pixelSize: 9; font.weight: Font.Black; font.letterSpacing: 0.4
                                            color: editPayMa.containsMouse ? "white" : Style.primary }
                                     MouseArea { id: editPayMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -126,7 +126,7 @@ Item {
                         }
                     }
                     Text { width: parent.width; visible: page.currentEditingPayments.length === 0
-                           text: "Aucun paiement enregistré pour ce mois."
+                           text: qsTr("Aucun paiement enregistré pour ce mois.")
                            font.pixelSize: 12; color: Style.textTertiary; horizontalAlignment: Text.AlignHCenter }
                 }
             }
@@ -139,19 +139,19 @@ Item {
 
                 Separator { width: parent.width }
                 Row { spacing: 8
-                    Text { text: "Montant actuel : "; font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: qsTr("Montant actuel : "); font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
                     Text { text: (page.editingPayId > 0 ? page.editingCurrentAmount.toFixed(2) : "0.00") + " DT"; font.pixelSize: 13; font.weight: Font.Black; color: Style.textPrimary; anchors.verticalCenter: parent.verticalCenter }
                 }
                 FormField { id: editNewAmountField; width: parent.width
-                            label: "NOUVEAU MONTANT (DT)"; placeholder: "0.00"; fieldHeight: 44 }
+                            label: qsTr("NOUVEAU MONTANT (DT)"); placeholder: qsTr("0.00"); fieldHeight: 44 }
                 
                 DateField {
                     id: editDateField
                     width: parent.width
-                    label: "DATE DU PAIEMENT"
+                    label: qsTr("DATE DU PAIEMENT")
                 }
 
-                SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+                SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
                 RowLayout { width: parent.width; spacing: 8
                     Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -160,14 +160,14 @@ Item {
                             anchors.fill: parent; anchors.margins: 12
                             font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                             clip: true; selectByMouse: true; readOnly: true
-                            Text { visible: !editJustifField.text; text: "Aucun fichier sélectionné"
+                            Text { visible: !editJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                    font: editJustifField.font; color: Style.textTertiary }
                         }
                     }
                     Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                         color: editBrowseHover.containsMouse ? Style.primary : Style.bgPage
                         border.color: editBrowseHover.containsMouse ? Style.primary : Style.borderLight
-                        Text { anchors.centerIn: parent; text: "…"
+                        Text { anchors.centerIn: parent; text: qsTr("…")
                                font.pixelSize: 16; font.bold: true
                                color: editBrowseHover.containsMouse ? "white" : Style.textTertiary }
                         MouseArea { id: editBrowseHover; anchors.fill: parent; hoverEnabled: true
@@ -178,7 +178,7 @@ Item {
                             
                 Rectangle { width: parent.width; height: 44; radius: 12
                     color: confirmEditBtnMa.containsMouse ? Style.primary : Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "ENREGISTRER"
+                    Text { anchors.centerIn: parent; text: qsTr("ENREGISTRER")
                            font.pixelSize: 11; font.weight: Font.Black; font.letterSpacing: 0.5
                            color: confirmEditBtnMa.containsMouse ? "white" : Style.primary }
                     MouseArea { id: confirmEditBtnMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -240,7 +240,7 @@ Item {
 
             ModalButtons {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
+                cancelText: qsTr("Annuler")
                 confirmText: page.editingNewAmount === 0 ? "SUPPRIMER" : "CONFIRMER"
                 confirmColor: page.editingNewAmount === 0 ? Style.errorColor : Style.primary
                 onCancel: { page.showEditConfirmModal = false; page.showEditModal = true }

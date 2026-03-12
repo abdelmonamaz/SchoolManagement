@@ -55,7 +55,7 @@ Item {
             spacing: 16
 
             Text {
-                text: "Sélectionner la période"
+                text: qsTr("Sélectionner la période")
                 font.pixelSize: 14
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -67,7 +67,7 @@ Item {
                 spacing: 6
 
                 SectionLabel {
-                    text: "MOIS"
+                    text: qsTr("MOIS")
                 }
 
                 Rectangle {
@@ -112,7 +112,7 @@ Item {
                 spacing: 6
 
                 SectionLabel {
-                    text: "ANNÉE"
+                    text: qsTr("ANNÉE")
                 }
 
                 Rectangle {
@@ -162,7 +162,7 @@ Item {
             // Bouton d'application
             PrimaryButton {
                 width: parent.width
-                text: "Appliquer"
+                text: qsTr("Appliquer")
                 onClicked: {
                     root.monthYearChanged(root.selectedMonth, root.selectedYear)
                     root.show = false

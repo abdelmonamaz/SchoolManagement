@@ -20,7 +20,7 @@ ModalOverlay {
     // ── File dialog ───────────────────────────────────────────────────────────
     Platform.FileDialog {
         id: fileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -76,7 +76,7 @@ ModalOverlay {
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: editMode ? "Modifier la Dépense" : "Nouvelle Dépense"
                            font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
-                    Text { text: "Enregistrement comptable"
+                    Text { text: qsTr("Enregistrement comptable")
                            font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: _close() }
@@ -104,18 +104,18 @@ ModalOverlay {
                 topPadding: 4; bottomPadding: 16; spacing: 18
 
                 FormField { id: libelleField; width: parent.width
-                            label: "LIBELLÉ *"
-                            placeholder: "Ex: Fournitures, Électricité, Loyer…"
+                            label: qsTr("LIBELLÉ *")
+                            placeholder: qsTr("Ex: Fournitures, Électricité, Loyer…")
                             fieldHeight: 44 }
 
                 FormField { id: montantField; width: parent.width
-                            label: "MONTANT (DT) *"; placeholder: "0.00"; fieldHeight: 44
+                            label: qsTr("MONTANT (DT) *"); placeholder: qsTr("0.00"); fieldHeight: 44
                             validator: RegularExpressionValidator {
                                 regularExpression: /^\d*\.?\d{0,2}$/
                             } }
 
                 Column { width: parent.width; spacing: 6
-                    SectionLabel { text: "CATÉGORIE" }
+                    SectionLabel { text: qsTr("CATÉGORIE") }
                     Flow { width: parent.width; spacing: 6
                         Repeater {
                             model: ["Fournitures", "Loyer", "Services", "Autre"]
@@ -133,15 +133,15 @@ ModalOverlay {
                     }
                 }
 
-                DateField { id: dateField; width: parent.width; label: "DATE DE LA DÉPENSE" }
+                DateField { id: dateField; width: parent.width; label: qsTr("DATE DE LA DÉPENSE") }
 
                 FormField { id: notesField; width: parent.width
-                            label: "NOTES / COMMENTAIRES"
-                            placeholder: "Informations supplémentaires…"
+                            label: qsTr("NOTES / COMMENTAIRES")
+                            placeholder: qsTr("Informations supplémentaires…")
                             fieldHeight: 44 }
 
                 Column { width: parent.width; spacing: 6
-                    SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+                    SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
                     RowLayout { width: parent.width; spacing: 8
                         Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                                     color: Style.bgPage; border.color: Style.borderLight
@@ -150,14 +150,14 @@ ModalOverlay {
                                 anchors.fill: parent; anchors.margins: 12
                                 font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                                 clip: true; selectByMouse: true; readOnly: true
-                                Text { visible: !justifField.text; text: "Aucun fichier sélectionné"
+                                Text { visible: !justifField.text; text: qsTr("Aucun fichier sélectionné")
                                        font: justifField.font; color: Style.textTertiary }
                             }
                         }
                         Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                             color: jBrowse.containsMouse ? Style.primary : Style.bgPage
                             border.color: jBrowse.containsMouse ? Style.primary : Style.borderLight
-                            Text { anchors.centerIn: parent; text: "…"
+                            Text { anchors.centerIn: parent; text: qsTr("…")
                                    font.pixelSize: 16; font.bold: true
                                    color: jBrowse.containsMouse ? "white" : Style.textTertiary }
                             MouseArea { id: jBrowse; anchors.fill: parent; hoverEnabled: true
@@ -173,7 +173,7 @@ ModalOverlay {
             width: parent.width; topPadding: 16; bottomPadding: 28
             ModalButtons {
                 width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
+                cancelText: qsTr("Annuler")
                 confirmText: editMode ? "Enregistrer les modifications" : "Enregistrer la dépense"
                 onCancel: _close()
                 onConfirm: {

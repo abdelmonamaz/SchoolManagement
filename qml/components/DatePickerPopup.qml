@@ -91,7 +91,7 @@ Popup {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "Choisir la Date"
+                    text: qsTr("Choisir la Date")
                     font.pixelSize: 16
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -335,7 +335,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textSecondary; font.letterSpacing: 0.5
                     }
@@ -355,7 +355,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "CONFIRMER"
+                        text: qsTr("CONFIRMER")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.background; font.letterSpacing: 0.5
                     }

@@ -847,6 +847,12 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         qInfo() << "[DatabaseManager] Migration 34: added column association_config.age_passage_adulte";
     }
 
+    // ── Migration 36 : ajout langue dans association_config ──
+    if (!columnExists(QStringLiteral("association_config"), QStringLiteral("langue"))) {
+        execStatement(db, QStringLiteral("ALTER TABLE association_config ADD COLUMN langue TEXT DEFAULT 'français'"));
+        qInfo() << "[DatabaseManager] Migration 36: added column association_config.langue";
+    }
+
     // ── Migration 35 : tarifs_mensualites — annee_scolaire TEXT → annee_scolaire_id FK ──
     if (!columnExists(QStringLiteral("tarifs_mensualites"), QStringLiteral("annee_scolaire_id"))) {
         execStatement(db, QStringLiteral(

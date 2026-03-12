@@ -37,7 +37,7 @@ ColumnLayout {
     FileDialog {
         id: csvSaveDialog
         fileMode: FileDialog.SaveFile
-        title: "Enregistrer le bulletin CSV"
+        title: qsTr("Enregistrer le bulletin CSV")
         nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
         defaultSuffix: "csv"
         onAccepted: {
@@ -190,7 +190,7 @@ ColumnLayout {
 
     // ── Back button ──────────────────────────────────────────────────────────
     Text {
-        text: "← Retour à l'annuaire"
+        text: qsTr("← Retour à l'annuaire")
         font.pixelSize: 14; font.bold: true
         color: backMa.containsMouse ? Style.primary : Style.textSecondary
 
@@ -254,7 +254,7 @@ ColumnLayout {
                         customBorderColor: root.student.sexe === "F" ? Style.errorColor : Style.primaryDark
                     }
                 }
-                Text { text: "ID: " + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
+                Text { text: qsTr("ID: ") + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
 
                 RowLayout {
                     Layout.topMargin: 10; spacing: 24
@@ -275,7 +275,7 @@ ColumnLayout {
                 spacing: 10
                 anchors.verticalCenter: parent.verticalCenter;
                 PrimaryButton {
-                    text: "Bulletin Annuel"
+                    text: qsTr("Bulletin Annuel")
                     iconName: "print"
                     enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
                     onClicked: {
@@ -289,7 +289,7 @@ ColumnLayout {
                     }
                 }
                 PrimaryButton {
-                    text: "Exporter CSV"
+                    text: qsTr("Exporter CSV")
                     iconName: "download"
                     enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
                     onClicked: {
@@ -303,7 +303,7 @@ ColumnLayout {
                     }
                 }
                 OutlineButton {
-                    text: "Supprimer"
+                    text: qsTr("Supprimer")
                     baseColor: Style.errorColor
                     hoverColor: Style.errorColor
                     textColor: Style.background
@@ -323,7 +323,7 @@ ColumnLayout {
 
             AppCard {
                 Layout.fillWidth: true
-                title: "Identité de l'Étudiant"
+                title: qsTr("Identité de l'Étudiant")
 
                 ColumnLayout {
                     width: parent.width; spacing: 20
@@ -332,12 +332,12 @@ ColumnLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "DATE DE NAISSANCE" }
+                            SectionLabel { text: qsTr("DATE DE NAISSANCE") }
                             Text { text: root.student.dateNaissance || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CATÉGORIE" }
+                            SectionLabel { text: qsTr("CATÉGORIE") }
                             Text { text: root.student.categorie || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -348,12 +348,12 @@ ColumnLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "PARENT / TUTEUR" }
+                            SectionLabel { text: qsTr("PARENT / TUTEUR") }
                             Text { text: root.student.nomParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CONTACT PARENT" }
+                            SectionLabel { text: qsTr("CONTACT PARENT") }
                             Text { text: root.student.telParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -364,12 +364,12 @@ ColumnLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CIN ÉLÈVE" }
+                            SectionLabel { text: qsTr("CIN ÉLÈVE") }
                             Text { text: root.student.cinEleve || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CIN PARENT" }
+                            SectionLabel { text: qsTr("CIN PARENT") }
                             Text { text: root.student.cinParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -378,7 +378,7 @@ ColumnLayout {
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
-                        SectionLabel { text: "COMMENTAIRES ET NOTES" }
+                        SectionLabel { text: qsTr("COMMENTAIRES ET NOTES") }
                         Text {
                             Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire.";
                             font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.Wrap
@@ -387,7 +387,7 @@ ColumnLayout {
 
                     PrimaryButton {
                         Layout.topMargin: 10
-                        text: "Modifier les informations"
+                        text: qsTr("Modifier les informations")
                         onClicked: root.editRequested()
                     }
                 }
@@ -396,7 +396,7 @@ ColumnLayout {
             // Enrollment History
             AppCard {
                 Layout.fillWidth: true
-                title: "Historique des Inscriptions"
+                title: qsTr("Historique des Inscriptions")
 
                 ColumnLayout {
                     width: parent.width; spacing: 16
@@ -404,11 +404,11 @@ ColumnLayout {
                     // Table Header
                     RowLayout {
                         Layout.fillWidth: true; spacing: 24
-                        Text { Layout.preferredWidth: 120; text: "ANNÉE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.fillWidth: true; text: "NIVEAU"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 120; text: "RÉSULTAT"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 80; text: "STATUT"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 80; text: "ACTIONS"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1; horizontalAlignment: Text.AlignRight }
+                        Text { Layout.preferredWidth: 120; text: qsTr("ANNÉE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.fillWidth: true; text: qsTr("NIVEAU"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 120; text: qsTr("RÉSULTAT"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 80; text: qsTr("STATUT"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 80; text: qsTr("ACTIONS"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1; horizontalAlignment: Text.AlignRight }
                     }
 
                     Separator { Layout.fillWidth: true }
@@ -459,7 +459,7 @@ ColumnLayout {
 
                     PrimaryButton {
                         Layout.topMargin: 10
-                        text: "Inscrire pour une nouvelle année"
+                        text: qsTr("Inscrire pour une nouvelle année")
                         iconName: "plus"
                         onClicked: newEnrollmentPopup.open()
                     }
@@ -473,7 +473,7 @@ ColumnLayout {
 
             AppCard {
                 Layout.fillWidth: true
-                title: "Statut Actuel"
+                title: qsTr("Statut Actuel")
                 Column {
                     spacing: 16
                     width: parent.width
@@ -518,7 +518,7 @@ ColumnLayout {
                     Column {
                         width: parent.width; spacing: 4
                         visible: root.currentEnrollment !== null
-                        SectionLabel { text: "ANNÉE SCOLAIRE" }
+                        SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                         Text {
                             text: root.statusAnneeScolaire || "—"
                             font.pixelSize: 14; font.bold: true; color: Style.textPrimary
@@ -528,7 +528,7 @@ ColumnLayout {
                     // Total inscriptions
                     Column {
                         width: parent.width; spacing: 4
-                        SectionLabel { text: "INSCRIPTIONS TOTALES" }
+                        SectionLabel { text: qsTr("INSCRIPTIONS TOTALES") }
                         Text {
                             text: studentController.selectedStudentEnrollments.length + " année(s)"
                             font.pixelSize: 14; font.bold: true; color: Style.textPrimary
@@ -567,7 +567,7 @@ ColumnLayout {
 
         contentItem: ColumnLayout {
             anchors.fill: parent; anchors.margins: 24; spacing: 20
-            Text { text: "Nouvelle Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
+            Text { text: qsTr("Nouvelle Inscription"); font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
 
             Text {
                 id: newErrorMsg
@@ -580,7 +580,7 @@ ColumnLayout {
 
             Column {
                 Layout.fillWidth: true; spacing: 6
-                SectionLabel { text: "ANNÉE SCOLAIRE" }
+                SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                 Rectangle {
                     Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -598,7 +598,7 @@ ColumnLayout {
 
             Column {
                 Layout.fillWidth: true; spacing: 6
-                SectionLabel { text: "NIVEAU" }
+                SectionLabel { text: qsTr("NIVEAU") }
                 Rectangle {
                     Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -616,10 +616,10 @@ ColumnLayout {
 
             RowLayout {
                 spacing: 16
-                FormField { id: feeField; Layout.fillWidth: true; label: "FRAIS (DT)"; text: "50.0" }
+                FormField { id: feeField; Layout.fillWidth: true; label: qsTr("FRAIS (DT)"); text: qsTr("50.0") }
                 Column {
                     spacing: 6
-                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                    SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
                     Row {
                         spacing: 12
                         Rectangle {
@@ -644,11 +644,11 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true; spacing: 16
                 OutlineButton {
-                    Layout.fillWidth: true; text: "Annuler"
+                    Layout.fillWidth: true; text: qsTr("Annuler")
                     onClicked: newEnrollmentPopup.close()
                 }
                 PrimaryButton {
-                    Layout.fillWidth: true; text: "Valider l'inscription"
+                    Layout.fillWidth: true; text: qsTr("Valider l'inscription")
                     onClicked: {
                         studentController.enrollStudent({
                             eleveId: root.student.id,

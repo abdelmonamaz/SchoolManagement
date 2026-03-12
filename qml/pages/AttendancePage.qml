@@ -193,8 +193,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Gestion des Présences"
-                subtitle: "Pilotage hebdomadaire de l'appel et suivi des séances."
+                title: qsTr("Gestion des Présences")
+                subtitle: qsTr("Pilotage hebdomadaire de l'appel et suivi des séances.")
             }
 
             // Navigation semaine : ◀ [Sem. X · Année] ▶ + date range
@@ -212,7 +212,7 @@ Item {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "‹"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("‹"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -236,7 +236,7 @@ Item {
                         anchors.centerIn: parent; spacing: 6
                         IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
                         Text {
-                            text: "Sem. " + selectedWeek + "  ·  " + selectedWeekYear
+                            text: qsTr("Sem. ") + selectedWeek + "  ·  " + selectedWeekYear
                             font.pixelSize: 9; font.weight: Font.Black
                             color: Style.textPrimary; font.letterSpacing: 0.5
                         }
@@ -258,7 +258,7 @@ Item {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "›"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("›"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -296,19 +296,19 @@ Item {
                     Item {
                         width: parent.width - attendancePage.colClasse - attendancePage.colType - attendancePage.colAction
                         height: parent.height
-                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "DATE / SÉANCE"; font.pixelSize: 10 }
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: qsTr("DATE / SÉANCE"); font.pixelSize: 10 }
                     }
                     Item {
                         width: attendancePage.colClasse; height: parent.height
-                        SectionLabel { anchors.centerIn: parent; text: "CLASSE"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
+                        SectionLabel { anchors.centerIn: parent; text: qsTr("CLASSE"); font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
                     }
                     Item {
                         width: attendancePage.colType; height: parent.height
-                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "TYPE"; font.pixelSize: 10 }
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: qsTr("TYPE"); font.pixelSize: 10 }
                     }
                     Item {
                         width: attendancePage.colAction; height: parent.height
-                        SectionLabel { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "ACTION"; font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
+                        SectionLabel { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: qsTr("ACTION"); font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
                     }
                 }
 

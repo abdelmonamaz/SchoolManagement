@@ -129,8 +129,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Architecture Académique"
-                subtitle: "Configuration des niveaux, des matières et de la logistique."
+                title: qsTr("Architecture Académique")
+                subtitle: qsTr("Configuration des niveaux, des matières et de la logistique.")
             }
 
             Rectangle {
@@ -154,7 +154,7 @@ Item {
                         Text {
                             id: levelsTabLabel
                             anchors.centerIn: parent
-                            text: "NIVEAUX & MATIÈRES"
+                            text: qsTr("NIVEAUX & MATIÈRES")
                             font.pixelSize: 10
                             font.weight: Font.Black
                             color: activeTab === "levels" ? Style.background : Style.textTertiary
@@ -177,7 +177,7 @@ Item {
                         Text {
                             id: roomsTabLabel
                             anchors.centerIn: parent
-                            text: "GESTION DES SALLES"
+                            text: qsTr("GESTION DES SALLES")
                             font.pixelSize: 10
                             font.weight: Font.Black
                             color: activeTab === "rooms" ? Style.background : Style.textTertiary

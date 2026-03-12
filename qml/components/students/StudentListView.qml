@@ -111,11 +111,11 @@ ColumnLayout {
         Layout.fillWidth: true
         PageHeader {
             Layout.fillWidth: true
-            title: "Annuaire des Étudiants"
-            subtitle: "Gestion des dossiers individuels et du suivi."
+            title: qsTr("Annuaire des Étudiants")
+            subtitle: qsTr("Gestion des dossiers individuels et du suivi.")
         }
         PrimaryButton {
-            text: "Ajouter un Élève"; iconName: "plus"
+            text: qsTr("Ajouter un Élève"); iconName: "plus"
             onClicked: root.registrationRequested()
         }
     }
@@ -164,7 +164,7 @@ ColumnLayout {
                     width: root.colNom; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "ÉLÈVE" + root.sortArrow("nom")
+                        text: qsTr("ÉLÈVE") + root.sortArrow("nom")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("nom")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("nom") }
@@ -174,7 +174,7 @@ ColumnLayout {
                     width: root.colId; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "MATRICULE" + root.sortArrow("id")
+                        text: qsTr("MATRICULE") + root.sortArrow("id")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("id")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("id") }
@@ -184,7 +184,7 @@ ColumnLayout {
                     width: root.colSexe; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "SEXE" + root.sortArrow("sexe")
+                        text: qsTr("SEXE") + root.sortArrow("sexe")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("sexe")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("sexe") }
@@ -194,7 +194,7 @@ ColumnLayout {
                     width: root.colCat; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "CATÉGORIE" + root.sortArrow("categorie")
+                        text: qsTr("CATÉGORIE") + root.sortArrow("categorie")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("categorie")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("categorie") }
@@ -204,7 +204,7 @@ ColumnLayout {
                     width: root.colStatut; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "STATUT" + root.sortArrow("inscritAnneeActive")
+                        text: qsTr("STATUT") + root.sortArrow("inscritAnneeActive")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("inscritAnneeActive")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("inscritAnneeActive") }
@@ -214,7 +214,7 @@ ColumnLayout {
                     width: root.colPaiement; height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "PAIEMENT" + root.sortArrow("fraisPayeAnneeActive")
+                        text: qsTr("PAIEMENT") + root.sortArrow("fraisPayeAnneeActive")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("fraisPayeAnneeActive")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("fraisPayeAnneeActive") }
@@ -225,7 +225,7 @@ ColumnLayout {
                     height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "CONTACT" + root.sortArrow("telephone")
+                        text: qsTr("CONTACT") + root.sortArrow("telephone")
                         font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("telephone")
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("telephone") }
@@ -235,7 +235,7 @@ ColumnLayout {
                     width: root.colActions; height: parent.height
                     Text {
                         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                        text: "ACTIONS"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary
+                        text: qsTr("ACTIONS"); font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary
                     }
                 }
             }
@@ -357,7 +357,7 @@ ColumnLayout {
                 Item {
                     width: parent.width; height: 80
                     visible: root.pageStudents.length === 0
-                    Text { anchors.centerIn: parent; text: "Aucun élève trouvé"; font.pixelSize: 13; font.italic: true; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("Aucun élève trouvé"); font.pixelSize: 13; font.italic: true; color: Style.textTertiary }
                 }
             }
 
@@ -381,7 +381,7 @@ ColumnLayout {
                         width: 36; height: 36; radius: 10
                         color: prevMa.pressed ? Style.bgTertiary : Style.bgPage; border.color: Style.borderLight
                         opacity: root.currentPage > 0 ? 1.0 : 0.35
-                        Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 20; color: Style.textPrimary }
+                        Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 20; color: Style.textPrimary }
                         MouseArea { id: prevMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (root.currentPage > 0) root.currentPage-- }
                     }
 
@@ -404,7 +404,7 @@ ColumnLayout {
                         width: 36; height: 36; radius: 10
                         color: nextMa.pressed ? Style.bgTertiary : Style.bgPage; border.color: Style.borderLight
                         opacity: root.currentPage < root.totalPages - 1 ? 1.0 : 0.35
-                        Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 20; color: Style.textPrimary }
+                        Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 20; color: Style.textPrimary }
                         MouseArea { id: nextMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (root.currentPage < root.totalPages - 1) root.currentPage++ }
                     }
                 }

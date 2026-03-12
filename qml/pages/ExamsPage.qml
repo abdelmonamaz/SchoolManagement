@@ -94,8 +94,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Planning & Organisation"
-                subtitle: "Gestion centralisée des cours, examens et évènements scolaires."
+                title: qsTr("Planning & Organisation")
+                subtitle: qsTr("Gestion centralisée des cours, examens et évènements scolaires.")
             }
 
             Row {
@@ -122,7 +122,7 @@ Item {
                             Text {
                                 id: planningLabel
                                 anchors.centerIn: parent
-                                text: "PLANNING"
+                                text: qsTr("PLANNING")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: activeView === "planning" ? Style.primary : Style.textTertiary
@@ -148,7 +148,7 @@ Item {
                             Text {
                                 id: calendarLabel
                                 anchors.centerIn: parent
-                                text: "CALENDRIER"
+                                text: qsTr("CALENDRIER")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: activeView === "calendar" ? Style.primary : Style.textTertiary
@@ -183,7 +183,7 @@ Item {
                         IconLabel { iconName: "book"; iconSize: 14; iconColor: Style.primary }
 
                         Text {
-                            text: "COURS"
+                            text: qsTr("COURS")
                             font.pixelSize: 10; font.weight: Font.Black
                             color: Style.textPrimary; font.letterSpacing: 0.5
                         }
@@ -215,7 +215,7 @@ Item {
                         IconLabel { iconName: "check"; iconSize: 14; iconColor: Style.background }
 
                         Text {
-                            text: "EXAMEN"
+                            text: qsTr("EXAMEN")
                             font.pixelSize: 10; font.weight: Font.Black
                             color: Style.background; font.letterSpacing: 0.5
                         }
@@ -244,10 +244,10 @@ Item {
                         anchors.centerIn: parent
                         spacing: 6
 
-                        Text { text: "✨"; font.pixelSize: 14 }
+                        Text { text: qsTr("✨"); font.pixelSize: 14 }
 
                         Text {
-                            text: "ÉVÈNEMENT"
+                            text: qsTr("ÉVÈNEMENT")
                             font.pixelSize: 10; font.weight: Font.Black
                             color: Style.background; font.letterSpacing: 0.5
                         }
@@ -386,7 +386,7 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "!"
+                            text: qsTr("!")
                             font.pixelSize: 16; font.weight: Font.Black
                             color: Style.errorColor
                         }
@@ -394,7 +394,7 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "Conflit détecté"
+                        text: qsTr("Conflit détecté")
                         font.pixelSize: 16; font.weight: Font.Black
                         color: Style.textPrimary
                     }
@@ -423,7 +423,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "COMPRIS"
+                        text: qsTr("COMPRIS")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textPrimary; font.letterSpacing: 0.5
                     }

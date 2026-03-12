@@ -116,7 +116,7 @@ Popup {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "Choisir la Semaine"
+                    text: qsTr("Choisir la Semaine")
                     font.pixelSize: 16
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -150,7 +150,7 @@ Popup {
                     width: parent.width
                     spacing: 6
 
-                    SectionLabel { text: "NUMÉRO DE SEMAINE" }
+                    SectionLabel { text: qsTr("NUMÉRO DE SEMAINE") }
 
                     Rectangle {
                         width: parent.width
@@ -183,7 +183,7 @@ Popup {
 
                             Text {
                                 visible: !weekInput.text
-                                text: "1 - " + root.maxWeeksInYear(root.selectedYear)
+                                text: qsTr("1 - ") + root.maxWeeksInYear(root.selectedYear)
                                 font: weekInput.font
                                 color: Style.textTertiary
                             }
@@ -198,7 +198,7 @@ Popup {
                     }
 
                     Text {
-                        text: "Entre 1 et " + root.maxWeeksInYear(root.selectedYear) + " pour l'année " + root.selectedYear
+                        text: qsTr("Entre 1 et ") + root.maxWeeksInYear(root.selectedYear) + " pour l'année " + root.selectedYear
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         color: Style.textTertiary
@@ -210,7 +210,7 @@ Popup {
                     width: parent.width
                     spacing: 6
 
-                    SectionLabel { text: "ANNÉE" }
+                    SectionLabel { text: qsTr("ANNÉE") }
 
                     Rectangle {
                         width: parent.width
@@ -276,7 +276,7 @@ Popup {
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "PÉRIODE SÉLECTIONNÉE"
+                            text: qsTr("PÉRIODE SÉLECTIONNÉE")
                             font.pixelSize: 9
                             font.weight: Font.Black
                             color: Style.primary
@@ -317,7 +317,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 10
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -349,7 +349,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "CONFIRMER"
+                        text: qsTr("CONFIRMER")
                         font.pixelSize: 10
                         font.weight: Font.Black
                         color: parent.isValid ? Style.background : Style.textTertiary

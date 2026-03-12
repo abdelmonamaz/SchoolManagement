@@ -75,7 +75,7 @@ ModalOverlay {
 
     Platform.FileDialog {
         id: fileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -95,7 +95,7 @@ ModalOverlay {
         Text {
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Paiement - " + personnelName
+            text: qsTr("Paiement - ") + personnelName
             font.pixelSize: 24
             font.weight: Font.Black
             color: Style.textPrimary
@@ -133,7 +133,7 @@ ModalOverlay {
             spacing: 10
             visible: root.modePaie === "Jour"
 
-            SectionLabel { text: "JOURS DE TRAVAIL CE MOIS" }
+            SectionLabel { text: qsTr("JOURS DE TRAVAIL CE MOIS") }
 
             Row {
                 spacing: 6
@@ -180,7 +180,7 @@ ModalOverlay {
             id: sommeDueField
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            label: "SOMME DUE (DT)"
+            label: qsTr("SOMME DUE (DT)")
             text: String(root.sommeDue.toFixed(2))
             validator: RegularExpressionValidator {
                 regularExpression: /^\d*\.?\d{0,2}$/
@@ -192,7 +192,7 @@ ModalOverlay {
             id: sommePayeeField
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            label: "SOMME PAYÉE (DT)"
+            label: qsTr("SOMME PAYÉE (DT)")
             text: String(root.sommePaye.toFixed(2))
             validator: RegularExpressionValidator {
                 regularExpression: /^\d*\.?\d{0,2}$/
@@ -204,7 +204,7 @@ ModalOverlay {
             id: payDateField
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            label: "DATE DU PAIEMENT"
+            label: qsTr("DATE DU PAIEMENT")
         }
 
         // Justificatif
@@ -212,7 +212,7 @@ ModalOverlay {
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 6
-            SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+            SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
             RowLayout { width: parent.width; spacing: 8
                 Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                             color: Style.bgPage; border.color: Style.borderLight
@@ -221,14 +221,14 @@ ModalOverlay {
                         anchors.fill: parent; anchors.margins: 12
                         font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                         clip: true; selectByMouse: true; readOnly: true
-                        Text { visible: !payJustifField.text; text: "Aucun fichier sélectionné"
+                        Text { visible: !payJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                font: payJustifField.font; color: Style.textTertiary }
                     }
                 }
                 Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                     color: browseHover.containsMouse ? Style.primary : Style.bgPage
                     border.color: browseHover.containsMouse ? Style.primary : Style.borderLight
-                    Text { anchors.centerIn: parent; text: "…"
+                    Text { anchors.centerIn: parent; text: qsTr("…")
                            font.pixelSize: 16; font.bold: true
                            color: browseHover.containsMouse ? "white" : Style.textTertiary }
                     MouseArea { id: browseHover; anchors.fill: parent; hoverEnabled: true
@@ -242,7 +242,7 @@ ModalOverlay {
         OutlineButton {
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "RECALCULER LA SOMME DUE"
+            text: qsTr("RECALCULER LA SOMME DUE")
             iconName: "refresh-cw"
             onClicked: root.recalculateRequested()
         }
@@ -257,7 +257,7 @@ ModalOverlay {
         ModalButtons {
             width: 420
             anchors.horizontalCenter: parent.horizontalCenter
-            confirmText: "ENREGISTRER"
+            confirmText: qsTr("ENREGISTRER")
             onCancel: root.close()
             onConfirm: {
                 root.saveRequested(

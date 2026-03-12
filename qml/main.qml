@@ -16,8 +16,12 @@ ApplicationWindow {
     height: 900
     minimumWidth: 1024
     minimumHeight: 700
-    title: "Ez-Zaytouna — Gestion Scolaire"
+    title: qsTr("Ez-Zaytouna — Gestion Scolaire")
     color: Style.bgPage
+
+    // Activation du mode RTL global
+    LayoutMirroring.enabled: setupController.associationData.langue === "arabe"
+    LayoutMirroring.childrenInherit: true
 
     property string currentPage: "dashboard"
     property int pendingStudentId: 0
@@ -44,9 +48,9 @@ ApplicationWindow {
 
             Row {
                 spacing: 12
-                Text { text: "🚫"; font.pixelSize: 24 }
+                Text { text: qsTr("🚫"); font.pixelSize: 24 }
                 Text {
-                    text: "Erreur d'initialisation"
+                    text: qsTr("Erreur d'initialisation")
                     font.pixelSize: 17; font.weight: Font.Black; color: Style.errorColor
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -60,7 +64,7 @@ ApplicationWindow {
             Rectangle {
                 width: dbErrorPopup.width - 56; height: 42; radius: 10
                 color: Style.errorColor
-                Text { anchors.centerIn: parent; text: "Fermer l'application"; font.pixelSize: 13; font.bold: true; color: "white" }
+                Text { anchors.centerIn: parent; text: qsTr("Fermer l'application"); font.pixelSize: 13; font.bold: true; color: "white" }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: Qt.quit()
@@ -147,7 +151,7 @@ ApplicationWindow {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Z"
+                            text: qsTr("Z")
                             font.pixelSize: 18
                             font.bold: true
                             color: Style.background
@@ -157,13 +161,13 @@ ApplicationWindow {
                     Column {
                         spacing: 2
                         Text {
-                            text: "Ez-Zaytouna"
+                            text: qsTr("Ez-Zaytouna")
                             font.pixelSize: 16
                             font.bold: true
                             color: Style.textPrimary
                         }
                         Text {
-                            text: "GESTION SCOLAIRE"
+                            text: qsTr("GESTION SCOLAIRE")
                             font.pixelSize: 10
                             font.weight: Font.Medium
                             color: Style.textTertiary
@@ -183,15 +187,15 @@ ApplicationWindow {
 
                     Repeater {
                         model: ListModel {
-                            ListElement { pageId: "dashboard"; label: "Tableau de Bord"; iconName: "dashboard" }
-                            ListElement { pageId: "schooling"; label: "Architecture Académique"; iconName: "book" }
-                            ListElement { pageId: "attendance"; label: "Présences"; iconName: "clipboard" }
-                            ListElement { pageId: "students"; label: "Étudiants"; iconName: "users" }
-                            ListElement { pageId: "staff"; label: "Personnel"; iconName: "contact" }
-                            ListElement { pageId: "exams"; label: "Examens & Planning"; iconName: "calendar" }
-                            ListElement { pageId: "grades"; label: "Notes & Bulletins"; iconName: "graduation" }
-                            ListElement { pageId: "finance"; label: "Finance & Trésorerie"; iconName: "wallet" }
-                            ListElement { pageId: "settings"; label: "Paramètres"; iconName: "settings" }
+                            ListElement { pageId: "dashboard"; label: qsTr("Tableau de Bord"); iconName: "dashboard" }
+                            ListElement { pageId: "schooling"; label: qsTr("Architecture Académique"); iconName: "book" }
+                            ListElement { pageId: "attendance"; label: qsTr("Présences"); iconName: "clipboard" }
+                            ListElement { pageId: "students"; label: qsTr("Étudiants"); iconName: "users" }
+                            ListElement { pageId: "staff"; label: qsTr("Personnel"); iconName: "contact" }
+                            ListElement { pageId: "exams"; label: qsTr("Examens & Planning"); iconName: "calendar" }
+                            ListElement { pageId: "grades"; label: qsTr("Notes & Bulletins"); iconName: "graduation" }
+                            ListElement { pageId: "finance"; label: qsTr("Finance & Trésorerie"); iconName: "wallet" }
+                            ListElement { pageId: "settings"; label: qsTr("Paramètres"); iconName: "settings" }
                         }
 
                         delegate: SidebarButton {
@@ -239,7 +243,7 @@ ApplicationWindow {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "A"
+                                        text: qsTr("A")
                                         font.pixelSize: 14
                                         font.bold: true
                                         color: Style.textSecondary
@@ -250,7 +254,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     spacing: 2
                                     Text {
-                                        text: "Admin Principal"
+                                        text: qsTr("Admin Principal")
                                         font.pixelSize: 13
                                         font.weight: Font.DemiBold
                                         color: Style.textPrimary
@@ -258,7 +262,7 @@ ApplicationWindow {
                                         width: parent.width
                                     }
                                     Text {
-                                        text: "Scolarité " + appVersion
+                                        text: qsTr("Scolarité ") + appVersion
                                         font.pixelSize: 11
                                         color: Style.textTertiary
                                         elide: Text.ElideRight
@@ -314,7 +318,7 @@ ApplicationWindow {
                         spacing: 2
                         Layout.rightMargin: 8
                         Text {
-                            text: "Année Scolaire"
+                            text: qsTr("Année Scolaire")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Style.textTertiary

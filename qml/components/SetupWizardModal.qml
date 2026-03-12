@@ -125,15 +125,15 @@ Popup {
                 Column {
                     Layout.fillWidth: true; spacing: 5
                     Text {
-                        text: root.currentStep === 1 ? "Bienvenue — Configuration initiale"
-                            : root.currentStep === 2 ? "Catalogue des Niveaux"
-                            : "Première Année Scolaire"
+                        text: root.currentStep === 1 ? qsTr("Bienvenue — Configuration initiale")
+                            : root.currentStep === 2 ? qsTr("Catalogue des Niveaux")
+                            : qsTr("Première Année Scolaire")
                         font.pixelSize: 20; font.weight: Font.Black; color: Style.primary
                     }
                     Text {
-                        text: root.currentStep === 1 ? "ÉTAPE 1 / 3 — IDENTITÉ DE L'ASSOCIATION"
-                            : root.currentStep === 2 ? "ÉTAPE 2 / 3 — CRÉEZ VOTRE CATALOGUE DE NIVEAUX"
-                            : "ÉTAPE 3 / 3 — PARAMÈTRES DE L'ANNÉE EN COURS"
+                        text: root.currentStep === 1 ? qsTr("ÉTAPE 1 / 3 — IDENTITÉ DE L'ASSOCIATION")
+                            : root.currentStep === 2 ? qsTr("ÉTAPE 2 / 3 — CRÉEZ VOTRE CATALOGUE DE NIVEAUX")
+                            : qsTr("ÉTAPE 3 / 3 — PARAMÈTRES DE L'ANNÉE EN COURS")
                         font.pixelSize: 9; font.weight: Font.Bold
                         color: Style.textTertiary; font.letterSpacing: 1
                     }
@@ -182,7 +182,7 @@ Popup {
                             IconLabel { iconName: "info"; iconColor: Style.primary }
                             Text {
                                 Layout.fillWidth: true
-                                text: "Ces informations identifient votre association dans les documents officiels."
+                                text: qsTr("Ces informations identifient votre association dans les documents officiels.")
                                 font.pixelSize: 12; font.bold: true; color: Style.primary
                                 wrapMode: Text.WordWrap
                             }
@@ -192,8 +192,8 @@ Popup {
                     FormField {
                         id: nomAssocField
                         Layout.fillWidth: true
-                        label: "NOM DE L'ASSOCIATION"
-                        placeholder: "ex: Ez-Zaytouna"
+                        label: qsTr("NOM DE L'ASSOCIATION")
+                        placeholder: qsTr("ex: Ez-Zaytouna")
                         nextTabItem: adresseField.inputItem
                         Component.onCompleted: {
                             text = setupController.associationData.nomAssociation || ""
@@ -203,18 +203,45 @@ Popup {
                     FormField {
                         id: adresseField
                         Layout.fillWidth: true
-                        label: "ADRESSE"
-                        placeholder: "ex: 12 Rue de la Mosquée, Tunis"
+                        label: qsTr("ADRESSE")
+                        placeholder: qsTr("ex: 12 Rue de la Mosquée, Tunis")
                         prevTabItem: nomAssocField.inputItem
-                        nextTabItem: exDebutField.inputItem
+                        nextTabItem: langueCombo.inputItem
                         Component.onCompleted: {
                             text = setupController.associationData.adresse || ""
                         }
                     }
 
+                    // ── Langue de l'application ──
+                    Text {
+                        text: qsTr("LANGUE DE L'APPLICATION")
+                        font.pixelSize: 10; font.weight: Font.Black
+                        color: Style.primary; font.letterSpacing: 1
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true; height: 40; radius: 10
+                        color: Style.bgPage; border.color: Style.borderLight
+                        ComboBox {
+                            id: langueCombo
+                            anchors.fill: parent; anchors.margins: 2
+                            model: ["français", "anglais", "arabe"]
+                            background: Rectangle { color: "transparent" }
+                            contentItem: Text {
+                                text: langueCombo.displayText
+                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                            }
+                            Component.onCompleted: {
+                                var l = setupController.associationData.langue || "français"
+                                currentIndex = indexOfValue(l) !== -1 ? indexOfValue(l) : 0
+                            }
+                        }
+                    }
+
                     // ── Exercice comptable ──
                     Text {
-                        text: "EXERCICE COMPTABLE"
+                        text: qsTr("EXERCICE COMPTABLE")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -227,9 +254,8 @@ Popup {
                             id: exDebutField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
-                            label: "DATE DE DÉBUT"
+                            label: qsTr("DATE DE DÉBUT")
                             nextTabItem: exFinField.inputItem
-                            prevTabItem: adresseField.inputItem
                             onDateStringChanged: {
                                 if (root.updatingDate || !isValid) return
                                 root.updatingDate = true
@@ -245,7 +271,7 @@ Popup {
                             id: exFinField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
-                            label: "DATE DE FIN"
+                            label: qsTr("DATE DE FIN")
                             prevTabItem: exDebutField.inputItem
                             onDateStringChanged: {
                                 if (root.updatingDate || !isValid) return
@@ -261,7 +287,7 @@ Popup {
 
                     // ── Âge de passage adulte ──
                     Text {
-                        text: "CATÉGORISATION"
+                        text: qsTr("CATÉGORISATION")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -270,7 +296,7 @@ Popup {
                         Layout.fillWidth: true
                         spacing: 12
                         Text {
-                            text: "Âge de passage Adulte :"
+                            text: qsTr("Âge de passage Adulte :")
                             font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -289,7 +315,7 @@ Popup {
                             }
                         }
                         Text {
-                            text: "ans"
+                            text: qsTr("ans")
                             font.pixelSize: 13; font.bold: true; color: Style.textSecondary
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -325,7 +351,7 @@ Popup {
                                 }
                                 Text {
                                     anchors.fill: parent; anchors.margins: 10
-                                    text: "Nom du niveau (ex: Niveau 1)"
+                                    text: qsTr("Nom du niveau (ex: Niveau 1)")
                                     font.pixelSize: 13; font.bold: true
                                     color: Style.textTertiary
                                     visible: niveauNomInput.text === ""
@@ -340,7 +366,7 @@ Popup {
                                     id: parentCombo
                                     anchors.fill: parent; anchors.margins: 2
                                     model: {
-                                        var items = [{"nom": "— Aucun parent —", "id": 0}]
+                                        var items = [{"nom": qsTr("— Aucun parent —"), "id": 0}]
                                         for (var i = 0; i < setupController.niveaux.length; i++)
                                             items.push(setupController.niveaux[i])
                                         return items
@@ -366,7 +392,7 @@ Popup {
                                 Behavior on color { ColorAnimation { duration: 150 } }
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "+ Ajouter"
+                                    text: qsTr("+ Ajouter")
                                     font.pixelSize: 11; font.weight: Font.Black; color: Style.background
                                 }
                                 function click() {
@@ -399,12 +425,12 @@ Popup {
                             visible: setupController.niveaux.length === 0
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Aucun niveau créé"
+                                text: qsTr("Aucun niveau créé")
                                 font.pixelSize: 14; font.bold: true; color: Style.textTertiary
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Créez au moins un niveau pour continuer."
+                                text: qsTr("Créez au moins un niveau pour continuer.")
                                 font.pixelSize: 12; color: Style.textTertiary
                             }
                         }
@@ -455,9 +481,9 @@ Popup {
                                                 if (modelData.parentLevelId <= 0) return ""
                                                 for (var i = 0; i < setupController.niveaux.length; i++) {
                                                     if (setupController.niveaux[i].id === modelData.parentLevelId)
-                                                        return "↳ Succède à : " + setupController.niveaux[i].nom
+                                                        return qsTr("↳ Succède à : ") + setupController.niveaux[i].nom
                                                 }
-                                                return "↳ Niveau parent"
+                                                return qsTr("↳ Niveau parent")
                                             }
                                             font.pixelSize: 10; color: Style.textTertiary
                                         }
@@ -477,7 +503,7 @@ Popup {
                                         Text {
                                             id: termLbl
                                             anchors.centerIn: parent
-                                            text: "TERMINAL"
+                                            text: qsTr("TERMINAL")
                                             font.pixelSize: 9; font.weight: Font.Black
                                             color: Style.warningColor
                                         }
@@ -540,7 +566,7 @@ Popup {
                                             id: editParentCombo
                                             anchors.fill: parent; anchors.margins: 2
                                             model: {
-                                                var items = [{"nom": "— Aucun parent —", "id": 0}]
+                                                var items = [{"nom": qsTr("— Aucun parent —"), "id": 0}]
                                                 for (var i = 0; i < setupController.niveaux.length; i++) {
                                                     // Exclure le niveau en cours d'édition
                                                     if (setupController.niveaux[i].id !== root.editingNiveauId)
@@ -578,7 +604,7 @@ Popup {
                                         Behavior on color { ColorAnimation { duration: 100 } }
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "✓"
+                                            text: qsTr("✓")
                                             font.pixelSize: 16; font.bold: true; color: Style.background
                                         }
                                         function save() {
@@ -603,7 +629,7 @@ Popup {
                                         color: Style.bgPage; border.color: Style.borderLight
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "✕"
+                                            text: qsTr("✕")
                                             font.pixelSize: 13; font.bold: true; color: Style.textSecondary
                                         }
                                         MouseArea {
@@ -642,7 +668,7 @@ Popup {
                             IconLabel { iconName: "info"; iconColor: Style.primary }
                             Text {
                                 Layout.fillWidth: true
-                                text: "Ces paramètres s'appliqueront à la première année scolaire."
+                                text: qsTr("Ces paramètres s'appliqueront à la première année scolaire.")
                                 font.pixelSize: 12; font.bold: true; color: Style.primary
                                 wrapMode: Text.WordWrap
                             }
@@ -652,8 +678,8 @@ Popup {
                     FormField {
                         id: anneeLibelleField
                         Layout.fillWidth: true
-                        label: "LIBELLÉ DE L'ANNÉE"
-                        placeholder: "ex: 2025-2026"
+                        label: qsTr("LIBELLÉ DE L'ANNÉE")
+                        placeholder: qsTr("ex: 2025-2026")
                         Component.onCompleted: {
                             var d = new Date()
                             var y = d.getMonth() < 8 ? d.getFullYear() - 1 : d.getFullYear()
@@ -667,7 +693,7 @@ Popup {
                         DateField {
                             id: anneeDateDebutField
                             Layout.fillWidth: true
-                            label: "DATE DE DÉBUT"
+                            label: qsTr("DATE DE DÉBUT")
                             onDateStringChanged: root.updateLibelleAuto()
                             Component.onCompleted: {
                                 var y = new Date().getMonth() < 8
@@ -679,7 +705,7 @@ Popup {
                         DateField {
                             id: anneeDateFinField
                             Layout.fillWidth: true
-                            label: "DATE DE FIN"
+                            label: qsTr("DATE DE FIN")
                             onDateStringChanged: root.updateLibelleAuto()
                             Component.onCompleted: {
                                 var y = new Date().getMonth() < 8
@@ -704,8 +730,8 @@ Popup {
                                     var d1 = new Date(anneeDateDebutField.dateString)
                                     var d2 = new Date(anneeDateFinField.dateString)
                                     if (d2.getTime() <= d1.getTime())
-                                        return "La date de fin doit être postérieure à la date de début."
-                                    return "L'année scolaire ne peut pas dépasser 12 mois."
+                                        return qsTr("La date de fin doit être postérieure à la date de début.")
+                                    return qsTr("L'année scolaire ne peut pas dépasser 12 mois.")
                                 }
                                 font.pixelSize: 11; font.bold: true; color: Style.errorColor
                             }
@@ -714,7 +740,7 @@ Popup {
 
                     // ── Tarifs mensuels ──
                     Text {
-                        text: "TARIFS MENSUELS"
+                        text: qsTr("TARIFS MENSUELS")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -725,13 +751,13 @@ Popup {
                             anchors.fill: parent; anchors.margins: 18; spacing: 0
                             ColumnLayout {
                                 spacing: 4
-                                SectionLabel { text: "TARIF JEUNE" }
+                                SectionLabel { text: qsTr("TARIF JEUNE") }
                                 RowLayout {
                                     spacing: 6
                                     TextField {
                                         id: tarifJeuneInput
                                         Layout.preferredWidth: 110; height: 48
-                                        text: "150"
+                                        text: qsTr("150")
                                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary
                                         selectByMouse: true
                                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0
@@ -745,7 +771,7 @@ Popup {
                                         }
                                     }
                                     Text {
-                                        text: "DT / mois"; font.pixelSize: 12; font.bold: true
+                                        text: qsTr("DT / mois"); font.pixelSize: 12; font.bold: true
                                         color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
@@ -753,13 +779,13 @@ Popup {
                             Item { Layout.fillWidth: true }
                             ColumnLayout {
                                 spacing: 4
-                                SectionLabel { text: "TARIF ADULTE" }
+                                SectionLabel { text: qsTr("TARIF ADULTE") }
                                 RowLayout {
                                     spacing: 6
                                     TextField {
                                         id: tarifAdulteInput
                                         Layout.preferredWidth: 110; height: 48
-                                        text: "250"
+                                        text: qsTr("250")
                                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary
                                         selectByMouse: true
                                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0
@@ -773,7 +799,7 @@ Popup {
                                         }
                                     }
                                     Text {
-                                        text: "DT / mois"; font.pixelSize: 12; font.bold: true
+                                        text: qsTr("DT / mois"); font.pixelSize: 12; font.bold: true
                                         color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
@@ -783,7 +809,7 @@ Popup {
 
                     // ── Frais d'inscription ──
                     Text {
-                        text: "FRAIS D'INSCRIPTION"
+                        text: qsTr("FRAIS D'INSCRIPTION")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -794,13 +820,13 @@ Popup {
                             anchors.fill: parent; anchors.margins: 18; spacing: 0
                             ColumnLayout {
                                 spacing: 4
-                                SectionLabel { text: "FRAIS JEUNE" }
+                                SectionLabel { text: qsTr("FRAIS JEUNE") }
                                 RowLayout {
                                     spacing: 6
                                     TextField {
                                         id: fraisJeuneInput
                                         Layout.preferredWidth: 110; height: 48
-                                        text: "50"
+                                        text: qsTr("50")
                                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary
                                         selectByMouse: true
                                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0
@@ -814,7 +840,7 @@ Popup {
                                         }
                                     }
                                     Text {
-                                        text: "DT"; font.pixelSize: 12; font.bold: true
+                                        text: qsTr("DT"); font.pixelSize: 12; font.bold: true
                                         color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
@@ -822,13 +848,13 @@ Popup {
                             Item { Layout.fillWidth: true }
                             ColumnLayout {
                                 spacing: 4
-                                SectionLabel { text: "FRAIS ADULTE" }
+                                SectionLabel { text: qsTr("FRAIS ADULTE") }
                                 RowLayout {
                                     spacing: 6
                                     TextField {
                                         id: fraisAdulteInput
                                         Layout.preferredWidth: 110; height: 48
-                                        text: "50"
+                                        text: qsTr("50")
                                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary
                                         selectByMouse: true
                                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0
@@ -842,7 +868,7 @@ Popup {
                                         }
                                     }
                                     Text {
-                                        text: "DT"; font.pixelSize: 12; font.bold: true
+                                        text: qsTr("DT"); font.pixelSize: 12; font.bold: true
                                         color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
@@ -868,7 +894,7 @@ Popup {
                     color: Style.bgWhite; border.color: Style.borderMedium
                     visible: root.currentStep > 1
                     Text {
-                        anchors.centerIn: parent; text: "RETOUR"
+                        anchors.centerIn: parent; text: qsTr("RETOUR")
                         font.pixelSize: 12; font.weight: Font.Black
                         color: Style.textSecondary; font.letterSpacing: 1
                     }
@@ -898,7 +924,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: root.currentStep < root.totalSteps ? "CONTINUER →" : "TERMINER LA CONFIGURATION"
+                        text: root.currentStep < root.totalSteps ? qsTr("CONTINUER →") : qsTr("TERMINER LA CONFIGURATION")
                         font.pixelSize: 12; font.weight: Font.Black
                         color: Style.background; font.letterSpacing: 1
                     }
@@ -914,7 +940,8 @@ Popup {
                                     adresse:          adresseField.text.trim(),
                                     exerciceDebut:    exDebutField.dateString,
                                     exerciceFin:      exFinField.dateString,
-                                    agePassageAdulte: parseInt(agePassageInput.text) || 12
+                                    agePassageAdulte: parseInt(agePassageInput.text) || 12,
+                                    langue:           langueCombo.currentValue || "français"
                                 })
                                 root.currentStep = 2
                             } else if (root.currentStep === 2) {
@@ -938,3 +965,4 @@ Popup {
         }
     }
 }
+

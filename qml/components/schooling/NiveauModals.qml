@@ -30,7 +30,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Nouveau Niveau"
+                text: qsTr("Nouveau Niveau")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -41,15 +41,15 @@ Item {
             FormField {
                 id: niveauNameField
                 width: parent.width - 64
-                label: "NOM DU NIVEAU"
-                placeholder: "ex: Niveau 1, Niveau 2, etc."
+                label: qsTr("NOM DU NIVEAU")
+                placeholder: qsTr("ex: Niveau 1, Niveau 2, etc.")
             }
 
             Item { width: 1; height: 24 }
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "CRÉER"
+                confirmText: qsTr("CRÉER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (niveauNameField.text.trim() !== "") {
@@ -78,7 +78,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Modifier le Niveau"
+                text: qsTr("Modifier le Niveau")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -89,15 +89,15 @@ Item {
             FormField {
                 id: editNiveauNameField
                 width: parent.width - 64
-                label: "NOM DU NIVEAU"
-                placeholder: "ex: Niveau 1, Niveau 2, etc."
+                label: qsTr("NOM DU NIVEAU")
+                placeholder: qsTr("ex: Niveau 1, Niveau 2, etc.")
             }
 
             Item { width: 1; height: 24 }
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "MODIFIER"
+                confirmText: qsTr("MODIFIER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (editNiveauNameField.text.trim() !== "" && root.editingNiveau.id > 0) {
@@ -135,7 +135,7 @@ Item {
             padding: 28
 
             Text {
-                text: "Supprimer le niveau ?"
+                text: qsTr("Supprimer le niveau ?")
                 font.pixelSize: 18
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -143,7 +143,7 @@ Item {
 
             Text {
                 width: parent.width - 56
-                text: "⚠️ Attention : Supprimer ce niveau supprimera également toutes les classes et matières associées."
+                text: qsTr("⚠️ Attention : Supprimer ce niveau supprimera également toutes les classes et matières associées.")
                 font.pixelSize: 13
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -162,7 +162,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -184,7 +184,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "SUPPRIMER"
+                        text: qsTr("SUPPRIMER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.background

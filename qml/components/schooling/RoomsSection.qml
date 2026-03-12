@@ -17,7 +17,7 @@ Column {
         width: parent.width
         Item { Layout.fillWidth: true }
         PrimaryButton {
-            text: "Ajouter une Salle"
+            text: qsTr("Ajouter une Salle")
             iconName: "plus"
             onClicked: root.roomAddRequested()
         }
@@ -53,7 +53,7 @@ Column {
 
                         Rectangle {
                             width: 48; height: 48; radius: 16; color: Style.bgPage
-                            Text { anchors.centerIn: parent; text: "🏫"; font.pixelSize: 20 }
+                            Text { anchors.centerIn: parent; text: qsTr("🏫"); font.pixelSize: 20 }
                         }
 
                         Item { Layout.fillWidth: true }
@@ -92,7 +92,7 @@ Column {
                         width: parent.width
                         spacing: 8
 
-                        SectionLabel { text: "ÉQUIPEMENTS" }
+                        SectionLabel { text: qsTr("ÉQUIPEMENTS") }
 
                         Flow {
                             width: parent.width
@@ -110,7 +110,7 @@ Column {
                                         id: equipRow
                                         anchors.centerIn: parent
                                         spacing: 4
-                                        Text { text: "✓"; font.pixelSize: 10; color: Style.successColor }
+                                        Text { text: qsTr("✓"); font.pixelSize: 10; color: Style.successColor }
                                         Text { text: modelData; font.pixelSize: 10; font.bold: true; color: Style.textSecondary }
                                     }
                                 }

@@ -149,13 +149,13 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "identity"
 
                 SectionLabel {
-                    text: "NOM COMPLET"
+                    text: qsTr("NOM COMPLET")
                 }
 
                 FormField {
                     id: fieldNom
                     width: parent.width
-                    placeholder: "Nom complet..."
+                    placeholder: qsTr("Nom complet...")
                     text: root.nomText
                     onTextChanged: root.nomText = text
                     nextTabItem: fieldTelephone.inputItem
@@ -169,12 +169,12 @@ ModalOverlay {
                 spacing: 6
                 visible: editMode === "full" || editMode === "identity"
 
-                SectionLabel { text: "TÉLÉPHONE" }
+                SectionLabel { text: qsTr("TÉLÉPHONE") }
 
                 FormField {
                     id: fieldTelephone
                     width: parent.width
-                    placeholder: "XX XXX XXX"
+                    placeholder: qsTr("XX XXX XXX")
                     text: root.telephoneText
                     onTextChanged: root.telephoneText = text
                     prevTabItem: fieldNom.inputItem
@@ -193,12 +193,12 @@ ModalOverlay {
                 spacing: 6
                 visible: editMode === "full" || editMode === "identity"
 
-                SectionLabel { text: "CIN" }
+                SectionLabel { text: qsTr("CIN") }
 
                 FormField {
                     id: fieldCin
                     width: parent.width
-                    placeholder: "Numéro CIN..."
+                    placeholder: qsTr("Numéro CIN...")
                     text: root.cinText
                     onTextChanged: root.cinText = text
                     prevTabItem: fieldTelephone.inputItem
@@ -213,7 +213,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "identity"
 
                 SectionLabel {
-                    text: "SEXE"
+                    text: qsTr("SEXE")
                 }
 
                 Rectangle {
@@ -234,7 +234,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "HOMME"
+                                text: qsTr("HOMME")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: root.selectedSexe === "M" ? Style.textPrimary : Style.textTertiary
@@ -257,7 +257,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "FEMME"
+                                text: qsTr("FEMME")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: root.selectedSexe === "F" ? Style.textPrimary : Style.textTertiary
@@ -294,7 +294,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "TYPE DE POSTE"
+                    text: qsTr("TYPE DE POSTE")
                 }
 
                 Rectangle {
@@ -339,13 +339,13 @@ ModalOverlay {
                 visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
 
                 SectionLabel {
-                    text: "SPÉCIALITÉ"
+                    text: qsTr("SPÉCIALITÉ")
                 }
 
                 FormField {
                     id: fieldSpecialty
                     width: parent.width
-                    placeholder: "ex: Fiqh & Hadith"
+                    placeholder: qsTr("ex: Fiqh & Hadith")
                     text: root.specialtyText
                     onTextChanged: root.specialtyText = text
                 }
@@ -359,7 +359,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "DATE DE DÉBUT"
+                    text: qsTr("DATE DE DÉBUT")
                 }
 
                 Rectangle {
@@ -417,7 +417,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "DATE DE FIN (OPTIONNEL)"
+                    text: qsTr("DATE DE FIN (OPTIONNEL)")
                 }
 
                 Rectangle {
@@ -459,7 +459,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "x"
+                                text: qsTr("x")
                                 font.pixelSize: 10
                                 font.weight: Font.Bold
                                 color: Style.textTertiary
@@ -520,7 +520,7 @@ ModalOverlay {
                     }
 
                     Text {
-                        text: "PARAMÈTRES DE RÉMUNÉRATION"
+                        text: qsTr("PARAMÈTRES DE RÉMUNÉRATION")
                         font.pixelSize: 12
                         font.weight: Font.Black
                         color: Style.textPrimary
@@ -541,7 +541,7 @@ ModalOverlay {
                         spacing: 6
 
                         SectionLabel {
-                            text: "MODE DE PAIEMENT"
+                            text: qsTr("MODE DE PAIEMENT")
                         }
 
                         Rectangle {
@@ -592,7 +592,7 @@ ModalOverlay {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "SALAIRE FIXE"
+                                        text: qsTr("SALAIRE FIXE")
                                         font.pixelSize: 10
                                         font.weight: Font.Black
                                         color: root.selectedPaymentMode === "Fixe" ? Style.textPrimary : Style.textTertiary
@@ -643,7 +643,7 @@ ModalOverlay {
                         spacing: 8
                         visible: root.selectedPaymentMode === "Jour"
 
-                        SectionLabel { text: "JOURS DE TRAVAIL" }
+                        SectionLabel { text: qsTr("JOURS DE TRAVAIL") }
 
                         Row {
                             spacing: 6

@@ -166,7 +166,7 @@ Item {
                     }
                     
                     Text {
-                        text: "Niveau : " + root.selectedNiveauNom
+                        text: qsTr("Niveau : ") + root.selectedNiveauNom
                         font.pixelSize: 13
                         font.weight: Font.Bold
                         color: Style.primary
@@ -175,19 +175,19 @@ Item {
                     FormField {
                         id: localClassNameField
                         Layout.fillWidth: true
-                        label: "NOM DU GROUPE"
-                        placeholder: "ex: A, Matin..."
+                        label: qsTr("NOM DU GROUPE")
+                        placeholder: qsTr("ex: A, Matin...")
                         text: root.localClassNameText
                         onTextChanged: root.localClassNameText = text
                     }
                     
                     Separator { Layout.fillWidth: true; anchors.leftMargin: -12; anchors.rightMargin: -12 }
                     
-                    Text { text: "FILTRAGE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+                    Text { text: qsTr("FILTRAGE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
-                        SectionLabel { text: "ANNÉE SCOLAIRE" }
+                        SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                         Rectangle {
                             width: parent.width; height: 40; radius: 10
                             color: Style.bgSecondary; border.color: Style.borderLight
@@ -205,7 +205,7 @@ Item {
                         Layout.fillWidth: true; spacing: 12
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "SEXE" }
+                            SectionLabel { text: qsTr("SEXE") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -227,7 +227,7 @@ Item {
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CATÉGORIE" }
+                            SectionLabel { text: qsTr("CATÉGORIE") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -253,7 +253,7 @@ Item {
                         Layout.fillWidth: true; spacing: 12
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "QTÉ" }
+                            SectionLabel { text: qsTr("QTÉ") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -268,7 +268,7 @@ Item {
                         PrimaryButton {
                             Layout.alignment: Qt.AlignBottom
                             Layout.fillWidth: true; Layout.preferredWidth: 2; Layout.preferredHeight: 40
-                            text: "Auto Remplissage"
+                            text: qsTr("Auto Remplissage")
                             onClicked: {
                                 var qte = parseInt(qteInput.text) || 0
                                 if (qte > 0) root.autoFill(qte)
@@ -284,7 +284,7 @@ Item {
                     Item { height: 1; width: 1; Layout.fillHeight: true } // Spacer
                     
                     Text {
-                        text: "Total inscrits : " + currentAssignedStudents.length
+                        text: qsTr("Total inscrits : ") + currentAssignedStudents.length
                         font.pixelSize: 14
                         font.weight: Font.Black
                         color: Style.textPrimary
@@ -317,7 +317,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: "Affectation des Étudiants"
+                            text: qsTr("Affectation des Étudiants")
                             font.pixelSize: 18
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -334,7 +334,7 @@ Item {
                         SearchField {
                             id: searchInput
                             Layout.fillWidth: true
-                            placeholder: "Chercher un élève non assigné..."
+                            placeholder: qsTr("Chercher un élève non assigné...")
                             text: root.searchText
                             onTextChanged: root.searchText = text
                         }
@@ -426,7 +426,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             visible: root.currentAssignedStudents.length === 0
-                            text: "Aucun élève affecté au groupe."
+                            text: qsTr("Aucun élève affecté au groupe.")
                             font.pixelSize: 13; color: Style.textTertiary; font.italic: true
                         }
                     }
@@ -436,7 +436,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
                         Item { Layout.fillWidth: true }
-                        OutlineButton { text: "ANNULER"; onClicked: root.closeRequested() }
+                        OutlineButton { text: qsTr("ANNULER"); onClicked: root.closeRequested() }
                         PrimaryButton {
                             text: root.showCreate ? "CRÉER LE GROUPE" : "ENREGISTRER"
                             onClicked: {
@@ -527,7 +527,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Confirmer les modifications"
+                text: qsTr("Confirmer les modifications")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -535,7 +535,7 @@ Item {
 
             Text {
                 width: parent.width - 64
-                text: "Vous avez modifié les informations de ce groupe. Voulez-vous enregistrer ces changements ?"
+                text: qsTr("Vous avez modifié les informations de ce groupe. Voulez-vous enregistrer ces changements ?")
                 font.pixelSize: 14
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -544,8 +544,8 @@ Item {
 
             ModalButtons {
                 width: parent.width - 64
-                cancelText: "ANNULER"
-                confirmText: "CONFIRMER"
+                cancelText: qsTr("ANNULER")
+                confirmText: qsTr("CONFIRMER")
                 confirmColor: Style.primary
                 onCancel: root.showEditConfirm = false
                 onConfirm: {
@@ -591,7 +591,7 @@ Item {
             padding: 28
 
             Text {
-                text: "Supprimer la classe ?"
+                text: qsTr("Supprimer la classe ?")
                 font.pixelSize: 18
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -599,7 +599,7 @@ Item {
 
             Text {
                 width: parent.width - 56
-                text: "Les élèves de cette classe seront retirés de la classe mais resteront dans la base de données."
+                text: qsTr("Les élèves de cette classe seront retirés de la classe mais resteront dans la base de données.")
                 font.pixelSize: 13
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -618,7 +618,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -640,7 +640,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "SUPPRIMER"
+                        text: qsTr("SUPPRIMER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.background

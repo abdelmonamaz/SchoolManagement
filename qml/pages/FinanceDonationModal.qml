@@ -29,7 +29,7 @@ ModalOverlay {
     // ── File dialog ─────────────────────────────────────────────────────────
     Platform.FileDialog {
         id: fileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -116,7 +116,7 @@ ModalOverlay {
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: editMode ? "Modifier le Don" : "Nouveau Don"
                            font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
-                    Text { text: "Conforme Décret-loi 2011-88"
+                    Text { text: qsTr("Conforme Décret-loi 2011-88")
                            font.pixelSize: 10; color: editMode ? Style.primary : Style.warningColor; font.weight: Font.Bold }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: _close() }
@@ -147,14 +147,14 @@ ModalOverlay {
                 Column {
                     width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
 
-                    SectionLabel { text: "DONATEUR" }
+                    SectionLabel { text: qsTr("DONATEUR") }
 
                     // Toggle Existant / Nouveau (masqué en mode édition)
                     Row { spacing: 6; width: parent.width; visible: !root.editMode
                         Repeater {
                             model: [
-                                { label: "DONATEUR EXISTANT", val: true  },
-                                { label: "NOUVEAU DONATEUR",  val: false }
+                                { label: qsTr("DONATEUR EXISTANT"), val: true  },
+                                { label: qsTr("NOUVEAU DONATEUR"),  val: false }
                             ]
                             delegate: Rectangle {
                                 width: (parent.width - 6) / 2; height: 36; radius: 10
@@ -191,10 +191,10 @@ ModalOverlay {
                     Column { width: parent.width; spacing: 10; visible: !root.useExisting && !root.editMode
 
                         FormField { id: newNomField; width: parent.width
-                                    label: "NOM / DÉNOMINATION *"; placeholder: "Nom complet ou raison sociale"; fieldHeight: 44 }
+                                    label: qsTr("NOM / DÉNOMINATION *"); placeholder: qsTr("Nom complet ou raison sociale"); fieldHeight: 44 }
 
                         Column { width: parent.width; spacing: 6
-                            SectionLabel { text: "TYPE DE PERSONNE" }
+                            SectionLabel { text: qsTr("TYPE DE PERSONNE") }
                             Row { spacing: 6; width: parent.width
                                 Repeater {
                                     model: ["Physique", "Morale"]
@@ -203,7 +203,7 @@ ModalOverlay {
                                         color: root.typePersonne === modelData ? Style.primary : Style.bgPage
                                         border.color: root.typePersonne === modelData ? Style.primary : Style.borderLight
                                         Text { anchors.centerIn: parent
-                                               text: "PERSONNE " + modelData.toUpperCase()
+                                               text: qsTr("PERSONNE ") + modelData.toUpperCase()
                                                font.pixelSize: 9; font.weight: Font.Black; font.letterSpacing: 0.4
                                                color: root.typePersonne === modelData ? "white" : Style.textTertiary }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -214,30 +214,30 @@ ModalOverlay {
                         }
 
                         FormField { id: newCinField; width: parent.width; visible: root.typePersonne === "Physique"
-                                    label: "N° CIN"; placeholder: "00000000"; fieldHeight: 44 }
+                                    label: qsTr("N° CIN"); placeholder: qsTr("00000000"); fieldHeight: 44 }
 
                         Column { width: parent.width; spacing: 8; visible: root.typePersonne === "Morale"
                             FormField { id: newRsField; width: parent.width
-                                        label: "RAISON SOCIALE"; placeholder: "Dénomination officielle"; fieldHeight: 44 }
+                                        label: qsTr("RAISON SOCIALE"); placeholder: qsTr("Dénomination officielle"); fieldHeight: 44 }
                             FormField { id: newMfField; width: parent.width
-                                        label: "MATRICULE FISCAL"; placeholder: "Ex: 1234567/A/M/000"; fieldHeight: 44 }
+                                        label: qsTr("MATRICULE FISCAL"); placeholder: qsTr("Ex: 1234567/A/M/000"); fieldHeight: 44 }
                             FormField { id: newRlField; width: parent.width
-                                        label: "REPRÉSENTANT LÉGAL"; placeholder: "Nom du représentant"; fieldHeight: 44 }
+                                        label: qsTr("REPRÉSENTANT LÉGAL"); placeholder: qsTr("Nom du représentant"); fieldHeight: 44 }
                         }
 
                         RowLayout { width: parent.width; spacing: 8
                             FormField {
                                 id: newTelField
                                 Layout.fillWidth: true
-                                label: "TÉLÉPHONE (FACULTATIF)"
-                                placeholder: "XX XXX XXX"
+                                label: qsTr("TÉLÉPHONE (FACULTATIF)")
+                                placeholder: qsTr("XX XXX XXX")
                                 fieldHeight: 44
                                 validator: RegularExpressionValidator {
                                     regularExpression: /^\d{0,2}\s?\d{0,3}\s?\d{0,3}$/
                                 }
                             }
                             FormField { id: newAdrField; Layout.fillWidth: true
-                                        label: "ADRESSE (FACULTATIF)"; placeholder: "Adresse"; fieldHeight: 44 }
+                                        label: qsTr("ADRESSE (FACULTATIF)"); placeholder: qsTr("Adresse"); fieldHeight: 44 }
                         }
                     }
                 }
@@ -250,11 +250,11 @@ ModalOverlay {
                 Column {
                     width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
 
-                    SectionLabel { text: "DÉTAILS DU DON" }
+                    SectionLabel { text: qsTr("DÉTAILS DU DON") }
 
                     // Projet
                     Column { width: parent.width; spacing: 6
-                        SectionLabel { text: "PROJET / AFFECTATION" }
+                        SectionLabel { text: qsTr("PROJET / AFFECTATION") }
                         Rectangle { width: parent.width; height: 44; radius: 12
                                     color: Style.bgPage; border.color: Style.borderLight
                             ComboBox { id: donProjetCombo
@@ -276,12 +276,12 @@ ModalOverlay {
 
                     // Nature du don toggle
                     Column { width: parent.width; spacing: 6
-                        SectionLabel { text: "NATURE DU DON" }
+                        SectionLabel { text: qsTr("NATURE DU DON") }
                         Row { spacing: 6; width: parent.width
                             Repeater {
                                 model: [
-                                    { label: "NUMÉRAIRE",  val: "Numéraire" },
-                                    { label: "EN NATURE",  val: "Nature"    }
+                                    { label: qsTr("NUMÉRAIRE"),  val: "Numéraire" },
+                                    { label: qsTr("EN NATURE"),  val: "Nature"    }
                                 ]
                                 delegate: Rectangle {
                                     width: (parent.width - 6) / 2; height: 36; radius: 10
@@ -300,10 +300,10 @@ ModalOverlay {
                     // ── Numéraire ──────────────────────────────────────────
                     Column { width: parent.width; spacing: 8; visible: root.natureDon === "Numéraire"
                         FormField { id: donMontantField; width: parent.width
-                                    label: "MONTANT (DT) *"; placeholder: "0.00"; fieldHeight: 44 }
+                                    label: qsTr("MONTANT (DT) *"); placeholder: qsTr("0.00"); fieldHeight: 44 }
 
                         Column { width: parent.width; spacing: 6
-                            SectionLabel { text: "MODE DE PAIEMENT" }
+                            SectionLabel { text: qsTr("MODE DE PAIEMENT") }
                             Row { spacing: 6; width: parent.width
                                 Repeater {
                                     model: ["Espèces", "Virement", "Chèque"]
@@ -325,13 +325,13 @@ ModalOverlay {
                     // ── En Nature ──────────────────────────────────────────
                     Column { width: parent.width; spacing: 8; visible: root.natureDon === "Nature"
                         FormField { id: donDescField; width: parent.width
-                                    label: "DESCRIPTION DU BIEN *"
-                                    placeholder: "Ex: Ordinateurs portables, mobilier…"; fieldHeight: 44 }
+                                    label: qsTr("DESCRIPTION DU BIEN *")
+                                    placeholder: qsTr("Ex: Ordinateurs portables, mobilier…"); fieldHeight: 44 }
                         FormField { id: donValeurField; width: parent.width
-                                    label: "VALEUR ESTIMÉE (DT) *"; placeholder: "0.00"; fieldHeight: 44 }
+                                    label: qsTr("VALEUR ESTIMÉE (DT) *"); placeholder: qsTr("0.00"); fieldHeight: 44 }
 
                         Column { width: parent.width; spacing: 6
-                            SectionLabel { text: "ÉTAT DU BIEN" }
+                            SectionLabel { text: qsTr("ÉTAT DU BIEN") }
                             Row { spacing: 6; width: parent.width
                                 Repeater {
                                     model: ["Neuf", "Occasion"]
@@ -354,12 +354,12 @@ ModalOverlay {
                     DateField {
                         id: donDateField
                         width: parent.width
-                        label: "DATE DU DON"
+                        label: qsTr("DATE DU DON")
                     }
 
                     // ── Justificatif ───────────────────────────────────────
                     Column { width: parent.width; spacing: 6
-                        SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+                        SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
                         RowLayout { width: parent.width; spacing: 8
                             Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                                         color: Style.bgPage; border.color: Style.borderLight
@@ -368,14 +368,14 @@ ModalOverlay {
                                     anchors.fill: parent; anchors.margins: 12
                                     font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                                     clip: true; selectByMouse: true; readOnly: true
-                                    Text { visible: !donJustifField.text; text: "Aucun fichier sélectionné"
+                                    Text { visible: !donJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                            font: donJustifField.font; color: Style.textTertiary }
                                 }
                             }
                             Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                                 color: browseHover.containsMouse ? Style.primary : Style.bgPage
                                 border.color: browseHover.containsMouse ? Style.primary : Style.borderLight
-                                Text { anchors.centerIn: parent; text: "…"
+                                Text { anchors.centerIn: parent; text: qsTr("…")
                                        font.pixelSize: 16; font.bold: true
                                        color: browseHover.containsMouse ? "white" : Style.textTertiary }
                                 MouseArea { id: browseHover; anchors.fill: parent; hoverEnabled: true
@@ -393,7 +393,7 @@ ModalOverlay {
             width: parent.width; topPadding: 16; bottomPadding: 28; spacing: 0
             ModalButtons {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
+                cancelText: qsTr("Annuler")
                 confirmText: editMode ? "Enregistrer les modifications" : "Enregistrer le don"
                 onCancel: _close()
                 onConfirm: {

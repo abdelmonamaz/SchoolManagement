@@ -87,7 +87,7 @@ ModalOverlay {
                     font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary
                 }
                 Text {
-                    text: "CONFIGURATION DE LA SESSION"
+                    text: qsTr("CONFIGURATION DE LA SESSION")
                     font.pixelSize: 9; font.weight: Font.Bold
                     color: Style.textTertiary; font.letterSpacing: 1
                 }
@@ -112,10 +112,10 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 6
                 visible: root.isEvent
-                SectionLabel { text: "NOM DE L'ÉVÈNEMENT" }
+                SectionLabel { text: qsTr("NOM DE L'ÉVÈNEMENT") }
                 FormField {
                     id: titreField; width: parent.width
-                    placeholder: "Ex: Journée portes ouvertes..."
+                    placeholder: qsTr("Ex: Journée portes ouvertes...")
                     onTextChanged: root.formTitre = text
                 }
             }
@@ -124,7 +124,7 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                 visible: !root.isEvent
-                SectionLabel { text: "NIVEAU" }
+                SectionLabel { text: qsTr("NIVEAU") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -161,7 +161,7 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                 visible: root.isExam
-                SectionLabel { text: "CLASSE" }
+                SectionLabel { text: qsTr("CLASSE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -199,7 +199,7 @@ ModalOverlay {
                 Layout.columnSpan: root.isExam ? 2 : 1
                 Layout.preferredWidth: 1; spacing: 6
                 visible: !root.isEvent
-                SectionLabel { text: "MATIÈRE" }
+                SectionLabel { text: qsTr("MATIÈRE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -261,7 +261,7 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                 visible: root.isCourse
-                SectionLabel { text: "CLASSE" }
+                SectionLabel { text: qsTr("CLASSE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -324,7 +324,7 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 6
                 visible: root.isEvent
-                SectionLabel { text: "DESCRIPTIF (OPTIONNEL)" }
+                SectionLabel { text: qsTr("DESCRIPTIF (OPTIONNEL)") }
                 Rectangle {
                     width: parent.width; height: 80; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -337,7 +337,7 @@ ModalOverlay {
                             font.pixelSize: 13; font.weight: Font.Bold; color: Style.textPrimary
                             wrapMode: TextEdit.Wrap; selectByMouse: true
                             onTextChanged: root.formDescriptif = text
-                            Text { visible: !descriptifField.text; text: "Description de l'évènement..."; font: descriptifField.font; color: Style.textTertiary }
+                            Text { visible: !descriptifField.text; text: qsTr("Description de l'évènement..."); font: descriptifField.font; color: Style.textTertiary }
                         }
                     }
                 }
@@ -346,7 +346,7 @@ ModalOverlay {
             // ── Date ─────────────────────────────────────────────
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                SectionLabel { text: "DATE" }
+                SectionLabel { text: qsTr("DATE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -370,16 +370,16 @@ ModalOverlay {
             // ── Heure ─────────────────────────────────────────────
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                SectionLabel { text: "HEURE" }
-                FormField { id: heureFormField; width: parent.width; text: "08:00"; onTextChanged: root.formTime = text }
+                SectionLabel { text: qsTr("HEURE") }
+                FormField { id: heureFormField; width: parent.width; text: qsTr("08:00"); onTextChanged: root.formTime = text }
             }
 
             // ── Durée ─────────────────────────────────────────────
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                SectionLabel { text: "DURÉE (MINUTES)" }
+                SectionLabel { text: qsTr("DURÉE (MINUTES)") }
                 FormField {
-                    id: dureeFormField; width: parent.width; text: "120"
+                    id: dureeFormField; width: parent.width; text: qsTr("120")
                     validator: IntValidator { bottom: 15; top: 480 }
                     onTextChanged: { var v = parseInt(text); if (!isNaN(v)) root.formDuree = v }
                 }
@@ -389,13 +389,13 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 8
                 visible: root.isCourse
-                SectionLabel { text: "RÉCURRENCE (OPTIONNEL)" }
+                SectionLabel { text: qsTr("RÉCURRENCE (OPTIONNEL)") }
                 RowLayout {
                     width: parent.width; spacing: 12
                     Repeater {
                         model: [
-                            { key: "remaining", label: "SEMAINES RESTANTES" },
-                            { key: "full",      label: "TOUTE L'ANNÉE SCOLAIRE" }
+                            { key: "remaining", label: qsTr("SEMAINES RESTANTES") },
+                            { key: "full",      label: qsTr("TOUTE L'ANNÉE SCOLAIRE") }
                         ]
                         Rectangle {
                             Layout.fillWidth: true; height: 44; radius: 12
@@ -409,7 +409,7 @@ ModalOverlay {
                                     color: root.formRecurrence === modelData.key ? Style.primary : "transparent"
                                     border.color: root.formRecurrence === modelData.key ? Style.primary : Style.borderMedium
                                     border.width: 1.5
-                                    Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.background; visible: root.formRecurrence === modelData.key }
+                                    Text { anchors.centerIn: parent; text: qsTr("✓"); font.pixelSize: 10; font.weight: Font.Bold; color: Style.background; visible: root.formRecurrence === modelData.key }
                                 }
                                 Text { Layout.fillWidth: true; text: modelData.label; font.pixelSize: 10; font.weight: Font.Black; color: Style.textPrimary }
                             }

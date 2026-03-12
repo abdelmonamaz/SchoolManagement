@@ -48,7 +48,7 @@ ModalOverlay {
 
     Platform.FileDialog {
         id: editFileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -66,7 +66,7 @@ ModalOverlay {
             Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || Style.warningBorder
                 IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || Style.warningColor } }
             Column { Layout.fillWidth: true; spacing: 2
-                Text { text: "Modifier l'Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
+                Text { text: qsTr("Modifier l'Inscription"); font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
                 Text { text: root.student ? root.student.prenom + " " + root.student.nom : ""
                        font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium
                        elide: Text.ElideRight; width: parent.width }
@@ -94,7 +94,7 @@ ModalOverlay {
                 width: parent.width; spacing: 16
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "ANNÉE SCOLAIRE" }
+                    SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                     Rectangle {
                         Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                         color: Style.bgSecondary; border.color: Style.borderLight
@@ -110,7 +110,7 @@ ModalOverlay {
                 }
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "NIVEAU" }
+                    SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                         color: Style.bgPage; border.color: Style.borderLight
@@ -129,10 +129,10 @@ ModalOverlay {
 
             RowLayout {
                 width: parent.width; spacing: 16
-                FormField { id: editFeeField; Layout.fillWidth: true; label: "FRAIS (DT)" }
+                FormField { id: editFeeField; Layout.fillWidth: true; label: qsTr("FRAIS (DT)") }
                 Column {
                     spacing: 6
-                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                    SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
                     Row {
                         spacing: 12
                         Rectangle {
@@ -157,12 +157,12 @@ ModalOverlay {
             DateField {
                 id: editDateField
                 width: parent.width
-                label: "DATE D'INSCRIPTION / PAIEMENT"
+                label: qsTr("DATE D'INSCRIPTION / PAIEMENT")
             }
 
             Column {
                 width: parent.width; spacing: 6
-                SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+                SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
                 RowLayout { width: parent.width; spacing: 8
                     Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -171,14 +171,14 @@ ModalOverlay {
                             anchors.fill: parent; anchors.margins: 12
                             font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                             clip: true; selectByMouse: true; readOnly: true
-                            Text { visible: !editJustifField.text; text: "Aucun fichier sélectionné"
+                            Text { visible: !editJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                    font: editJustifField.font; color: Style.textTertiary }
                         }
                     }
                     Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                         color: editBrowseHover.containsMouse ? Style.primary : Style.bgPage
                         border.color: editBrowseHover.containsMouse ? Style.primary : Style.borderLight
-                        Text { anchors.centerIn: parent; text: "…"
+                        Text { anchors.centerIn: parent; text: qsTr("…")
                                font.pixelSize: 16; font.bold: true
                                color: editBrowseHover.containsMouse ? "white" : Style.textTertiary }
                         MouseArea { id: editBrowseHover; anchors.fill: parent; hoverEnabled: true
@@ -230,11 +230,11 @@ ModalOverlay {
                 width: parent.width; spacing: 10
 
                 OutlineButton {
-                    Layout.fillWidth: true; text: "Annuler"
+                    Layout.fillWidth: true; text: qsTr("Annuler")
                     onClicked: root.close()
                 }
                 PrimaryButton {
-                    Layout.fillWidth: true; text: "Mettre à jour"
+                    Layout.fillWidth: true; text: qsTr("Mettre à jour")
                     onClicked: {
                         studentController.updateEnrollment(root.enrollmentData.id, {
                             eleveId: root.student.id,

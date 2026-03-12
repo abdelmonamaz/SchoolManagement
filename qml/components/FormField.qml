@@ -5,8 +5,8 @@ import QtQuick.Layouts
 // Usage:
 //   FormField {
 //       width: parent.width
-//       label: "NOM COMPLET"
-//       placeholder: "ex: Ahmed Ben Moussa"
+//       label: qsTr("NOM COMPLET")
+//       placeholder: qsTr("ex: Ahmed Ben Moussa")
 //       nextTabItem: autreChamp.inputItem
 //   }
 Column {

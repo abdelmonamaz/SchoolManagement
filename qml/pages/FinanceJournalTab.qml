@@ -147,31 +147,31 @@ AppCard {
     }
 
     // ── AppCard header ───────────────────────────────────────────────────────
-    title:    "Journal — " + page.selectedMonth + " " + page.selectedYear
-    subtitle: "Vue consolidée des flux financiers du mois"
+    title: qsTr("Journal — ") + page.selectedMonth + " " + page.selectedYear
+    subtitle: qsTr("Vue consolidée des flux financiers du mois")
 
     Column {
         width: parent.width; spacing: 16
 
         Item { width: parent.width; height: 48; visible: financeController.loading
-            Text { anchors.centerIn: parent; text: "Chargement…"; font.pixelSize: 13; color: Style.textTertiary } }
+            Text { anchors.centerIn: parent; text: qsTr("Chargement…"); font.pixelSize: 13; color: Style.textTertiary } }
 
         Column { width: parent.width; spacing: 12
             visible: !financeController.loading && tab.journalEntries.length === 0
             Item { width: 1; height: 32 }
             Text { anchors.horizontalCenter: parent.horizontalCenter
-                   text: "Aucune transaction pour " + page.selectedMonth + " " + page.selectedYear
+                   text: qsTr("Aucune transaction pour ") + page.selectedMonth + " " + page.selectedYear
                    font.pixelSize: 13; font.weight: Font.Medium; color: Style.textTertiary }
             Item { width: 1; height: 32 }
         }
 
         // ── Table header ─────────────────────────────────────────────────────
         RowLayout { width: parent.width; height: 40; visible: tab.journalEntries.length > 0
-            SectionLabel { Layout.preferredWidth: 110; text: "DATE" }
-            SectionLabel { Layout.fillWidth: true;     text: "BÉNÉFICIAIRE / DONATEUR" }
-            SectionLabel { Layout.preferredWidth: 100; text: "TYPE" }
-            SectionLabel { Layout.preferredWidth: 130; text: "MONTANT" }
-            SectionLabel { Layout.preferredWidth: 56;  text: "FLUX"; horizontalAlignment: Text.AlignRight }
+            SectionLabel { Layout.preferredWidth: 110; text: qsTr("DATE") }
+            SectionLabel { Layout.fillWidth: true;     text: qsTr("BÉNÉFICIAIRE / DONATEUR") }
+            SectionLabel { Layout.preferredWidth: 100; text: qsTr("TYPE") }
+            SectionLabel { Layout.preferredWidth: 130; text: qsTr("MONTANT") }
+            SectionLabel { Layout.preferredWidth: 56;  text: qsTr("FLUX"); horizontalAlignment: Text.AlignRight }
         }
         Separator { width: parent.width; visible: tab.journalEntries.length > 0 }
 
@@ -223,7 +223,7 @@ AppCard {
                 color: Style.successBg; border.color: Style.successBorder
                 RowLayout { anchors.fill: parent; anchors.margins: 16; spacing: 12
                     Text { Layout.fillWidth: true
-                           text: "ENTRÉES — " + page.selectedMonth.toUpperCase() + " " + page.selectedYear
+                           text: qsTr("ENTRÉES — ") + page.selectedMonth.toUpperCase() + " " + page.selectedYear
                            font.pixelSize: 10; font.weight: Font.Black; color: Style.successColor; font.letterSpacing: 0.5 }
                     Text { text: tab.totalIn.toFixed(2) + " DT"
                            font.pixelSize: 15; font.weight: Font.Black; color: Style.successColor }
@@ -234,7 +234,7 @@ AppCard {
                 visible: tab.totalOut > 0
                 RowLayout { anchors.fill: parent; anchors.margins: 16; spacing: 12
                     Text { Layout.fillWidth: true
-                           text: "SORTIES — " + page.selectedMonth.toUpperCase() + " " + page.selectedYear
+                           text: qsTr("SORTIES — ") + page.selectedMonth.toUpperCase() + " " + page.selectedYear
                            font.pixelSize: 10; font.weight: Font.Black; color: Style.errorColor; font.letterSpacing: 0.5 }
                     Text { text: tab.totalOut.toFixed(2) + " DT"
                            font.pixelSize: 15; font.weight: Font.Black; color: Style.errorColor }
@@ -258,7 +258,7 @@ AppCard {
                     width: parent.width
                     IconLabel { iconName: "calendar"; iconSize: 16; iconColor: Style.primary }
                     Text { Layout.fillWidth: true
-                           text: "BILAN ANNUEL — " + (financeController.annualBalance.libelle || page.selectedYear)
+                           text: qsTr("BILAN ANNUEL — ") + (financeController.annualBalance.libelle || page.selectedYear)
                            font.pixelSize: 11; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 0.5 }
                 }
 
@@ -270,7 +270,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "ENTRÉES " + (financeController.annualBalance.libelle || page.selectedYear)
+                                   text: qsTr("ENTRÉES ") + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.successColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.annualBalance.entrees || 0).toFixed(2) + " DT"
@@ -283,7 +283,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "SORTIES " + (financeController.annualBalance.libelle || page.selectedYear)
+                                   text: qsTr("SORTIES ") + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.errorColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.annualBalance.sorties || 0).toFixed(2) + " DT"
@@ -297,7 +297,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "SOLDE " + (financeController.annualBalance.libelle || page.selectedYear)
+                                   text: qsTr("SOLDE ") + (financeController.annualBalance.libelle || page.selectedYear)
                                    font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.5
                                    color: (financeController.annualBalance.solde || 0) >= 0 ? Style.successColor : Style.errorColor }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
@@ -356,7 +356,7 @@ AppCard {
                     width: parent.width
                     IconLabel { iconName: "trending-up"; iconSize: 16; iconColor: Style.primary }
                     Text { Layout.fillWidth: true
-                           text: "BILAN TOTAL DE L'ASSOCIATION"
+                           text: qsTr("BILAN TOTAL DE L'ASSOCIATION")
                            font.pixelSize: 11; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 0.5 }
                 }
 
@@ -367,7 +367,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "TOTAL ENTRÉES"
+                                   text: qsTr("TOTAL ENTRÉES")
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.successColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.totalBalance.entrees || 0).toFixed(2) + " DT"
@@ -379,7 +379,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "TOTAL SORTIES"
+                                   text: qsTr("TOTAL SORTIES")
                                    font.pixelSize: 8; font.weight: Font.Black; color: Style.errorColor; font.letterSpacing: 0.5 }
                             Text { anchors.horizontalCenter: parent.horizontalCenter
                                    text: (financeController.totalBalance.sorties || 0).toFixed(2) + " DT"
@@ -393,7 +393,7 @@ AppCard {
                         Column {
                             anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter
-                                   text: "SOLDE GLOBAL"
+                                   text: qsTr("SOLDE GLOBAL")
                                    font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.5
                                    color: (financeController.totalBalance.solde || 0) >= 0 ? Style.successColor : Style.errorColor }
                             Text { anchors.horizontalCenter: parent.horizontalCenter

@@ -289,15 +289,15 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Saisie des Notes"
-                subtitle: "Saisissez et validez les résultats des épreuves par classe."
+                title: qsTr("Saisie des Notes")
+                subtitle: qsTr("Saisissez et validez les résultats des épreuves par classe.")
             }
 
             Row {
                 spacing: 8
 
                 PrimaryButton {
-                    text: "Générer les Bulletins"
+                    text: qsTr("Générer les Bulletins")
                     iconName: "file"
                     enabled: selClasseId >= 0
                     opacity: enabled ? 1.0 : 0.45
@@ -321,7 +321,7 @@ Item {
                 Column {
                     Layout.preferredWidth: 260
                     spacing: 6
-                    SectionLabel { text: "NIVEAU" }
+                    SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage; border.color: Style.borderLight
@@ -364,7 +364,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 160
                     spacing: 6
-                    SectionLabel { text: "CLASSE" }
+                    SectionLabel { text: qsTr("CLASSE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -406,7 +406,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 160
                     spacing: 6
-                    SectionLabel { text: "MATIÈRE" }
+                    SectionLabel { text: qsTr("MATIÈRE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -447,7 +447,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 180
                     spacing: 6
-                    SectionLabel { text: "ÉPREUVE" }
+                    SectionLabel { text: qsTr("ÉPREUVE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -508,7 +508,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: "Sélectionnez un niveau, une classe, une matière et une épreuve\npour afficher la grille de saisie des notes."
+                    text: qsTr("Sélectionnez un niveau, une classe, une matière et une épreuve\npour afficher la grille de saisie des notes.")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter
@@ -530,7 +530,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 3
 
-                title: "Grille de Saisie"
+                title: qsTr("Grille de Saisie")
                 subtitle: {
                     var mat = "", cls = ""
                     var m = schoolingController.matieres
@@ -547,10 +547,10 @@ Item {
                     // En-tête du tableau
                     RowLayout {
                         width: parent.width; height: 40; spacing: 0
-                        SectionLabel { Layout.preferredWidth: 210; text: "ÉLÈVE" }
-                        SectionLabel { Layout.preferredWidth: 120; text: "NOTE / 20" }
-                        SectionLabel { Layout.fillWidth: true; text: "STATUT" }
-                        SectionLabel { Layout.preferredWidth: 110; text: "ÉTAT"; horizontalAlignment: Text.AlignRight }
+                        SectionLabel { Layout.preferredWidth: 210; text: qsTr("ÉLÈVE") }
+                        SectionLabel { Layout.preferredWidth: 120; text: qsTr("NOTE / 20") }
+                        SectionLabel { Layout.fillWidth: true; text: qsTr("STATUT") }
+                        SectionLabel { Layout.preferredWidth: 110; text: qsTr("ÉTAT"); horizontalAlignment: Text.AlignRight }
                     }
 
                     Separator { width: parent.width }
@@ -561,7 +561,7 @@ Item {
                         visible: gradesController.loading
                         Text {
                             anchors.centerIn: parent
-                            text: "Chargement des participations..."
+                            text: qsTr("Chargement des participations...")
                             font.pixelSize: 13; font.italic: true; color: Style.textTertiary
                         }
                     }
@@ -572,7 +572,7 @@ Item {
                         visible: !gradesController.loading && gradesController.grades.length === 0
                         Text {
                             anchors.centerIn: parent
-                            text: "Aucune participation enregistrée pour cette épreuve"
+                            text: qsTr("Aucune participation enregistrée pour cette épreuve")
                             font.pixelSize: 13; font.italic: true; color: Style.textTertiary
                         }
                     }
@@ -684,7 +684,7 @@ Item {
                                                 Text {
                                                     visible: !noteInput.text
                                                     anchors.centerIn: parent
-                                                    text: "—"
+                                                    text: qsTr("—")
                                                     font.pixelSize: 15; font.weight: Font.Black
                                                     color: Style.textTertiary
                                                 }
@@ -704,7 +704,7 @@ Item {
                                             }
 
                                             Text {
-                                                text: "/20"
+                                                text: qsTr("/20")
                                                 font.pixelSize: 9; font.weight: Font.Black
                                                 color: Style.textTertiary
                                             }
@@ -776,7 +776,7 @@ Item {
 
                             Column {
                                 spacing: 3
-                                SectionLabel { text: "MOYENNE DE CLASSE" }
+                                SectionLabel { text: qsTr("MOYENNE DE CLASSE") }
                                 Text {
                                     text: gradesPage.completionCount > 0
                                           ? gradesPage.liveAverage.toFixed(2)
@@ -788,7 +788,7 @@ Item {
 
                             Column {
                                 spacing: 3
-                                SectionLabel { text: "NOTES SAISIES" }
+                                SectionLabel { text: qsTr("NOTES SAISIES") }
                                 Text {
                                     text: gradesPage.completionCount + " / " + gradesPage.totalCount
                                     font.pixelSize: 26; font.weight: Font.Black
@@ -823,7 +823,7 @@ Item {
                 // Guide de saisie
                 AppCard {
                     Layout.fillWidth: true
-                    title: "Guide de Saisie"
+                    title: qsTr("Guide de Saisie")
 
                     Column {
                         width: parent.width
@@ -835,11 +835,11 @@ Item {
                             Rectangle {
                                 width: 32; height: 32; radius: 16
                                 color: Style.infoBg
-                                Text { anchors.centerIn: parent; text: "🔢"; font.pixelSize: 14 }
+                                Text { anchors.centerIn: parent; text: qsTr("🔢"); font.pixelSize: 14 }
                             }
                             Text {
                                 Layout.fillWidth: true
-                                text: "Utilisez le point (.) pour les décimales (ex: 15.5). La note doit être comprise entre 0 et 20."
+                                text: qsTr("Utilisez le point (.) pour les décimales (ex: 15.5). La note doit être comprise entre 0 et 20.")
                                 font.pixelSize: 11; color: Style.textSecondary
                                 wrapMode: Text.WordWrap
                             }
@@ -881,7 +881,7 @@ Item {
                 // Progression
                 AppCard {
                     Layout.fillWidth: true
-                    title: "Progression de Saisie"
+                    title: qsTr("Progression de Saisie")
 
                     Column {
                         width: parent.width
@@ -937,7 +937,7 @@ Item {
 
                                 Column {
                                     spacing: 2
-                                    SectionLabel { text: "MOYENNE" }
+                                    SectionLabel { text: qsTr("MOYENNE") }
                                     Text {
                                         text: gradesPage.liveAverage.toFixed(2)
                                         font.pixelSize: 18; font.weight: Font.Black
@@ -949,7 +949,7 @@ Item {
 
                                 Column {
                                     spacing: 2
-                                    SectionLabel { text: "SAISIES" }
+                                    SectionLabel { text: qsTr("SAISIES") }
                                     Text {
                                         text: gradesPage.completionCount
                                         font.pixelSize: 18; font.weight: Font.Black

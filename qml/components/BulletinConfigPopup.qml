@@ -118,17 +118,17 @@ ModalOverlay {
                 Rectangle {
                     width: 48; height: 48; radius: 16
                     color: Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "📄"; font.pixelSize: 22 }
+                    Text { anchors.centerIn: parent; text: qsTr("📄"); font.pixelSize: 22 }
                 }
 
                 Column {
                     spacing: 2
                     Text {
-                        text: "Générer les Bulletins"
+                        text: qsTr("Générer les Bulletins")
                         font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary
                     }
                     Text {
-                        text: "Configuration et export des bulletins scolaires"
+                        text: qsTr("Configuration et export des bulletins scolaires")
                         font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium
                     }
                 }
@@ -145,12 +145,12 @@ ModalOverlay {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 16
 
-            SectionLabel { text: "CONFIGURATION" }
+            SectionLabel { text: qsTr("CONFIGURATION") }
 
             // ── Année scolaire ──
             Column {
                 width: parent.width; spacing: 6
-                SectionLabel { text: "ANNÉE SCOLAIRE" }
+                SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -195,7 +195,7 @@ ModalOverlay {
                     width: (niveauClasseRow.width - niveauClasseRow.spacing) / 2
                     spacing: 6
 
-                    SectionLabel { text: "NIVEAU" }
+                    SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage; border.color: Style.borderLight
@@ -231,7 +231,7 @@ ModalOverlay {
                     width: (niveauClasseRow.width - niveauClasseRow.spacing) / 2
                     spacing: 6
 
-                    SectionLabel { text: "CLASSE" }
+                    SectionLabel { text: qsTr("CLASSE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -275,7 +275,7 @@ ModalOverlay {
             // Générer pour
             Column {
                 width: parent.width; spacing: 8
-                SectionLabel { text: "GÉNÉRER POUR" }
+                SectionLabel { text: qsTr("GÉNÉRER POUR") }
 
                 RowLayout {
                     width: parent.width; spacing: 12
@@ -296,7 +296,7 @@ ModalOverlay {
                                 spacing: 8
                                 IconLabel { iconName: "users"; iconSize: 16; iconColor: root.allStudents ? Style.primary : Style.textTertiary }
                                 Text {
-                                    text: "Tous les élèves"
+                                    text: qsTr("Tous les élèves")
                                     font.pixelSize: 13; font.bold: true
                                     color: root.allStudents ? Style.primary : Style.textPrimary
                                 }
@@ -328,14 +328,14 @@ ModalOverlay {
                                 spacing: 8
                                 IconLabel { iconName: "user"; iconSize: 16; iconColor: !root.allStudents ? Style.primary : Style.textTertiary }
                                 Text {
-                                    text: "Un élève"
+                                    text: qsTr("Un élève")
                                     font.pixelSize: 13; font.bold: true
                                     color: !root.allStudents ? Style.primary : Style.textPrimary
                                 }
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Sélectionner un élève spécifique"
+                                text: qsTr("Sélectionner un élève spécifique")
                                 font.pixelSize: 10; color: !root.allStudents ? Style.primary : Style.textTertiary
                             }
                         }
@@ -349,7 +349,7 @@ ModalOverlay {
                 width: parent.width; spacing: 6
                 visible: !root.allStudents
 
-                SectionLabel { text: "SÉLECTIONNER L'ÉLÈVE" }
+                SectionLabel { text: qsTr("SÉLECTIONNER L'ÉLÈVE") }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -415,7 +415,7 @@ ModalOverlay {
                 color: cancelMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight
                 Behavior on color { ColorAnimation { duration: 100 } }
-                Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                Text { anchors.centerIn: parent; text: qsTr("ANNULER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                 MouseArea { id: cancelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.visible = false }
             }
 
@@ -431,7 +431,7 @@ ModalOverlay {
                 RowLayout {
                     anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
-                    Text { text: "EXPORTER CSV"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
+                    Text { text: qsTr("EXPORTER CSV"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                 }
 
                 MouseArea {
@@ -466,7 +466,7 @@ ModalOverlay {
                 RowLayout {
                     anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "printer"; iconSize: 14; iconColor: "white" }
-                    Text { text: "GÉNÉRER PDF"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
+                    Text { text: qsTr("GÉNÉRER PDF"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                 }
 
                 MouseArea {

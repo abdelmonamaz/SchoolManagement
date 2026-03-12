@@ -58,7 +58,7 @@ Item {
                     Column {
                         spacing: 4
                         Text {
-                            text: "Classe " + classStudentsOverlay.classeNom
+                            text: qsTr("Classe ") + classStudentsOverlay.classeNom
                             font.pixelSize: 20
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -164,7 +164,7 @@ Item {
                             if (classStudentsOverlay.students[i].classeId === classStudentsOverlay.classeId) c++
                         return c === 0
                     }
-                    Text { anchors.centerIn: parent; text: "Aucun élève dans cette classe"; font.pixelSize: 13; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("Aucun élève dans cette classe"); font.pixelSize: 13; color: Style.textTertiary }
                 }
             }
 

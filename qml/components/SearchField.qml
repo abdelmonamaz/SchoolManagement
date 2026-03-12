@@ -3,7 +3,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: control
-    property string placeholder: "Rechercher..."
+    property string placeholder: qsTr("Rechercher...")
     property alias text: input.text
 
     implicitHeight: 48

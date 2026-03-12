@@ -11,7 +11,7 @@ Rectangle {
     property string textRole:    "nom"
     property string valueRole:   "id"
     property bool   showReset:   false        // show the "Sélectionner…" reset item
-    property string placeholder: "Sélectionner..."
+    property string placeholder: qsTr("Sélectionner...")
     property alias  currentIndex: combo.currentIndex
     property alias  enabled:      combo.enabled
 
@@ -67,7 +67,7 @@ Rectangle {
                         color: resetMa.containsMouse ? Style.bgSecondary : "transparent"
                         Text {
                             anchors.fill: parent; leftPadding: 12
-                            text: "Sélectionner..."
+                            text: qsTr("Sélectionner...")
                             font.pixelSize: 13; font.italic: true; font.weight: Font.Bold
                             color: Style.textTertiary; verticalAlignment: Text.AlignVCenter
                         }

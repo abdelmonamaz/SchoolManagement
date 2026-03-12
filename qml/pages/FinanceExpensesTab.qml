@@ -82,7 +82,7 @@ AppCard {
                 color: tab.viewMode === "depenses" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "depenses" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "DÉPENSES"
+                    anchors.centerIn: parent; text: qsTr("DÉPENSES")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "depenses" ? "white" : Style.textSecondary
                 }
@@ -96,7 +96,7 @@ AppCard {
                 color: tab.viewMode === "personnel" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "personnel" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "PERSONNEL"
+                    anchors.centerIn: parent; text: qsTr("PERSONNEL")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "personnel" ? "white" : Style.textSecondary
                 }
@@ -157,7 +157,7 @@ AppCard {
 
         // Loading
         Item { width: parent.width; height: 48; visible: financeController.loading || staffController.loading
-            Text { anchors.centerIn: parent; text: "Chargement…"; font.pixelSize: 13; color: Style.textTertiary } }
+            Text { anchors.centerIn: parent; text: qsTr("Chargement…"); font.pixelSize: 13; color: Style.textTertiary } }
 
         // ── Empty state (Dépenses) ───────────────────────────────────────────────────────
         Column { width: parent.width; spacing: 16
@@ -173,7 +173,7 @@ AppCard {
                    font.pixelSize: 13; font.weight: Font.Medium; color: Style.textTertiary }
             PrimaryButton { anchors.horizontalCenter: parent.horizontalCenter
                 visible: page.searchTerm === ""
-                text: "Enregistrer une dépense"; iconName: "plus"
+                text: qsTr("Enregistrer une dépense"); iconName: "plus"
                 onClicked: page.showExpenseModal = true }
             Item { width: 1; height: 24 }
         }
@@ -198,10 +198,10 @@ AppCard {
             width: parent.width; height: 40
             visible: tab.viewMode === "depenses" && tab.filteredDepenses.length > 0
             spacing: 12
-            SectionLabel { Layout.fillWidth: true; text: "LIBELLÉ" }
-            SectionLabel { Layout.preferredWidth: tab.wCateg;   text: "CATÉGORIE";  horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wDate;    text: "DATE";       horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wMontant; text: "MONTANT";    horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("LIBELLÉ") }
+            SectionLabel { Layout.preferredWidth: tab.wCateg;   text: qsTr("CATÉGORIE");  horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wDate;    text: qsTr("DATE");       horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wMontant; text: qsTr("MONTANT");    horizontalAlignment: Text.AlignHCenter }
             Item { Layout.preferredWidth: tab.wActions }
         }
         Separator { width: parent.width; visible: tab.viewMode === "depenses" && tab.filteredDepenses.length > 0 }
@@ -294,11 +294,11 @@ AppCard {
             width: parent.width; height: 40
             visible: tab.viewMode === "personnel" && tab.allPersonnelRows.length > 0
             spacing: 12
-            SectionLabel { Layout.fillWidth: true; text: "EMPLOYÉ" }
-            SectionLabel { Layout.preferredWidth: 100; text: "SALAIRE / DUE";  horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 88;  text: "PAYÉ";        horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 100; text: "STATUT";      horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 80;  text: "ACTION";      horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("EMPLOYÉ") }
+            SectionLabel { Layout.preferredWidth: 100; text: qsTr("SALAIRE / DUE");  horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 88;  text: qsTr("PAYÉ");        horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 100; text: qsTr("STATUT");      horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 80;  text: qsTr("ACTION");      horizontalAlignment: Text.AlignHCenter }
         }
         Separator { width: parent.width; visible: tab.viewMode === "personnel" && tab.allPersonnelRows.length > 0 }
 
@@ -391,7 +391,7 @@ AppCard {
                 id: totRow
                 anchors.fill: parent; anchors.verticalCenter: parent.verticalCenter;anchors.leftMargin: 16; anchors.rightMargin: 16;spacing: 8
                 IconLabel { iconName: "calculator"; iconSize: 16; iconColor: Style.errorColor }
-                Text { text: "TOTAL DÉPENSES"; font.pixelSize: 11; font.weight: Font.Black
+                Text { text: qsTr("TOTAL DÉPENSES"); font.pixelSize: 11; font.weight: Font.Black
                        color: Style.errorColor; Layout.fillWidth: true }
                 Text {
                     text: {
@@ -413,7 +413,7 @@ AppCard {
                 id: totStaffRow
                 anchors.fill: parent; anchors.verticalCenter: parent.verticalCenter;anchors.leftMargin: 16; anchors.rightMargin: 16;spacing: 8
                 IconLabel { iconName: "calculator"; iconSize: 16; iconColor: Style.errorColor }
-                Text { text: "TOTAL SALAIRES VERSÉS"; font.pixelSize: 11; font.weight: Font.Black
+                Text { text: qsTr("TOTAL SALAIRES VERSÉS"); font.pixelSize: 11; font.weight: Font.Black
                        color: Style.errorColor; Layout.fillWidth: true }
                 Text {
                     text: {

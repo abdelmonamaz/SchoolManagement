@@ -4,8 +4,8 @@ import UI.Components
 
 AppCard {
     id: root
-    title: "Matières enseignées : " + selectedNiveauNom
-    subtitle: "Ajoutez ou supprimez des cours pour ce niveau"
+    title: qsTr("Matières enseignées : ") + selectedNiveauNom
+    subtitle: qsTr("Ajoutez ou supprimez des cours pour ce niveau")
 
     required property var matieres
     required property string selectedNiveauNom
@@ -101,7 +101,7 @@ AppCard {
 
                         Text {
                             visible: !parent.text
-                            text: "Nom de la nouvelle matière..."
+                            text: qsTr("Nom de la nouvelle matière...")
                             font: parent.font
                             color: Style.textTertiary
                         }
@@ -114,7 +114,7 @@ AppCard {
             }
 
             PrimaryButton {
-                text: "AJOUTER"
+                text: qsTr("AJOUTER")
                 iconName: "plus"
                 onClicked: {
                     if (newSubjectInput.text.trim() !== "" && root.selectedNiveauId > 0) {

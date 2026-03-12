@@ -56,7 +56,7 @@ ModalOverlay {
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: editMode ? "Modifier le Projet" : "Nouveau Projet"
                            font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
-                    Text { text: "Gestion des projets de l'association"
+                    Text { text: qsTr("Gestion des projets de l'association")
                            font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: _close() }
@@ -84,23 +84,23 @@ ModalOverlay {
                 topPadding: 4; bottomPadding: 16; spacing: 18
 
                 FormField { id: nomField; width: parent.width
-                            label: "NOM DU PROJET *"
-                            placeholder: "Ex: Rénovation école..."
+                            label: qsTr("NOM DU PROJET *")
+                            placeholder: qsTr("Ex: Rénovation école...")
                             fieldHeight: 44 }
 
                 FormField { id: descField; width: parent.width
-                            label: "DESCRIPTION"
-                            placeholder: "Objectifs, détails..."
+                            label: qsTr("DESCRIPTION")
+                            placeholder: qsTr("Objectifs, détails...")
                             fieldHeight: 44 }
 
                 FormField { id: objectifField; width: parent.width
-                            label: "OBJECTIF FINANCIER (DT) *"; placeholder: "0.00"; fieldHeight: 44
+                            label: qsTr("OBJECTIF FINANCIER (DT) *"); placeholder: qsTr("0.00"); fieldHeight: 44
                             validator: RegularExpressionValidator {
                                 regularExpression: /^\d*\.?\d{0,2}$/
                             } }
 
-                DateField { id: dateDebutField; width: parent.width; label: "DATE DE DÉBUT *" }
-                DateField { id: dateFinField; width: parent.width; label: "DATE DE FIN (Optionnelle)" }
+                DateField { id: dateDebutField; width: parent.width; label: qsTr("DATE DE DÉBUT *") }
+                DateField { id: dateFinField; width: parent.width; label: qsTr("DATE DE FIN (Optionnelle)") }
             }
         }
 
@@ -109,7 +109,7 @@ ModalOverlay {
             width: parent.width; topPadding: 16; bottomPadding: 28
             ModalButtons {
                 width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
+                cancelText: qsTr("Annuler")
                 confirmText: editMode ? "Enregistrer les modifications" : "Créer le projet"
                 onCancel: _close()
                 onConfirm: {

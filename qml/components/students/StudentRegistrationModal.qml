@@ -153,16 +153,16 @@ Popup {
                             id: nameField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "NOM"
-                            placeholder: "ex: Ben Moussa"
+                            label: qsTr("NOM")
+                            placeholder: qsTr("ex: Ben Moussa")
                             nextTabItem: prenomField.inputItem
                         }
                         FormField {
                             id: prenomField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "PRÉNOM"
-                            placeholder: "ex: Ahmed"
+                            label: qsTr("PRÉNOM")
+                            placeholder: qsTr("ex: Ahmed")
                             nextTabItem: birthDateField.inputItem
                             prevTabItem: nameField.inputItem
                         }
@@ -174,7 +174,7 @@ Popup {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
                             spacing: 8
-                            SectionLabel { text: "SEXE" }
+                            SectionLabel { text: qsTr("SEXE") }
                             Row {
                                 spacing: 16
                                 Row {
@@ -186,7 +186,7 @@ Popup {
                                         Behavior on border.width { NumberAnimation { duration: 100 } }
                                         MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "M" }
                                     }
-                                    Text { text: "Masculin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                    Text { text: qsTr("Masculin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
                                 Row {
                                     spacing: 8
@@ -197,7 +197,7 @@ Popup {
                                         Behavior on border.width { NumberAnimation { duration: 100 } }
                                         MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "F" }
                                     }
-                                    Text { text: "Féminin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                    Text { text: qsTr("Féminin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
                             }
                         }
@@ -209,7 +209,7 @@ Popup {
                             DateField {
                                 id: birthDateField
                                 width: 240
-                                label: "DATE DE NAISSANCE"
+                                label: qsTr("DATE DE NAISSANCE")
                                 nextTabItem: phoneField.inputItem
                                 prevTabItem: prenomField.inputItem
                                 agePassage: setupController.associationData.agePassageAdulte || 12
@@ -223,8 +223,8 @@ Popup {
                             id: phoneField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "TÉLÉPHONE"
-                            placeholder: "XX XXX XXX"
+                            label: qsTr("TÉLÉPHONE")
+                            placeholder: qsTr("XX XXX XXX")
                             nextTabItem: addressField.inputItem
                             prevTabItem: birthDateField.inputItem
                             validator: RegularExpressionValidator {
@@ -235,8 +235,8 @@ Popup {
                             id: addressField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "ADRESSE"
-                            placeholder: "Adresse complète"
+                            label: qsTr("ADRESSE")
+                            placeholder: qsTr("Adresse complète")
                             nextTabItem: parentNameField.inputItem
                             prevTabItem: phoneField.inputItem
                         }
@@ -248,8 +248,8 @@ Popup {
                             id: parentNameField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "NOM DU PARENT / TUTEUR"
-                            placeholder: "ex: Mohamed Ben Moussa"
+                            label: qsTr("NOM DU PARENT / TUTEUR")
+                            placeholder: qsTr("ex: Mohamed Ben Moussa")
                             nextTabItem: parentPhoneField.inputItem
                             prevTabItem: addressField.inputItem
                         }
@@ -257,8 +257,8 @@ Popup {
                             id: parentPhoneField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "TÉLÉPHONE PARENT"
-                            placeholder: "XX XXX XXX"
+                            label: qsTr("TÉLÉPHONE PARENT")
+                            placeholder: qsTr("XX XXX XXX")
                             nextTabItem: cinEleveField.inputItem
                             prevTabItem: parentNameField.inputItem
                             validator: RegularExpressionValidator {
@@ -273,8 +273,8 @@ Popup {
                             id: cinEleveField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "CIN ÉLÈVE (optionnel)"
-                            placeholder: "ex: 12345678"
+                            label: qsTr("CIN ÉLÈVE (optionnel)")
+                            placeholder: qsTr("ex: 12345678")
                             nextTabItem: cinParentField.inputItem
                             prevTabItem: parentPhoneField.inputItem
                         }
@@ -282,8 +282,8 @@ Popup {
                             id: cinParentField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "CIN PARENT (optionnel)"
-                            placeholder: "ex: 12345678"
+                            label: qsTr("CIN PARENT (optionnel)")
+                            placeholder: qsTr("ex: 12345678")
                             prevTabItem: cinEleveField.inputItem
                         }
                     }
@@ -291,7 +291,7 @@ Popup {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        SectionLabel { text: "COMMENTAIRE / NOTES" }
+                        SectionLabel { text: qsTr("COMMENTAIRE / NOTES") }
                         Rectangle {
                             Layout.fillWidth: true
                             height: 80
@@ -302,7 +302,7 @@ Popup {
                                 anchors.fill: parent; anchors.margins: 12
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
-                                placeholderText: "Informations complémentaires..."
+                                placeholderText: qsTr("Informations complémentaires...")
                                 background: null
                             }
                         }
@@ -322,7 +322,7 @@ Popup {
                             anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                             IconLabel { iconName: "info"; iconColor: Style.primary }
                             Text {
-                                text: "Nouvelle Inscription pour l'année scolaire " + root.selectedAnneeScolaire
+                                text: qsTr("Nouvelle Inscription pour l'année scolaire ") + root.selectedAnneeScolaire
                                 font.pixelSize: 14; font.weight: Font.Bold; color: Style.primary
                             }
                         }
@@ -332,7 +332,7 @@ Popup {
                         spacing: 24
                         Column {
                             Layout.fillWidth: true; spacing: 8
-                            SectionLabel { text: "ANNÉE SCOLAIRE" }
+                            SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
                                 color: Style.primaryBg; border.color: Style.primary; border.width: 1
@@ -346,7 +346,7 @@ Popup {
                                     }
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "· Année active"
+                                        text: qsTr("· Année active")
                                         font.pixelSize: 10; font.weight: Font.Bold; color: Style.primary; opacity: 0.7
                                     }
                                 }
@@ -355,7 +355,7 @@ Popup {
 
                         Column {
                             Layout.fillWidth: true; spacing: 8
-                            SectionLabel { text: "NIVEAU" }
+                            SectionLabel { text: qsTr("NIVEAU") }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -385,7 +385,7 @@ Popup {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 16
-                        Text { text: "SECTION FINANCIÈRE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+                        Text { text: qsTr("SECTION FINANCIÈRE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
                         
                         Rectangle {
                             Layout.fillWidth: true; height: 100; radius: 20
@@ -394,7 +394,7 @@ Popup {
                                 anchors.fill: parent; anchors.margins: 20; spacing: 20
                                 Column {
                                     Layout.fillWidth: true; spacing: 4
-                                    SectionLabel { text: "FRAIS D'INSCRIPTION" }
+                                    SectionLabel { text: qsTr("FRAIS D'INSCRIPTION") }
                                     Row {
                                         spacing: 8
                                         TextInput {
@@ -406,13 +406,13 @@ Popup {
                                                 regularExpression: /^\d{0,4}(\.\d{0,3})?$/
                                             }
                                         }
-                                        Text { text: "DT"; font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
+                                        Text { text: qsTr("DT"); font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
                                     }
                                 }
                                 
                                 Column {
                                     spacing: 8
-                                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                                    SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
                                     Row {
                                         spacing: 12
                                         Rectangle {

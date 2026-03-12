@@ -151,7 +151,7 @@ ModalOverlay {
                     Separator { width: parent.width }
 
                     Text {
-                        text: "DESCRIPTIF"
+                        text: qsTr("DESCRIPTIF")
                         font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary
                         font.letterSpacing: 1
                     }
@@ -176,7 +176,7 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "MODIFIER"
+                        anchors.centerIn: parent; text: qsTr("MODIFIER")
                         font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary
                         font.letterSpacing: 0.5
                     }
@@ -245,7 +245,7 @@ ModalOverlay {
                 Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
-                    anchors.centerIn: parent; text: "ANNULER LA SUPPRESSION"
+                    anchors.centerIn: parent; text: qsTr("ANNULER LA SUPPRESSION")
                     font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary
                     font.letterSpacing: 0.5
                 }
@@ -269,7 +269,7 @@ ModalOverlay {
             property bool editIsExam: root.editData ? root.editData.typeSeance === "Examen" : false
 
             Text {
-                text: "Modifier la Session"
+                text: qsTr("Modifier la Session")
                 font.pixelSize: 20; font.weight: Font.Black; color: Style.textPrimary
             }
 
@@ -310,7 +310,7 @@ ModalOverlay {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                     visible: !editGrid.editIsEvent
 
-                    SectionLabel { text: "NIVEAU" }
+                    SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -358,7 +358,7 @@ ModalOverlay {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                     visible: !editGrid.editIsEvent
 
-                    SectionLabel { text: "MATIÈRE" }
+                    SectionLabel { text: qsTr("MATIÈRE") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -393,7 +393,7 @@ ModalOverlay {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                     visible: !editGrid.editIsEvent
 
-                    SectionLabel { text: "CLASSE" }
+                    SectionLabel { text: qsTr("CLASSE") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -477,7 +477,7 @@ ModalOverlay {
 
                                             Text {
                                                 anchors.fill: parent; leftPadding: 12
-                                                text: "Sélectionner..."
+                                                text: qsTr("Sélectionner...")
                                                 font.pixelSize: 12; font.italic: true; font.bold: true
                                                 color: Style.textTertiary; verticalAlignment: Text.AlignVCenter
                                             }
@@ -568,7 +568,7 @@ ModalOverlay {
 
                                             Text {
                                                 anchors.fill: parent; leftPadding: 12
-                                                text: "Sélectionner..."
+                                                text: qsTr("Sélectionner...")
                                                 font.pixelSize: 12; font.italic: true; font.bold: true
                                                 color: Style.textTertiary; verticalAlignment: Text.AlignVCenter
                                             }
@@ -609,7 +609,7 @@ ModalOverlay {
                 // Heure
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "HEURE" }
+                    SectionLabel { text: qsTr("HEURE") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -633,7 +633,7 @@ ModalOverlay {
                 // Durée
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "DURÉE (MIN)" }
+                    SectionLabel { text: qsTr("DURÉE (MIN)") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -653,7 +653,7 @@ ModalOverlay {
                     Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 6
                     visible: editGrid.editIsEvent
 
-                    SectionLabel { text: "DESCRIPTIF (OPTIONNEL)" }
+                    SectionLabel { text: qsTr("DESCRIPTIF (OPTIONNEL)") }
                     Rectangle {
                         width: parent.width; height: 70; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -673,7 +673,7 @@ ModalOverlay {
 
                                 Text {
                                     visible: !editDescriptifInput.text
-                                    text: "Description de l'évènement..."
+                                    text: qsTr("Description de l'évènement...")
                                     font: editDescriptifInput.font
                                     color: Style.textTertiary
                                 }
@@ -695,7 +695,7 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "ANNULER"
+                        anchors.centerIn: parent; text: qsTr("ANNULER")
                         font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary
                         font.letterSpacing: 0.5
                     }
@@ -726,7 +726,7 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "ENREGISTRER"
+                        anchors.centerIn: parent; text: qsTr("ENREGISTRER")
                         font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                         font.letterSpacing: 0.5
                     }

@@ -27,7 +27,7 @@ AppCard {
     // ── CSV file dialog ───────────────────────────────────────────────────────
     Platform.FileDialog {
         id: saveDialog
-        title: "Enregistrer le fichier CSV"
+        title: qsTr("Enregistrer le fichier CSV")
         fileMode: Platform.FileDialog.SaveFile
         nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
         defaultSuffix: "csv"
@@ -108,7 +108,7 @@ AppCard {
                 color: tab.viewMode === "donateurs" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "donateurs" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "DONATEURS"
+                    anchors.centerIn: parent; text: qsTr("DONATEURS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "donateurs" ? "white" : Style.textSecondary
                 }
@@ -122,7 +122,7 @@ AppCard {
                 color: tab.viewMode === "projets" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "projets" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "PROJETS"
+                    anchors.centerIn: parent; text: qsTr("PROJETS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "projets" ? "white" : Style.textSecondary
                 }
@@ -188,7 +188,7 @@ AppCard {
                     anchors.centerIn: parent; spacing: 6
                     IconLabel { iconName: "download"; iconSize: 14
                                 iconColor: exportMa.containsMouse ? "white" : Style.textTertiary }
-                    Text { text: "Exporter CSV"; font.pixelSize: 11; font.weight: Font.Black
+                    Text { text: qsTr("Exporter CSV"); font.pixelSize: 11; font.weight: Font.Black
                            color: exportMa.containsMouse ? "white" : Style.textTertiary }
                 }
                 MouseArea { id: exportMa; anchors.fill: parent; hoverEnabled: true
@@ -204,7 +204,7 @@ AppCard {
                     id: newProjRow
                     anchors.centerIn: parent; spacing: 6
                     IconLabel { iconName: "plus"; iconSize: 14; iconColor: "white" }
-                    Text { text: "Nouveau Projet"; font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                    Text { text: qsTr("Nouveau Projet"); font.pixelSize: 11; font.weight: Font.Black; color: "white" }
                 }
                 MouseArea { id: newProjMa; anchors.fill: parent; hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -280,8 +280,8 @@ AppCard {
             width: parent.width; height: 40
             visible: tab.viewMode === "donateurs" && tab.filteredDonateurs.length > 0
             spacing: 12
-            SectionLabel { Layout.fillWidth: true; text: "NOM / IDENTITÉ" }
-            SectionLabel { Layout.preferredWidth: tab.wTel;    text: "TÉLÉPHONE"; horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("NOM / IDENTITÉ") }
+            SectionLabel { Layout.preferredWidth: tab.wTel;    text: qsTr("TÉLÉPHONE"); horizontalAlignment: Text.AlignHCenter }
             Item { Layout.preferredWidth: tab.wAction }
         }
         Separator { width: parent.width; visible: tab.viewMode === "donateurs" && tab.filteredDonateurs.length > 0 }
@@ -355,10 +355,10 @@ AppCard {
             width: parent.width; height: 40
             visible: tab.viewMode === "projets" && tab.filteredProjets.length > 0
             spacing: 12
-            SectionLabel { Layout.fillWidth: true; text: "PROJET" }
-            SectionLabel { Layout.preferredWidth: tab.wDate; text: "PÉRIODE"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wStatus; text: "STATUT"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wMontant; text: "MONTANT (COLLECTÉ / OBJECTIF)"; horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("PROJET") }
+            SectionLabel { Layout.preferredWidth: tab.wDate; text: qsTr("PÉRIODE"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wStatus; text: qsTr("STATUT"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wMontant; text: qsTr("MONTANT (COLLECTÉ / OBJECTIF)"); horizontalAlignment: Text.AlignHCenter }
             Item { Layout.preferredWidth: tab.wAction }
         }
         Separator { width: parent.width; visible: tab.viewMode === "projets" && tab.filteredProjets.length > 0 }
@@ -413,7 +413,7 @@ AppCard {
                                 Layout.preferredWidth: tab.wMontant; spacing: 4
                                 RowLayout {
                                     width: parent.width; spacing: 4
-                                    Text { Layout.fillWidth: true; text: "COLLECTÉ"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
+                                    Text { Layout.fillWidth: true; text: qsTr("COLLECTÉ"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
                                     Text { text: (modelData.totalDons || 0).toFixed(0) + " / " + modelData.objectifFinancier.toFixed(0) + " DT"
                                            font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary }
                                 }
@@ -465,7 +465,7 @@ AppCard {
             Rectangle { width: 36; height: 36; radius: 10
                 color: prevPgMa.containsMouse && tab.currentPage > 0 ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight
-                Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 18; font.bold: true
+                Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 18; font.bold: true
                        color: tab.currentPage > 0 ? Style.textPrimary : Style.textTertiary }
                 MouseArea { id: prevPgMa; anchors.fill: parent; hoverEnabled: true
                             cursorShape: tab.currentPage > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -478,7 +478,7 @@ AppCard {
             Rectangle { width: 36; height: 36; radius: 10
                 color: nextPgMa.containsMouse && tab.currentPage < tab.pageCount - 1 ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight
-                Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 18; font.bold: true
+                Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 18; font.bold: true
                        color: tab.currentPage < tab.pageCount - 1 ? Style.textPrimary : Style.textTertiary }
                 MouseArea { id: nextPgMa; anchors.fill: parent; hoverEnabled: true
                             cursorShape: tab.currentPage < tab.pageCount - 1 ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -501,7 +501,7 @@ AppCard {
                 Rectangle { width: 48; height: 48; radius: 20; color: Style.primaryBg
                     IconLabel { anchors.centerIn: parent; iconName: "download"; iconSize: 24; iconColor: Style.primary } }
                 Column { Layout.fillWidth: true; spacing: 2
-                    Text { text: "Exporter les Donateurs"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("Exporter les Donateurs"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: tab.filteredDonateurs.length + " donateur(s) — format CSV"
                            font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
                 }
@@ -511,12 +511,12 @@ AppCard {
                 implicitHeight: expInfo.implicitHeight + 24; radius: 14
                 color: Style.primaryBg; border.color: Style.borderLight
                 Text { id: expInfo; anchors.fill: parent; anchors.margins: 14
-                    text: "Cliquez sur <b>Confirmer</b> pour choisir l'emplacement d'enregistrement du fichier CSV."
+                    text: qsTr("Cliquez sur <b>Confirmer</b> pour choisir l'emplacement d'enregistrement du fichier CSV.")
                     font.pixelSize: 12; color: Style.textSecondary; wrapMode: Text.WordWrap
                     textFormat: Text.RichText; lineHeight: 1.5 }
             }
             ModalButtons { width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"; confirmText: "Confirmer"
+                cancelText: qsTr("Annuler"); confirmText: qsTr("Confirmer")
                 onCancel:  tab.showExportPopup = false
                 onConfirm: saveDialog.open()
             }
@@ -565,8 +565,8 @@ AppCard {
                     Rectangle { width: 48; height: 48; radius: 20; color: Style.primaryBg
                         IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 24; iconColor: Style.primary } }
                     Column { Layout.fillWidth: true; spacing: 2
-                        Text { text: "Modifier le Donateur"; font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
-                        Text { text: "Conforme Décret-loi 2011-88"; font.pixelSize: 10; color: Style.primary; font.weight: Font.Bold }
+                        Text { text: qsTr("Modifier le Donateur"); font.pixelSize: 18; font.weight: Font.Black; color: Style.textPrimary }
+                        Text { text: qsTr("Conforme Décret-loi 2011-88"); font.pixelSize: 10; color: Style.primary; font.weight: Font.Bold }
                     }
                     IconButton { iconName: "close"; iconSize: 18; onClicked: editModal._closeEdit() }
                 }
@@ -592,12 +592,12 @@ AppCard {
                     topPadding: 4; bottomPadding: 16; spacing: 16
 
                     FormField { id: editNomField; width: parent.width
-                                label: "NOM / DÉNOMINATION *"
-                                placeholder: "Nom complet ou raison sociale"
+                                label: qsTr("NOM / DÉNOMINATION *")
+                                placeholder: qsTr("Nom complet ou raison sociale")
                                 fieldHeight: 44 }
 
                     Column { width: parent.width; spacing: 6
-                        SectionLabel { text: "TYPE DE PERSONNE" }
+                        SectionLabel { text: qsTr("TYPE DE PERSONNE") }
                         Row { spacing: 6; width: parent.width
                             Repeater {
                                 model: ["Physique", "Morale"]
@@ -606,7 +606,7 @@ AppCard {
                                     color: editModal.typePersonne === modelData ? Style.primary : Style.bgPage
                                     border.color: editModal.typePersonne === modelData ? Style.primary : Style.borderLight
                                     Text { anchors.centerIn: parent
-                                           text: "PERSONNE " + modelData.toUpperCase()
+                                           text: qsTr("PERSONNE ") + modelData.toUpperCase()
                                            font.pixelSize: 9; font.weight: Font.Black; font.letterSpacing: 0.4
                                            color: editModal.typePersonne === modelData ? "white" : Style.textTertiary }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -618,23 +618,23 @@ AppCard {
 
                     FormField { id: editCinField; width: parent.width
                                 visible: editModal.typePersonne === "Physique"
-                                label: "N° CIN"; placeholder: "00000000"; fieldHeight: 44 }
+                                label: qsTr("N° CIN"); placeholder: qsTr("00000000"); fieldHeight: 44 }
 
                     Column { width: parent.width; spacing: 10
                              visible: editModal.typePersonne === "Morale"
                         FormField { id: editRsField; width: parent.width
-                                    label: "RAISON SOCIALE"; placeholder: "Dénomination officielle"; fieldHeight: 44 }
+                                    label: qsTr("RAISON SOCIALE"); placeholder: qsTr("Dénomination officielle"); fieldHeight: 44 }
                         FormField { id: editMfField; width: parent.width
-                                    label: "MATRICULE FISCAL"; placeholder: "Ex: 1234567/A/M/000"; fieldHeight: 44 }
+                                    label: qsTr("MATRICULE FISCAL"); placeholder: qsTr("Ex: 1234567/A/M/000"); fieldHeight: 44 }
                         FormField { id: editRlField; width: parent.width
-                                    label: "REPRÉSENTANT LÉGAL"; placeholder: "Nom du représentant"; fieldHeight: 44 }
+                                    label: qsTr("REPRÉSENTANT LÉGAL"); placeholder: qsTr("Nom du représentant"); fieldHeight: 44 }
                     }
 
                     RowLayout { width: parent.width; spacing: 8
                         FormField { id: editTelField; Layout.fillWidth: true
-                                    label: "TÉLÉPHONE"; placeholder: "XX XXX XXX"; fieldHeight: 44 }
+                                    label: qsTr("TÉLÉPHONE"); placeholder: qsTr("XX XXX XXX"); fieldHeight: 44 }
                         FormField { id: editAdrField; Layout.fillWidth: true
-                                    label: "ADRESSE"; placeholder: "Adresse"; fieldHeight: 44 }
+                                    label: qsTr("ADRESSE"); placeholder: qsTr("Adresse"); fieldHeight: 44 }
                     }
                 }
             }
@@ -644,7 +644,7 @@ AppCard {
                 width: parent.width; topPadding: 16; bottomPadding: 28
                 ModalButtons {
                     width: parent.width - 64; anchors.horizontalCenter: parent.horizontalCenter
-                    cancelText: "Annuler"; confirmText: "Enregistrer les modifications"
+                    cancelText: qsTr("Annuler"); confirmText: qsTr("Enregistrer les modifications")
                     onCancel: editModal._closeEdit()
                     onConfirm: {
                         if (editNomField.text.trim() === "") return

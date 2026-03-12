@@ -166,7 +166,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "Modifier l'identité"
+                            text: qsTr("Modifier l'identité")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Style.textPrimary
@@ -205,7 +205,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "Modifier le contrat"
+                            text: qsTr("Modifier le contrat")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Style.warningColor
@@ -243,7 +243,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "Nouveau contrat"
+                            text: qsTr("Nouveau contrat")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Style.primary
@@ -276,7 +276,7 @@ Rectangle {
                 width: (parent.width - 16) / 2
                 spacing: 6
 
-                SectionLabel { text: "TÉLÉPHONE" }
+                SectionLabel { text: qsTr("TÉLÉPHONE") }
 
                 Text {
                     text: staffData.telephone || "—"
@@ -290,7 +290,7 @@ Rectangle {
                 width: (parent.width - 16) / 2
                 spacing: 6
 
-                SectionLabel { text: "CIN" }
+                SectionLabel { text: qsTr("CIN") }
 
                 Text {
                     text: staffData.cin || "—"
@@ -320,7 +320,7 @@ Rectangle {
                 spacing: 2
 
                 Text {
-                    text: "Base Rémunération"
+                    text: qsTr("Base Rémunération")
                     font.pixelSize: 10
                     font.bold: true
                     color: Style.textTertiary
@@ -334,7 +334,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: "/" + (staffData.modePaie === "Heure" ? "h"
+                    text: qsTr("/") + (staffData.modePaie === "Heure" ? "h"
                                : staffData.modePaie === "Jour"  ? "jour"
                                : "mois")
                     font.pixelSize: 10
@@ -375,7 +375,7 @@ Rectangle {
             visible: !isShowAllMode
 
             Text {
-                text: "Contrat depuis:"
+                text: qsTr("Contrat depuis:")
                 font.pixelSize: 10
                 font.weight: Font.Medium
                 color: Style.textTertiary
@@ -406,7 +406,7 @@ Rectangle {
                 spacing: 6
 
                 SectionLabel {
-                    text: "SOMME DUE"
+                    text: qsTr("SOMME DUE")
                 }
 
                 Text {
@@ -423,7 +423,7 @@ Rectangle {
                 spacing: 6
 
                 SectionLabel {
-                    text: "SOMME PAYÉE"
+                    text: qsTr("SOMME PAYÉE")
                 }
 
                 Text {
@@ -436,7 +436,7 @@ Rectangle {
                 }
 
                 PrimaryButton {
-                    text: "Payer"
+                    text: qsTr("Payer")
                     iconName: "dollar-sign"
                     onClicked: root.payClicked()
                 }

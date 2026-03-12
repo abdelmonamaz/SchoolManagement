@@ -14,11 +14,11 @@ RowLayout {
 
     Repeater {
         model: [
-            { col: "nom",       label: "ÉLÈVE",     w: 200, fill: false },
-            { col: "id",        label: "MATRICULE", w: 100, fill: false },
-            { col: "sexe",      label: "SEXE",      w: 70,  fill: false },
-            { col: "categorie", label: "CATÉGORIE", w: 110, fill: false },
-            { col: "telephone", label: "CONTACT",   w: 0,   fill: true  }
+            { col: "nom",       label: qsTr("ÉLÈVE"),     w: 200, fill: false },
+            { col: "id",        label: qsTr("MATRICULE"), w: 100, fill: false },
+            { col: "sexe",      label: qsTr("SEXE"),      w: 70,  fill: false },
+            { col: "categorie", label: qsTr("CATÉGORIE"), w: 110, fill: false },
+            { col: "telephone", label: qsTr("CONTACT"),   w: 0,   fill: true  }
         ]
 
         delegate: Item {
@@ -55,7 +55,7 @@ RowLayout {
 
     Text {
         Layout.preferredWidth:  80
-        text:                   "ACTIONS"
+        text: qsTr("ACTIONS")
         font.pixelSize:         10
         font.weight:            Font.Bold
         color:                  Style.textTertiary

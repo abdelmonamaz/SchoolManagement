@@ -125,7 +125,7 @@ RowLayout {
                 spacing: 12
 
                 Text {
-                    text: "Calendrier Mensuel"
+                    text: qsTr("Calendrier Mensuel")
                     font.pixelSize: 18
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -137,7 +137,7 @@ RowLayout {
                     color: calPrevMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                     MouseArea {
                         id: calPrevMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(-1)
@@ -188,7 +188,7 @@ RowLayout {
                     color: calNextMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                     MouseArea {
                         id: calNextMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(1)
@@ -201,9 +201,9 @@ RowLayout {
                     spacing: 16
                     Repeater {
                         model: [
-                            { label: "COURS", clr: Style.foreground },
-                            { label: "EXAMEN", clr: Style.errorColor },
-                            { label: "ÉVÈNEMENT", clr: Style.warningColor }
+                            { label: qsTr("COURS"), clr: Style.foreground },
+                            { label: qsTr("EXAMEN"), clr: Style.errorColor },
+                            { label: qsTr("ÉVÈNEMENT"), clr: Style.warningColor }
                         ]
                         Row {
                             spacing: 6
@@ -490,7 +490,7 @@ RowLayout {
                 spacing: 4
 
                 Text {
-                    text: "Détails du Jour"
+                    text: qsTr("Détails du Jour")
                     font.pixelSize: 16; font.weight: Font.Black
                     color: Style.textPrimary
                 }
@@ -526,7 +526,7 @@ RowLayout {
 
                 Text {
                     width: parent.width
-                    text: "Sélectionnez un jour dans\nle calendrier pour voir les détails"
+                    text: qsTr("Sélectionnez un jour dans\nle calendrier pour voir les détails")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter
@@ -564,7 +564,7 @@ RowLayout {
                 Item { width: 1; height: 20 }
                 Text {
                     width: parent.width
-                    text: "Aucune session ce jour"
+                    text: qsTr("Aucune session ce jour")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter

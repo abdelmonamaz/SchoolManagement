@@ -106,12 +106,12 @@ ModalOverlay {
                 Rectangle {
                     width: 44; height: 44; radius: 14
                     color: Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "📄"; font.pixelSize: 20 }
+                    Text { anchors.centerIn: parent; text: qsTr("📄"); font.pixelSize: 20 }
                 }
 
                 Column {
                     spacing: 2
-                    Text { text: "Aperçu du Bulletin"; font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("Aperçu du Bulletin"); font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: root.studentName || "Élève"; font.pixelSize: 11; color: Style.textTertiary }
                 }
             }
@@ -155,7 +155,7 @@ ModalOverlay {
                             width: parent.width - 112
                             spacing: 2
                             Text { text: setupController.associationData.nomAssociation || "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: Style.zitouna }
-                            Text { text: "INSTITUT D'ENSEIGNEMENT ISLAMIQUE"; font.pixelSize: 8; font.weight: Font.Bold; color: Style.textTertiary }
+                            Text { text: qsTr("INSTITUT D'ENSEIGNEMENT ISLAMIQUE"); font.pixelSize: 8; font.weight: Font.Bold; color: Style.textTertiary }
                             Text { text: setupController.associationData.adresse || ""; font.pixelSize: 9; color: Style.textTertiary; visible: text.length > 0 }
                         }
 
@@ -167,7 +167,7 @@ ModalOverlay {
                             color: "transparent"; border.color: Style.warningColor; border.width: 2
                             Column {
                                 anchors.centerIn: parent; spacing: 2
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ANNÉE SCOLAIRE"; font.pixelSize: 7; font.weight: Font.Black; color: Style.warningColor }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("ANNÉE SCOLAIRE"); font.pixelSize: 7; font.weight: Font.Black; color: Style.warningColor }
                                 Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.anneeScolaire || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.warningColor }
                             }
                         }
@@ -181,7 +181,7 @@ ModalOverlay {
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 34
                         color: Style.zitouna
-                        Text { anchors.centerIn: parent; text: "BULLETIN SCOLAIRE"; font.pixelSize: 14; font.weight: Font.Black; color: "white" }
+                        Text { anchors.centerIn: parent; text: qsTr("BULLETIN SCOLAIRE"); font.pixelSize: 14; font.weight: Font.Black; color: "white" }
                     }
 
                     Item { width: 1; height: 12 }
@@ -198,19 +198,19 @@ ModalOverlay {
                             columns: 2; rowSpacing: 8; columnSpacing: 16
 
                             Column { spacing: 2
-                                Text { text: "NOM DE L'ÉLÈVE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: qsTr("NOM DE L'ÉLÈVE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
                                 Text { text: root.studentName || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "MATRICULE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: qsTr("MATRICULE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
                                 Text { text: root.studentMatricule || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "NIVEAU"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: qsTr("NIVEAU"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
                                 Text { text: root.niveauNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "CLASSE"; font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: qsTr("CLASSE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
                                 Text { text: root.classeNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                         }
@@ -222,7 +222,7 @@ ModalOverlay {
                     Row {
                         x: 16; width: parent.width - 32; spacing: 8
                         Rectangle { width: 3; height: 14; radius: 2; color: Style.zitouna; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: "RÉSULTATS ACADÉMIQUES"; font.pixelSize: 10; font.weight: Font.Black; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: qsTr("RÉSULTATS ACADÉMIQUES"); font.pixelSize: 10; font.weight: Font.Black; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
                     }
 
                     Item { width: 1; height: 8 }
@@ -237,7 +237,7 @@ ModalOverlay {
 
                             Item {
                                 width: root.cMat; height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: "MATIÈRE"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MATIÈRE"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; verticalAlignment: Text.AlignVCenter }
                             }
                             Repeater {
                                 model: root.allTitres
@@ -248,15 +248,15 @@ ModalOverlay {
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
-                                Text { anchors.fill: parent; text: "MOY."; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; text: qsTr("MOY."); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                             Item {
                                 width: root.cApp; height: parent.height
-                                Text { anchors.fill: parent; text: "APPRÉCIATION"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
+                                Text { anchors.fill: parent; text: qsTr("APPRÉCIATION"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
                             }
                             Item {
                                 width: root.cPre; height: parent.height
-                                Text { anchors.fill: parent; text: "PRÉSENCE"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
+                                Text { anchors.fill: parent; text: qsTr("PRÉSENCE"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
                             }
                         }
                     }
@@ -333,7 +333,7 @@ ModalOverlay {
                                         color: root.apprBg(matRow.moy)
                                         Text { anchors.centerIn: parent; text: root.appreciation(matRow.moy); font.pixelSize: 8; font.weight: Font.Bold; color: root.apprFg(matRow.moy) }
                                     }
-                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: "—"; font.pixelSize: 10; color: Style.textTertiary }
+                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: qsTr("—"); font.pixelSize: 10; color: Style.textTertiary }
                                 }
 
                                 // Présence
@@ -363,7 +363,7 @@ ModalOverlay {
                             Item {
                                 width: root.cMat + root.allTitres.length * root.cEp
                                 height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: "MOYENNE GÉNÉRALE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE GÉNÉRALE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter }
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
@@ -395,7 +395,7 @@ ModalOverlay {
                             width: (parent.width - 80) / 2; spacing: 4
                             Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "ENSEIGNANT"; font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
+                            Text { text: qsTr("ENSEIGNANT"); font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
 
                         Item { width: 80; height: 1 }
@@ -404,7 +404,7 @@ ModalOverlay {
                             width: (parent.width - 80) / 2; spacing: 4
                             Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "DIRECTEUR"; font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
+                            Text { text: qsTr("DIRECTEUR"); font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
                     }
 
@@ -433,11 +433,11 @@ ModalOverlay {
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 10; spacing: 8
-                Text { text: "✓"; font.pixelSize: 14; color: Style.zitouna }
-                Text { Layout.fillWidth: true; text: "PDF : " + root.exportedFilePath; font.pixelSize: 9; color: Style.zitouna; elide: Text.ElideMiddle }
+                Text { text: qsTr("✓"); font.pixelSize: 14; color: Style.zitouna }
+                Text { Layout.fillWidth: true; text: qsTr("PDF : ") + root.exportedFilePath; font.pixelSize: 9; color: Style.zitouna; elide: Text.ElideMiddle }
                 Rectangle {
                     width: 60; height: 22; radius: 6; color: Style.zitouna
-                    Text { anchors.centerIn: parent; text: "OUVRIR"; font.pixelSize: 8; font.weight: Font.Black; color: "white" }
+                    Text { anchors.centerIn: parent; text: qsTr("OUVRIR"); font.pixelSize: 8; font.weight: Font.Black; color: "white" }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally("file:///" + root.exportedFilePath) }
                 }
             }
@@ -455,7 +455,7 @@ ModalOverlay {
                 color: fMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight
                 Behavior on color { ColorAnimation { duration: 100 } }
-                Text { anchors.centerIn: parent; text: "FERMER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                Text { anchors.centerIn: parent; text: qsTr("FERMER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                 MouseArea {
                     id: fMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     onClicked: root.visible = false   // close() est un signal ici, pas la méthode Popup
@@ -470,7 +470,7 @@ ModalOverlay {
 
                 RowLayout { anchors.centerIn: parent; spacing: 8
                     IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
-                    Text { text: "CSV"; font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                    Text { text: qsTr("CSV"); font.pixelSize: 11; font.weight: Font.Black; color: "white" }
                 }
 
                 MouseArea {
@@ -535,7 +535,7 @@ ModalOverlay {
     FileDialog {
         id: pdfSaveDialog
         fileMode: FileDialog.SaveFile
-        title: "Enregistrer le bulletin PDF"
+        title: qsTr("Enregistrer le bulletin PDF")
         nameFilters: ["Fichiers PDF (*.pdf)", "Tous les fichiers (*)"]
         defaultSuffix: "pdf"
         onAccepted: {
@@ -558,7 +558,7 @@ ModalOverlay {
     FileDialog {
         id: csvSaveDialog
         fileMode: FileDialog.SaveFile
-        title: "Enregistrer le bulletin CSV"
+        title: qsTr("Enregistrer le bulletin CSV")
         nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
         defaultSuffix: "csv"
         onAccepted: {

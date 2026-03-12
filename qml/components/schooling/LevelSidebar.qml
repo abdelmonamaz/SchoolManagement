@@ -16,7 +16,7 @@ Column {
     signal niveauAddRequested()
 
     SectionLabel {
-        text: "SÉLECTIONNER UN NIVEAU"
+        text: qsTr("SÉLECTIONNER UN NIVEAU")
         leftPadding: 4
     }
 
@@ -48,6 +48,7 @@ Column {
                         font.pixelSize: 13
                         font.bold: true
                         color: root.selectedNiveauId === modelData.id ? Style.background : Style.textPrimary
+                        horizontalAlignment: Text.AlignLeft
                     }
 
                     Row {
@@ -69,7 +70,7 @@ Column {
 
                     Text {
                         visible: root.selectedNiveauId !== modelData.id
-                        text: "›"
+                        text: Qt.application.layoutDirection === Qt.RightToLeft ? "‹" : "›"
                         font.pixelSize: 16
                         color: Style.textTertiary
                     }
@@ -104,7 +105,7 @@ Column {
                 }
 
                 Text {
-                    text: "NOUVEAU NIVEAU"
+                    text: qsTr("NOUVEAU NIVEAU")
                     font.pixelSize: 10
                     font.weight: Font.Black
                     color: addNiveauMa.containsMouse ? Style.primary : Style.textTertiary
@@ -122,3 +123,4 @@ Column {
         }
     }
 }
+

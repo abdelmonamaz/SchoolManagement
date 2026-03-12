@@ -4,8 +4,8 @@ import UI.Components
 
 AppCard {
     id: root
-    title: "Groupes & Classes"
-    subtitle: "Structure actuelle du " + selectedNiveauNom
+    title: qsTr("Groupes & Classes")
+    subtitle: qsTr("Structure actuelle du ") + selectedNiveauNom
 
     required property var classes
     required property var students
@@ -94,7 +94,7 @@ AppCard {
                         spacing: 4
 
                         Text {
-                            text: "Classe " + modelData.nom
+                            text: qsTr("Classe ") + modelData.nom
                             font.pixelSize: 14
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -137,7 +137,7 @@ AppCard {
                 }
 
                 SectionLabel {
-                    text: "NOUVEAU GROUPE"
+                    text: qsTr("NOUVEAU GROUPE")
                     font.pixelSize: 10
                     color: addClassMa.containsMouse ? Style.primary : Style.textTertiary
                     anchors.horizontalCenter: parent.horizontalCenter

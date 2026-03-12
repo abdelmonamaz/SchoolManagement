@@ -28,7 +28,7 @@ Column {
     RowLayout {
         width: parent.width
 
-        SectionLabel { Layout.fillWidth: true; text: "ÉPREUVE À PLANIFIER" }
+        SectionLabel { Layout.fillWidth: true; text: qsTr("ÉPREUVE À PLANIFIER") }
 
         RowLayout {
             spacing: 6
@@ -40,7 +40,7 @@ Column {
                 border.color: root.showAllEpreuves ? Style.primary : Style.borderMedium
                 border.width: 1.5
                 Text {
-                    anchors.centerIn: parent; text: "✓"
+                    anchors.centerIn: parent; text: qsTr("✓")
                     font.pixelSize: 9; font.weight: Font.Bold; color: Style.background
                     visible: root.showAllEpreuves
                 }
@@ -50,7 +50,7 @@ Column {
                 }
             }
             Text {
-                text: "Inclure les épreuves déjà planifiées"
+                text: qsTr("Inclure les épreuves déjà planifiées")
                 font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
             }
         }
@@ -86,7 +86,7 @@ Column {
             visible: schoolingController.matiereExamens.length === 0
             Text {
                 anchors.centerIn: parent
-                text: "Aucune épreuve définie pour cette matière"
+                text: qsTr("Aucune épreuve définie pour cette matière")
                 font.pixelSize: 11; font.italic: true; color: Style.textTertiary
                 width: parent.width - 24; horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap

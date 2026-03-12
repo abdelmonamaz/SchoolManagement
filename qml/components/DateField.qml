@@ -5,7 +5,7 @@ import QtQuick.Layouts
 // La catégorie (Jeune/Adulte) est calculée automatiquement selon l'âge.
 // Usage:
 //   DateField {
-//       label: "DATE DE NAISSANCE"
+//       label: qsTr("DATE DE NAISSANCE")
 //       // accès : isValid, age, categorie, clear()
 //   }
 Column {
@@ -125,14 +125,14 @@ Column {
 
                 Text {
                     visible: !dayInput.text
-                    text: "JJ"
+                    text: qsTr("JJ")
                     font: dayInput.font
                     color: Style.textTertiary
                 }
             }
 
             Text {
-                text: "/"
+                text: qsTr("/")
                 font.pixelSize: 13
                 font.bold: true
                 color: Style.textTertiary
@@ -162,14 +162,14 @@ Column {
 
                 Text {
                     visible: !monthInput.text
-                    text: "MM"
+                    text: qsTr("MM")
                     font: monthInput.font
                     color: Style.textTertiary
                 }
             }
 
             Text {
-                text: "/"
+                text: qsTr("/")
                 font.pixelSize: 13
                 font.bold: true
                 color: Style.textTertiary
@@ -200,7 +200,7 @@ Column {
 
                 Text {
                     visible: !yearInput.text
-                    text: "AAAA"
+                    text: qsTr("AAAA")
                     font: yearInput.font
                     color: Style.textTertiary
                 }

@@ -215,13 +215,13 @@ Item {
         RowLayout {
             Layout.fillWidth: true; spacing: 16
             PageHeader { Layout.fillWidth: true
-                title:    "Finance & Trésorerie"
-                subtitle: "Gestion mensuelle des flux financiers · " + selectedMonth + " " + selectedYear }
+                title: qsTr("Finance & Trésorerie")
+                subtitle: qsTr("Gestion mensuelle des flux financiers · ") + selectedMonth + " " + selectedYear }
             Row {
                 spacing: 4
                 Rectangle { width: 32; height: 36; radius: 10
                     color: prevMonthMa.containsMouse ? Style.bgSecondary : Style.bgPage; border.color: Style.borderLight
-                    Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
                     MouseArea { id: prevMonthMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: financePage.navigateMonth(-1) }
                 }
@@ -248,7 +248,7 @@ Item {
                 }
                 Rectangle { width: 32; height: 36; radius: 10
                     color: nextMonthMa.containsMouse ? Style.bgSecondary : Style.bgPage; border.color: Style.borderLight
-                    Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 18; font.bold: true; color: Style.textSecondary }
                     MouseArea { id: nextMonthMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: financePage.navigateMonth(1) }
                 }
@@ -262,11 +262,11 @@ Item {
             RowLayout { anchors.fill: parent; spacing: 32
                 Repeater {
                     model: [
-                        { id: "schooling",  label: "Scolarité",       icon: "wallet"   },
-                        { id: "donations",  label: "Dons & Waqf",     icon: "heart"    },
-                        { id: "expenses",   label: "Dépenses",         icon: "receipt"  },
-                        { id: "donateurs",  label: "Donateurs",        icon: "users"    },
-                        { id: "journal",    label: "Journal Unifié",   icon: "history"  }
+                        { id: "schooling",  label: qsTr("Scolarité"),       icon: "wallet"   },
+                        { id: "donations",  label: qsTr("Dons & Waqf"),     icon: "heart"    },
+                        { id: "expenses",   label: qsTr("Dépenses"),         icon: "receipt"  },
+                        { id: "donateurs",  label: qsTr("Donateurs"),        icon: "users"    },
+                        { id: "journal",    label: qsTr("Journal Unifié"),   icon: "history"  }
                     ]
                     delegate: Item {
                         Layout.fillHeight: true; implicitWidth: tabContent.implicitWidth
@@ -287,7 +287,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true; spacing: 16
             visible: activeTab === "schooling" || activeTab === "expenses"
-            SearchField { Layout.fillWidth: true; placeholder: "Rechercher…"; onTextChanged: searchTerm = text }
+            SearchField { Layout.fillWidth: true; placeholder: qsTr("Rechercher…"); onTextChanged: searchTerm = text }
             PrimaryButton {
                 text: activeTab === "schooling" ? "Nouveau Paiement" : "Nouveau Frais"
                 iconName: "plus"
@@ -336,15 +336,15 @@ Item {
                 Rectangle { width: 48; height: 48; radius: 20; color: Style.errorBg
                     IconLabel { anchors.centerIn: parent; iconName: "alert"; iconSize: 24; iconColor: Style.errorColor } }
                 Column { Layout.fillWidth: true; spacing: 2
-                    Text { text: "Confirmer la suppression"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                    Text { text: "CETTE ACTION EST IRRÉVERSIBLE"; font.pixelSize: 9; color: Style.errorColor; font.weight: Font.Bold; font.letterSpacing: 1 }
+                    Text { text: qsTr("Confirmer la suppression"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("CETTE ACTION EST IRRÉVERSIBLE"); font.pixelSize: 9; color: Style.errorColor; font.weight: Font.Bold; font.letterSpacing: 1 }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: showDeleteModal = false }
             }
             Rectangle { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
                 implicitHeight: delText.implicitHeight + 28; radius: 14; color: Style.errorBg; border.color: Style.errorBorder
                 Text { id: delText; anchors.fill: parent; anchors.margins: 14
-                    text: "Supprimer " + (deleteType === "payment" ? "le paiement"
+                    text: qsTr("Supprimer ") + (deleteType === "payment" ? "le paiement"
                                        : deleteType === "depense" ? "la dépense"
                                        : deleteType === "projet" ? "le projet"
                                        : "le don") + " <b>" + deleteItemName + "</b> ?"
@@ -352,7 +352,7 @@ Item {
                     wrapMode: Text.WordWrap; textFormat: Text.RichText; lineHeight: 1.5 }
             }
             ModalButtons { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"; confirmText: "SUPPRIMER"; confirmColor: Style.errorColor
+                cancelText: qsTr("Annuler"); confirmText: qsTr("SUPPRIMER"); confirmColor: Style.errorColor
                 onCancel: showDeleteModal = false
                 onConfirm: {
                     if (financePage.deleteType === "payment")

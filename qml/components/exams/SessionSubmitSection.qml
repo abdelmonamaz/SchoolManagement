@@ -86,10 +86,10 @@ Column {
             spacing: 10
             RowLayout {
                 width: parent.width; spacing: 8
-                Text { text: "⚠"; font.pixelSize: 16; color: Style.warningColor }
+                Text { text: qsTr("⚠"); font.pixelSize: 16; color: Style.warningColor }
                 Text {
                     Layout.fillWidth: true
-                    text: "Le nombre de séances prévu ("
+                    text: qsTr("Le nombre de séances prévu (")
                           + (examsController.courseCountInfo["limit"] || 0)
                           + "/an) est déjà atteint. Continuer quand même ?"
                     font.pixelSize: 12; font.weight: Font.Bold; color: Style.warningColor
@@ -103,7 +103,7 @@ Column {
                     color: cancelWarnMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("ANNULER"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
                     MouseArea { id: cancelWarnMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: root.showOverLimitWarning = false }
                 }
@@ -111,7 +111,7 @@ Column {
                     Layout.fillWidth: true; height: 36; radius: 10
                     color: forceCreateMa.containsMouse ? Style.warningColor : Style.warningColor
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "CRÉER QUAND MÊME"; font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
+                    Text { anchors.centerIn: parent; text: qsTr("CRÉER QUAND MÊME"); font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
                     MouseArea { id: forceCreateMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { root.showOverLimitWarning = false; root.showConfirmSubmit = true } }
                 }
@@ -144,7 +144,7 @@ Column {
                     color: cancelConfirmMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "NON"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("NON"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary }
                     MouseArea { id: cancelConfirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: root.showConfirmSubmit = false }
                 }
@@ -152,7 +152,7 @@ Column {
                     Layout.fillWidth: true; height: 36; radius: 10
                     color: okConfirmMa.containsMouse ? Style.successColor : Style.successColor
                     Behavior on color { ColorAnimation { duration: 100 } }
-                    Text { anchors.centerIn: parent; text: "OUI, CONFIRMER"; font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
+                    Text { anchors.centerIn: parent; text: qsTr("OUI, CONFIRMER"); font.pixelSize: 10; font.weight: Font.Black; color: Style.background }
                     MouseArea {
                         id: okConfirmMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
@@ -209,8 +209,8 @@ Column {
 
         RowLayout {
             anchors.centerIn: parent; spacing: 8
-            Text { text: "Confirmer l'Organisation"; font.pixelSize: 12; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
-            Text { text: "→"; font.pixelSize: 16; color: Style.background }
+            Text { text: qsTr("Confirmer l'Organisation"); font.pixelSize: 12; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
+            Text { text: qsTr("→"); font.pixelSize: 16; color: Style.background }
         }
 
         MouseArea {

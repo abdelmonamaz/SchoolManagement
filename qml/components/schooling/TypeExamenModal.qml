@@ -19,8 +19,8 @@ ModalOverlay {
         RowLayout {
             anchors.fill: parent; anchors.margins: 24; spacing: 12
             Column { Layout.fillWidth: true; spacing: 2
-                Text { text: "Types d'évaluations"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                Text { text: "Gérer les types d'examens disponibles"; font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
+                Text { text: qsTr("Types d'évaluations"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                Text { text: qsTr("Gérer les types d'examens disponibles"); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
             }
             IconButton { iconName: "close"; onClicked: root.show = false }
         }
@@ -65,7 +65,7 @@ ModalOverlay {
                         Rectangle {
                             width: 30; height: 30; radius: 9
                             color: dMa.containsMouse ? Style.errorBorder : "transparent"
-                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: dMa.containsMouse ? Style.errorColor : Style.textTertiary }
+                            Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 11; font.bold: true; color: dMa.containsMouse ? Style.errorColor : Style.textTertiary }
                             MouseArea { id: dMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: schoolingController.deleteTypeExamen(modelData.id)
                             }
@@ -82,11 +82,11 @@ ModalOverlay {
                     border.color: newExInput.activeFocus ? Style.primary : Style.textSecondary; border.width: 1
                     Behavior on border.color { ColorAnimation { duration: 120 } }
                     HoverHandler { cursorShape: Qt.IBeamCursor }
-                    TextInput { id: newExInput; anchors.fill: parent; anchors.margins: 12; font.pixelSize: 13; color: Style.textPrimary; Text { visible: !parent.text; text: "Nouveau type d'examen..."; font: parent.font; color: Style.textTertiary } Keys.onReturnPressed: addBtn.doAdd() }
+                    TextInput { id: newExInput; anchors.fill: parent; anchors.margins: 12; font.pixelSize: 13; color: Style.textPrimary; Text { visible: !parent.text; text: qsTr("Nouveau type d'examen..."); font: parent.font; color: Style.textTertiary } Keys.onReturnPressed: addBtn.doAdd() }
                 }
                 Rectangle {
                     id: addBtn; width: 44; height: 44; radius: 12; color: aMa.containsMouse ? Style.primary : Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: aMa.containsMouse ? Style.background : Style.primary }
+                    Text { anchors.centerIn: parent; text: qsTr("+"); font.pixelSize: 20; font.bold: true; color: aMa.containsMouse ? Style.background : Style.primary }
                     function doAdd() { var t = newExInput.text.trim(); if(t) { schoolingController.createTypeExamen(t); newExInput.text = "" } }
                     MouseArea { id: aMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: addBtn.doAdd() }
                 }
@@ -109,7 +109,7 @@ ModalOverlay {
                 color: cancelFooterMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderMedium; border.width: 1
                 Behavior on color { ColorAnimation { duration: 100 } }
-                Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textSecondary; font.letterSpacing: 0.5 }
+                Text { anchors.centerIn: parent; text: qsTr("ANNULER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textSecondary; font.letterSpacing: 0.5 }
                 MouseArea { id: cancelFooterMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.show = false }
             }
 
@@ -117,7 +117,7 @@ ModalOverlay {
                 Layout.fillWidth: true; height: 44; radius: 12
                 color: confirmFooterMa.containsMouse ? Style.primaryDark : Style.primary
                 Behavior on color { ColorAnimation { duration: 100 } }
-                Text { anchors.centerIn: parent; text: "CONFIRMER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
+                Text { anchors.centerIn: parent; text: qsTr("CONFIRMER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
                 MouseArea { id: confirmFooterMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.show = false }
             }
         }

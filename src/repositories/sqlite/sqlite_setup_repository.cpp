@@ -17,7 +17,7 @@ QVariantMap SqliteAssociationRepository::getConfig()
     QSqlQuery q(db);
     q.exec(QStringLiteral(
         "SELECT app_initialized, nom_association, adresse, "
-        "       exercice_debut, exercice_fin, age_passage_adulte "
+        "       exercice_debut, exercice_fin, age_passage_adulte, langue "
         "FROM association_config LIMIT 1"));
 
     if (!q.next()) return {};
@@ -31,7 +31,8 @@ QVariantMap SqliteAssociationRepository::getConfig()
             {"adresse",          q.value(2).toString()},
             {"exerciceDebut",    q.value(3).toString()},
             {"exerciceFin",      q.value(4).toString()},
-            {"agePassageAdulte", age > 0 ? age : 12}
+            {"agePassageAdulte", age > 0 ? age : 12},
+            {"langue",           q.value(6).toString()}
         }}
     };
 }
@@ -47,6 +48,7 @@ Result<bool> SqliteAssociationRepository::saveAssociation(const QVariantMap& dat
         "  exercice_debut     = ?, "
         "  exercice_fin       = ?, "
         "  age_passage_adulte = ?, "
+        "  langue             = ?, "
         "  date_modification  = datetime('now') "
         "WHERE id = (SELECT MIN(id) FROM association_config)"));
     q.addBindValue(data.value("nomAssociation").toString());
@@ -54,6 +56,7 @@ Result<bool> SqliteAssociationRepository::saveAssociation(const QVariantMap& dat
     q.addBindValue(data.value("exerciceDebut", "01-01").toString());
     q.addBindValue(data.value("exerciceFin",   "12-31").toString());
     q.addBindValue(data.value("agePassageAdulte", 12).toInt());
+    q.addBindValue(data.value("langue", "français").toString());
 
     if (!q.exec())
         return Result<bool>::error(q.lastError().text());

@@ -50,8 +50,8 @@ ModalOverlay {
 
             Column {
                 Layout.fillWidth: true; spacing: 2
-                Text { text: "Modifier la matière"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                Text { text: "Séances, durée et évaluations"; font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
+                Text { text: qsTr("Modifier la matière"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                Text { text: qsTr("Séances, durée et évaluations"); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
             }
 
             IconButton { iconName: "close"; onClicked: root.closeRequested() }
@@ -72,7 +72,7 @@ ModalOverlay {
             // Nom
             Column {
                 width: parent.width; spacing: 6
-                Text { text: "NOM DE LA MATIÈRE"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                Text { text: qsTr("NOM DE LA MATIÈRE"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -83,7 +83,7 @@ ModalOverlay {
                         anchors.fill: parent; anchors.margins: 12
                         font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                         selectByMouse: true
-                        Text { visible: !parent.text; text: "Nom de la matière..."; font: parent.font; color: Style.textTertiary }
+                        Text { visible: !parent.text; text: qsTr("Nom de la matière..."); font: parent.font; color: Style.textTertiary }
                     }
                 }
             }
@@ -94,7 +94,7 @@ ModalOverlay {
 
                 Column {
                     Layout.fillWidth: true; spacing: 6
-                    Text { text: "SÉANCES / AN"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { text: qsTr("SÉANCES / AN"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -108,19 +108,19 @@ ModalOverlay {
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 selectByMouse: true; inputMethodHints: Qt.ImhDigitsOnly
                                 validator: IntValidator { bottom: 0; top: 999 }
-                                Text { visible: !parent.text; text: "0"; font: parent.font; color: Style.textTertiary }
+                                Text { visible: !parent.text; text: qsTr("0"); font: parent.font; color: Style.textTertiary }
                             }
                             Column {
                                 spacing: 2
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: nbUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: nbUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(nbSeancesInput.text) || 0; nbSeancesInput.text = String(v + 1) } }
                                 }
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: nbDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: nbDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(nbSeancesInput.text) || 0; if (v > 0) nbSeancesInput.text = String(v - 1) } }
                                 }
@@ -131,7 +131,7 @@ ModalOverlay {
 
                 Column {
                     Layout.fillWidth: true; spacing: 6
-                    Text { text: "DURÉE (MIN)"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { text: qsTr("DURÉE (MIN)"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -145,19 +145,19 @@ ModalOverlay {
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 selectByMouse: true; inputMethodHints: Qt.ImhDigitsOnly
                                 validator: IntValidator { bottom: 1; top: 480 }
-                                Text { visible: !parent.text; text: "60"; font: parent.font; color: Style.textTertiary }
+                                Text { visible: !parent.text; text: qsTr("60"); font: parent.font; color: Style.textTertiary }
                             }
                             Column {
                                 spacing: 2
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: durUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: durUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(dureeInput.text) || 60; dureeInput.text = String(v + 5) } }
                                 }
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: durDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: durDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(dureeInput.text) || 60; if (v > 5) dureeInput.text = String(v - 5) } }
                                 }
@@ -175,7 +175,7 @@ ModalOverlay {
 
                 RowLayout {
                     width: parent.width
-                    Text { Layout.fillWidth: true; text: "ÉVALUATIONS"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { Layout.fillWidth: true; text: qsTr("ÉVALUATIONS"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Text {
                         text: schoolingController.matiereExamens.length + " définie" + (schoolingController.matiereExamens.length > 1 ? "s" : "")
                         font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
@@ -249,7 +249,7 @@ ModalOverlay {
                                 width: 30; height: 30; radius: 9
                                 color: delExMa.containsMouse ? Style.errorBorder : "transparent"
                                 Behavior on color { ColorAnimation { duration: 120 } }
-                                Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: delExMa.containsMouse ? Style.errorColor : Style.textTertiary }
+                                Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 11; font.bold: true; color: delExMa.containsMouse ? Style.errorColor : Style.textTertiary }
                                 MouseArea {
                                     id: delExMa; anchors.fill: parent
                                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -266,7 +266,7 @@ ModalOverlay {
                     Text {
                         anchors.centerIn: parent
                         visible: examenList.count === 0
-                        text: "Aucune évaluation définie"
+                        text: qsTr("Aucune évaluation définie")
                         font.pixelSize: 12; font.italic: true; color: Style.textTertiary
                     }
                 }
@@ -321,7 +321,7 @@ ModalOverlay {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 8
                                         visible: !parent.text
-                                        text: "Choisir ou saisir..."
+                                        text: qsTr("Choisir ou saisir...")
                                         font: parent.font; color: Style.textTertiary
                                     }
                                 }
@@ -333,7 +333,7 @@ ModalOverlay {
                         // Indicateur de doublon — sous le ComboBox
                         Text {
                             visible: addExamenRow.isDuplicate
-                            text: "Ce type d'évaluation est déjà ajouté pour cette matière"
+                            text: qsTr("Ce type d'évaluation est déjà ajouté pour cette matière")
                             font.pixelSize: 10; font.weight: Font.Bold
                             color: Style.errorColor
                             leftPadding: 4
@@ -347,7 +347,7 @@ ModalOverlay {
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                         color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.primary : Style.primaryBg
                         Behavior on color { ColorAnimation { duration: 150 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.background : Style.primary }
+                        Text { anchors.centerIn: parent; text: qsTr("+"); font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.background : Style.primary }
 
                         function doAdd() {
                             var t = newExamenCombo.editText.trim()
@@ -407,14 +407,14 @@ ModalOverlay {
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 height: 44; radius: 14; color: Style.bgWhite; border.color: Style.borderLight
-                Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                Text { anchors.centerIn: parent; text: qsTr("ANNULER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.closeRequested() }
             }
 
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 height: 44; radius: 14; color: Style.primary
-                Text { anchors.centerIn: parent; text: "ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
+                Text { anchors.centerIn: parent; text: qsTr("ENREGISTRER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: {
@@ -450,9 +450,9 @@ ModalOverlay {
 
                 RowLayout {
                     anchors.centerIn: parent; spacing: 6
-                    Text { text: "⚠"; font.pixelSize: 14; color: Style.chart1 }
+                    Text { text: qsTr("⚠"); font.pixelSize: 14; color: Style.chart1 }
                     Text {
-                        text: "Confirmer les modifications de la matière ?"
+                        text: qsTr("Confirmer les modifications de la matière ?")
                         font.pixelSize: 12; font.weight: Font.Bold; color: Style.warningColor
                     }
                 }
@@ -468,7 +468,7 @@ ModalOverlay {
                     color: cancelConfirmMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "NON"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("NON"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                     MouseArea { id: cancelConfirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.showConfirm = false }
                 }
 
@@ -477,7 +477,7 @@ ModalOverlay {
                     height: 40; radius: 12
                     color: okConfirmMa.containsMouse ? Style.successColor : Style.successColor
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "OUI, ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
+                    Text { anchors.centerIn: parent; text: qsTr("OUI, ENREGISTRER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                     MouseArea {
                         id: okConfirmMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor

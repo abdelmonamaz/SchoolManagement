@@ -212,14 +212,14 @@ Popup {
                     color: Qt.rgba(1, 1, 1, 0.15)
                     Text {
                         anchors.centerIn: parent
-                        text: "🔒"; font.pixelSize: 20
+                        text: qsTr("🔒"); font.pixelSize: 20
                     }
                 }
 
                 Column {
                     spacing: 2
                     Text {
-                        text: "Clôture d'Année Scolaire"
+                        text: qsTr("Clôture d'Année Scolaire")
                         font.pixelSize: 18; font.bold: true
                         color: "white"
                     }
@@ -235,7 +235,7 @@ Popup {
                 Rectangle {
                     width: 32; height: 32; radius: 8
                     color: Qt.rgba(1,1,1,0.15)
-                    Text { anchors.centerIn: parent; text: "✕"; color: "white"; font.pixelSize: 14 }
+                    Text { anchors.centerIn: parent; text: qsTr("✕"); color: "white"; font.pixelSize: 14 }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -256,11 +256,11 @@ Popup {
                 spacing: 0
 
                 property var stepDefs: [
-                    { label: "Vue\nd'ensemble", icon: "📊" },
-                    { label: "Progressions",    icon: "📈" },
-                    { label: "Archivage",       icon: "📦" },
-                    { label: "Rapports",        icon: "📄" },
-                    { label: "Confirmation",    icon: "🔒" }
+                    { label: qsTr("Vue\nd'ensemble"), icon: "📊" },
+                    { label: qsTr("Progressions"),    icon: "📈" },
+                    { label: qsTr("Archivage"),       icon: "📦" },
+                    { label: qsTr("Rapports"),        icon: "📄" },
+                    { label: qsTr("Confirmation"),    icon: "🔒" }
                 ]
 
                 Repeater {
@@ -362,16 +362,16 @@ Popup {
 
                             Row {
                                 spacing: 10
-                                Text { text: "⚠️"; font.pixelSize: 16 }
+                                Text { text: qsTr("⚠️"); font.pixelSize: 16 }
                                 Text {
-                                    text: "Attention : Action Critique"
+                                    text: qsTr("Attention : Action Critique")
                                     font.pixelSize: 15; font.bold: true
                                     color: Style.warningColor
                                 }
                             }
                             Text {
                                 width: parent.width
-                                text: "La clôture d'année scolaire est une opération <b>irréversible</b> qui va :"
+                                text: qsTr("La clôture d'année scolaire est une opération <b>irréversible</b> qui va :")
                                 textFormat: Text.RichText
                                 font.pixelSize: 13; color: Style.warningColor
                                 wrapMode: Text.WordWrap
@@ -385,7 +385,7 @@ Popup {
                                 ]
                                 delegate: Row {
                                     spacing: 8
-                                    Text { text: "•"; font.pixelSize: 13; color: Style.warningColor }
+                                    Text { text: qsTr("•"); font.pixelSize: 13; color: Style.warningColor }
                                     Text {
                                         width: warnCol.width - 16
                                         text: modelData; font.pixelSize: 13; color: Style.warningColor
@@ -404,13 +404,13 @@ Popup {
 
                         Repeater {
                             model: [
-                                { label: "Étudiants Inscrits", sub: "Année " + (stats ? stats.anneeActiveLibelle : ""),
+                                { label: qsTr("Étudiants Inscrits"), sub: "Année " + (stats ? stats.anneeActiveLibelle : ""),
                                   value: stats ? stats.studentsInscrits : 0, color: Style.successBg, accent: Style.successColor },
-                                { label: "Taux de Réussite", sub: "Global tous niveaux",
+                                { label: qsTr("Taux de Réussite"), sub: "Global tous niveaux",
                                   value: (stats ? stats.tauxReussite : 0) + "%", color: Style.bgWhite, accent: Style.chart3 },
-                                { label: "Diplômés", sub: "Niveau terminal complété",
+                                { label: qsTr("Diplômés"), sub: "Niveau terminal complété",
                                   value: stats ? stats.diplomes : 0, color: Style.background, accent: Style.chart3 },
-                                { label: "Redoublants", sub: "Tous niveaux confondus",
+                                { label: qsTr("Redoublants"), sub: "Tous niveaux confondus",
                                   value: stats ? stats.redoublants : 0, color: Style.errorBg, accent: Style.errorColor }
                             ]
                             delegate: Rectangle {
@@ -456,7 +456,7 @@ Popup {
                             spacing: 6
                             Row {
                                 spacing: 8
-                                Text { text: "⚠️"; font.pixelSize: 14 }
+                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
                                 Text {
                                     text: (incomplete ? incomplete.length : 0) + " séance(s) non validée(s)"
                                     font.pixelSize: 13; font.bold: true; color: Style.warningColor
@@ -464,7 +464,7 @@ Popup {
                             }
                             Text {
                                 width: parent.width
-                                text: "Ces séances passées n'ont pas d'enregistrement de présence. Vous pouvez continuer, elles seront archivées telles quelles."
+                                text: qsTr("Ces séances passées n'ont pas d'enregistrement de présence. Vous pouvez continuer, elles seront archivées telles quelles.")
                                 font.pixelSize: 12; color: Style.warningColor
                                 wrapMode: Text.WordWrap
                             }
@@ -482,10 +482,10 @@ Popup {
                             id: backupRow
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
                             spacing: 10
-                            Text { text: "🛡️"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: qsTr("🛡️"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
                             Text {
                                 width: parent.width - 30
-                                text: "Sauvegarde recommandée : Avant de procéder à la clôture, assurez-vous d'avoir effectué une sauvegarde complète de la base de données dans l'onglet \"Sauvegarde & Data\" des Paramètres."
+                                text: qsTr("Sauvegarde recommandée : Avant de procéder à la clôture, assurez-vous d'avoir effectué une sauvegarde complète de la base de données dans l'onglet \"Sauvegarde & Data\" des Paramètres.")
                                 font.pixelSize: 12; color: Style.chart3
                                 wrapMode: Text.WordWrap
                             }
@@ -631,7 +631,7 @@ Popup {
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "Réussi"
+                                    text: qsTr("Réussi")
                                     font.pixelSize: 12; font.bold: true
                                     color: modelData.resultat === "Réussi" ? "white" : Style.textSecondary
                                 }
@@ -660,7 +660,7 @@ Popup {
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "Redoublant"
+                                    text: qsTr("Redoublant")
                                     font.pixelSize: 12; font.bold: true
                                     color: modelData.resultat === "Redoublant" ? "white" : Style.textSecondary
                                 }
@@ -734,7 +734,7 @@ Popup {
                                     visible: modelData.resultat === "Réussi"
                                              && modelData.niveauxSuivants
                                              && modelData.niveauxSuivants.length > 1
-                                    text: "▾"; font.pixelSize: 12; color: Style.textSecondary
+                                    text: qsTr("▾"); font.pixelSize: 12; color: Style.textSecondary
                                 }
 
                                 // Click to cycle through next niveaux (if multiple)
@@ -783,7 +783,7 @@ Popup {
 
                     // ── Global sessions KPIs ──────────────────────────────────
                     Text {
-                        text: "Bilan des séances"
+                        text: qsTr("Bilan des séances")
                         font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                     }
 
@@ -791,9 +791,9 @@ Popup {
                         width: parent.width; columns: 3; spacing: 10
                         Repeater {
                             model: [
-                                { label: "Cours prévus",    value: parent.parent.arch ? parent.parent.arch.coursTotal   : 0, accent: Style.bgWhite, bg: Style.chart3 },
-                                { label: "Cours validés",   value: parent.parent.arch ? parent.parent.arch.coursValides : 0, accent: Style.successColor, bg: Style.successBg },
-                                { label: "Examens",         value: parent.parent.arch ? parent.parent.arch.examensTotal : 0, accent: Style.chart3, bg: Style.background }
+                                { label: qsTr("Cours prévus"),    value: parent.parent.arch ? parent.parent.arch.coursTotal   : 0, accent: Style.bgWhite, bg: Style.chart3 },
+                                { label: qsTr("Cours validés"),   value: parent.parent.arch ? parent.parent.arch.coursValides : 0, accent: Style.successColor, bg: Style.successBg },
+                                { label: qsTr("Examens"),         value: parent.parent.arch ? parent.parent.arch.examensTotal : 0, accent: Style.chart3, bg: Style.background }
                             ]
                             delegate: Rectangle {
                                 width: (step3Scroll.width - 20) / 3; height: 64
@@ -817,8 +817,8 @@ Popup {
                             id: presRow
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
                             spacing: 12
-                            Text { text: "📊"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Taux de présence global :"; font.pixelSize: 13; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: qsTr("📊"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: qsTr("Taux de présence global :"); font.pixelSize: 13; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
                             Text {
                                 text: (parent.parent.parent.arch ? parent.parent.parent.arch.tauxPresenceGlobal : 0) + " %"
                                 font.pixelSize: 15; font.bold: true
@@ -829,7 +829,7 @@ Popup {
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
-                                text: "| Notes examens saisies : " + (parent.parent.parent.arch ? parent.parent.parent.arch.examensAvecNotes : 0) + "/" + (parent.parent.parent.arch ? parent.parent.parent.arch.examensTotal : 0)
+                                text: qsTr("| Notes examens saisies : ") + (parent.parent.parent.arch ? parent.parent.parent.arch.examensAvecNotes : 0) + "/" + (parent.parent.parent.arch ? parent.parent.parent.arch.examensTotal : 0)
                                 font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter
                             }
                         }
@@ -837,7 +837,7 @@ Popup {
 
                     // ── Per-matière breakdown ─────────────────────────────────
                     Text {
-                        text: "Détail par matière"
+                        text: qsTr("Détail par matière")
                         font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                         visible: parent.arch && parent.arch.matieres && parent.arch.matieres.length > 0
                     }
@@ -858,14 +858,14 @@ Popup {
                                 // Header
                                 Row {
                                     width: parent.width; spacing: 8
-                                    Text { text: "📚"; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: qsTr("📚"); font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
                                     Text { text: modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: "·"; font.pixelSize: 13; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: qsTr("·"); font.pixelSize: 13; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
                                     Text { text: modelData.niveauNom; font.pixelSize: 11; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
                                     Item { width: 1; height: 1 }  // spacer
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "Présence : " + modelData.presenceRate + "%"
+                                        text: qsTr("Présence : ") + modelData.presenceRate + "%"
                                         font.pixelSize: 11; font.bold: true
                                         color: modelData.presenceRate >= 75 ? Style.successColor : modelData.presenceRate >= 50 ? Style.warningColor : Style.errorColor
                                     }
@@ -875,7 +875,7 @@ Popup {
                                 Row {
                                     spacing: 8
                                     Text {
-                                        text: "Cours : " + modelData.coursValides + "/" + modelData.coursTotal + " validés"
+                                        text: qsTr("Cours : ") + modelData.coursValides + "/" + modelData.coursTotal + " validés"
                                         font.pixelSize: 11; color: Style.textSecondary
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -930,7 +930,7 @@ Popup {
                             spacing: 8
                             Row {
                                 spacing: 8
-                                Text { text: "⚠️"; font.pixelSize: 14 }
+                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
                                 Text {
                                     text: (incomplete ? incomplete.length : 0) + " séance(s) sans enregistrement de présence"
                                     font.pixelSize: 13; font.bold: true; color: Style.warningColor
@@ -940,9 +940,9 @@ Popup {
                                 model: incomplete
                                 delegate: Row {
                                     spacing: 8
-                                    Text { text: "•"; font.pixelSize: 12; color: Style.warningColor }
+                                    Text { text: qsTr("•"); font.pixelSize: 12; color: Style.warningColor }
                                     Text {
-                                        text: "[" + modelData.type + "] " + modelData.titre + " — " + modelData.date
+                                        text: qsTr("[") + modelData.type + "] " + modelData.titre + " — " + modelData.date
                                         font.pixelSize: 12; color: Style.warningColor
                                     }
                                 }
@@ -985,7 +985,7 @@ Popup {
                     }
 
                     Text {
-                        text: "Résumé des actions"
+                        text: qsTr("Résumé des actions")
                         font.pixelSize: 16; font.bold: true; color: Style.textPrimary
                     }
 
@@ -994,9 +994,9 @@ Popup {
 
                         Repeater {
                             model: [
-                                { label: "Promus",      icon: "↑", value: parent.parent.nbPromus,      color: Style.successBg, accent: Style.successColor },
-                                { label: "Redoublants", icon: "↩", value: parent.parent.nbRedoublants, color: Style.errorBg, accent: Style.errorColor },
-                                { label: "Diplômés",    icon: "🎓", value: parent.parent.nbDiplomesStep, color: Style.background, accent: Style.chart3 }
+                                { label: qsTr("Promus"),      icon: "↑", value: parent.parent.nbPromus,      color: Style.successBg, accent: Style.successColor },
+                                { label: qsTr("Redoublants"), icon: "↩", value: parent.parent.nbRedoublants, color: Style.errorBg, accent: Style.errorColor },
+                                { label: qsTr("Diplômés"),    icon: "🎓", value: parent.parent.nbDiplomesStep, color: Style.background, accent: Style.chart3 }
                             ]
                             delegate: Rectangle {
                                 width: (step4Scroll.width - 24) / 3; height: 80
@@ -1022,7 +1022,7 @@ Popup {
                     }
 
                     Text {
-                        text: "Après la clôture"
+                        text: qsTr("Après la clôture")
                         font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                     }
 
@@ -1078,14 +1078,14 @@ Popup {
                     spacing: 16
 
                     Text {
-                        text: "Paramètres de la nouvelle année scolaire"
+                        text: qsTr("Paramètres de la nouvelle année scolaire")
                         font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                     }
 
                     // New year label
                     Column {
                         width: parent.width; spacing: 6
-                        Text { text: "Libellé de l'année"; font.pixelSize: 12; color: Style.textSecondary }
+                        Text { text: qsTr("Libellé de l'année"); font.pixelSize: 12; color: Style.textSecondary }
                         Rectangle {
                             width: parent.width; height: 44; radius: 10
                             color: Style.bgWhite
@@ -1104,7 +1104,7 @@ Popup {
                             Text {
                                 visible: labelInput.text === ""
                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: 12 }
-                                text: "Ex : 2026-2027"; font.pixelSize: 13; color: Style.textTertiary
+                                text: qsTr("Ex : 2026-2027"); font.pixelSize: 13; color: Style.textTertiary
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -1120,7 +1120,7 @@ Popup {
                         DateField {
                             id: dateField5Debut
                             width: (parent.width - 12) / 2
-                            label: "DATE DE DÉBUT"
+                            label: qsTr("DATE DE DÉBUT")
                             fieldColor: Style.bgWhite
                             onDateStringChanged: {
                                 newDebut = dateString
@@ -1131,7 +1131,7 @@ Popup {
                         DateField {
                             id: dateField5Fin
                             width: (parent.width - 12) / 2
-                            label: "DATE DE FIN"
+                            label: qsTr("DATE DE FIN")
                             fieldColor: Style.bgWhite
                             onDateStringChanged: {
                                 newFin = dateString
@@ -1152,12 +1152,12 @@ Popup {
                             spacing: 8
                             Row {
                                 spacing: 8
-                                Text { text: "⚠️"; font.pixelSize: 14 }
-                                Text { text: "Avertissement Important"; font.pixelSize: 14; font.bold: true; color: Style.warningColor }
+                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
+                                Text { text: qsTr("Avertissement Important"); font.pixelSize: 14; font.bold: true; color: Style.warningColor }
                             }
                             Text {
                                 width: parent.width
-                                text: "Une fois la clôture effectuée, il sera <b>impossible de revenir en arrière</b>. Assurez-vous d'avoir vérifié toutes les données et effectué une sauvegarde complète avant de continuer."
+                                text: qsTr("Une fois la clôture effectuée, il sera <b>impossible de revenir en arrière</b>. Assurez-vous d'avoir vérifié toutes les données et effectué une sauvegarde complète avant de continuer.")
                                 textFormat: Text.RichText; font.pixelSize: 13; color: Style.warningColor
                                 wrapMode: Text.WordWrap
                             }
@@ -1173,9 +1173,9 @@ Popup {
 
                         Row {
                             anchors.centerIn: parent; spacing: 10
-                            Text { text: "🔒"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter; color: "white" }
+                            Text { text: qsTr("🔒"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter; color: "white" }
                             Text {
-                                text: "CLÔTURER L'ANNÉE SCOLAIRE " + (stats ? stats.anneeActiveLibelle.toUpperCase() : "")
+                                text: qsTr("CLÔTURER L'ANNÉE SCOLAIRE ") + (stats ? stats.anneeActiveLibelle.toUpperCase() : "")
                                 font.pixelSize: 13; font.bold: true; color: "white"
                                 font.letterSpacing: 0.5
                             }
@@ -1242,8 +1242,8 @@ Popup {
 
                     Row {
                         anchors.centerIn: parent; spacing: 6
-                        Text { text: "‹"; font.pixelSize: 16; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: "Précédent"; font.pixelSize: 13; color: Style.textSecondary }
+                        Text { text: qsTr("‹"); font.pixelSize: 16; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: qsTr("Précédent"); font.pixelSize: 13; color: Style.textSecondary }
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -1255,7 +1255,7 @@ Popup {
 
                 // Step counter
                 Text {
-                    text: "Étape " + currentStep + " sur " + totalSteps
+                    text: qsTr("Étape ") + currentStep + " sur " + totalSteps
                     font.pixelSize: 12; color: Style.textTertiary
                 }
 
@@ -1267,7 +1267,7 @@ Popup {
                     width: 100; height: 40; radius: 10
                     color: Style.bgPage
                     border.color: Style.borderMedium; border.width: 1
-                    Text { anchors.centerIn: parent; text: "Annuler"; font.pixelSize: 13; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("Annuler"); font.pixelSize: 13; color: Style.textSecondary }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.close() }
                 }
 
@@ -1283,8 +1283,8 @@ Popup {
 
                     Row {
                         anchors.centerIn: parent; spacing: 6
-                        Text { text: "Suivant"; font.pixelSize: 13; font.bold: true; color: "white" }
-                        Text { text: "›"; font.pixelSize: 16; color: "white"; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: qsTr("Suivant"); font.pixelSize: 13; font.bold: true; color: "white" }
+                        Text { text: qsTr("›"); font.pixelSize: 16; color: "white"; anchors.verticalCenter: parent.verticalCenter }
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -1320,8 +1320,8 @@ Popup {
 
             Row {
                 spacing: 10
-                Text { text: "❌"; font.pixelSize: 18 }
-                Text { text: "Erreur"; font.pixelSize: 16; font.bold: true; color: Style.textPrimary }
+                Text { text: qsTr("❌"); font.pixelSize: 18 }
+                Text { text: qsTr("Erreur"); font.pixelSize: 16; font.bold: true; color: Style.textPrimary }
             }
 
             Text {
@@ -1334,7 +1334,7 @@ Popup {
             Rectangle {
                 width: parent.width; height: 40; radius: 10
                 color: Style.textPrimary
-                Text { anchors.centerIn: parent; text: "Fermer"; font.pixelSize: 13; font.bold: true; color: "white" }
+                Text { anchors.centerIn: parent; text: qsTr("Fermer"); font.pixelSize: 13; font.bold: true; color: "white" }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: errorPopup.close() }
             }
         }
