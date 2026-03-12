@@ -159,8 +159,8 @@ RowLayout {
                         IconLabel { iconName: "calendar"; iconSize: 12; iconColor: Style.primary }
                         Text {
                             text: {
-                                var months = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                                              "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+                                var months = [qsTr("Janvier"),qsTr("Février"),qsTr("Mars"),qsTr("Avril"),qsTr("Mai"),qsTr("Juin"),
+                                              qsTr("Juillet"),qsTr("Août"),qsTr("Septembre"),qsTr("Octobre"),qsTr("Novembre"),qsTr("Décembre")]
                                 return months[root.selectedMonth] + " " + root.selectedYear
                             }
                             font.pixelSize: 9; font.weight: Font.Black
@@ -242,7 +242,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Tous les Niveaux", "id": -1}]
+                                var items = [{"nom": qsTr("Tous les Niveaux"), "id": -1}]
                                 var n = schoolingController.niveaux
                                 for (var i = 0; i < n.length; i++) items.push(n[i])
                                 return items
@@ -274,7 +274,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Toutes les Salles", "id": -1}]
+                                var items = [{"nom": qsTr("Toutes les Salles"), "id": -1}]
                                 var s = schoolingController.salles
                                 for (var i = 0; i < s.length; i++) items.push(s[i])
                                 return items
@@ -306,7 +306,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Tous les Professeurs", "id": -1}]
+                                var items = [{"nom": qsTr("Tous les Professeurs"), "id": -1}]
                                 var p = staffController.enseignants
                                 for (var i = 0; i < p.length; i++) items.push(p[i])
                                 return items
@@ -332,7 +332,7 @@ RowLayout {
                 columnSpacing: 8
 
                 Repeater {
-                    model: ["LUN","MAR","MER","JEU","VEN","SAM","DIM"]
+                    model: [qsTr("LUN"),qsTr("MAR"),qsTr("MER"),qsTr("JEU"),qsTr("VEN"),qsTr("SAM"),qsTr("DIM")]
                     SectionLabel {
                         Layout.fillWidth: true
                         text: modelData
@@ -498,8 +498,8 @@ RowLayout {
                 Text {
                     text: {
                         if (root.selectedDay < 0) return "Cliquez sur un jour"
-                        var months = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                                      "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+                        var months = [qsTr("Janvier"),qsTr("Février"),qsTr("Mars"),qsTr("Avril"),qsTr("Mai"),qsTr("Juin"),
+                                      qsTr("Juillet"),qsTr("Août"),qsTr("Septembre"),qsTr("Octobre"),qsTr("Novembre"),qsTr("Décembre")]
                         return root.selectedDay + " " + months[root.selectedMonth] + " " + root.selectedYear
                     }
                     font.pixelSize: 13; font.weight: Font.Medium

@@ -13,8 +13,8 @@ Item {
     property int    selectedYear:       new Date().getFullYear()
     property string searchTerm:         ""
 
-    readonly property var    monthNames: ["Janvier","Février","Mars","Avril","Mai","Juin",
-                                          "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    readonly property var    monthNames: [qsTr("Janvier"),qsTr("Février"),qsTr("Mars"),qsTr("Avril"),qsTr("Mai"),qsTr("Juin"),
+                                          qsTr("Juillet"),qsTr("Août"),qsTr("Septembre"),qsTr("Octobre"),qsTr("Novembre"),qsTr("Décembre")]
     readonly property string selectedMonth: monthNames[selectedMonthIndex]
 
     function navigateMonth(delta) {

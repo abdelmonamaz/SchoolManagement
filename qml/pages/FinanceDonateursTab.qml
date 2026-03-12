@@ -12,7 +12,7 @@ AppCard {
     property string viewMode:     "donateurs" // "donateurs" | "projets"
     
     // Donateurs state
-    property string filterType:   "Tous"   // "Tous" | "Physique" | "Morale"
+    property string filterType:   qsTr("Tous")   // "Tous" | "Physique" | "Morale"
     property string localSearch:  ""
     property int    currentPage:  0
     property int    pageSize:     10
@@ -47,7 +47,7 @@ AppCard {
         var result = []
         for (var i = 0; i < list.length; i++) {
             var d = list[i]
-            var dtype = (d.typePersonne && d.typePersonne !== "") ? d.typePersonne : "Physique"
+            var dtype = (d.typePersonne && d.typePersonne !== "") ? d.typePersonne : qsTr("Physique")
             if (tab.filterType !== "Tous" && dtype !== tab.filterType) continue
             if (q !== "") {
                 var haystack = (d.nom + " " + d.cin + " " + d.raisonSociale +
@@ -97,8 +97,8 @@ AppCard {
     }
 
     // ── AppCard header ────────────────────────────────────────────────────────
-    title:    tab.viewMode === "donateurs" ? "Liste des Donateurs" : "Projets de l'association"
-    subtitle: tab.viewMode === "donateurs" ? filteredDonateurs.length + " donateur(s) enregistré(s)" : projetsStats.total + " projet(s) au total"
+    title:    tab.viewMode === "donateurs" ? qsTr("Liste des Donateurs") : qsTr("Projets de l'association")
+    subtitle: tab.viewMode === "donateurs" ? filteredDonateurs.length + qsTr(" donateur(s) enregistré(s)") : projetsStats.total + qsTr(" projet(s) au total")
 
     headerAction: Component {
         Row {
@@ -215,7 +215,7 @@ AppCard {
         // ── Filtres ───────────────────────────────────────────────────────────
         Row { spacing: 6; visible: tab.viewMode === "donateurs"
             Repeater {
-                model: ["Tous", "Physique", "Morale"]
+                model: [qsTr("Tous"), qsTr("Physique"), qsTr("Morale")]
                 delegate: Rectangle {
                     width: 90; height: 34; radius: 10
                     color: tab.filterType === modelData ? Style.primary : Style.bgPage
@@ -600,7 +600,7 @@ AppCard {
                         SectionLabel { text: qsTr("TYPE DE PERSONNE") }
                         Row { spacing: 6; width: parent.width
                             Repeater {
-                                model: ["Physique", "Morale"]
+                                model: [qsTr("Physique"), qsTr("Morale")]
                                 delegate: Rectangle {
                                     width: (parent.width - 6) / 2; height: 36; radius: 10
                                     color: editModal.typePersonne === modelData ? Style.primary : Style.bgPage

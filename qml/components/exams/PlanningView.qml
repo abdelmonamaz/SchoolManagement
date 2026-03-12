@@ -24,6 +24,9 @@ RowLayout {
         return result
     }
 
+    readonly property var shortMonths: [qsTr("Jan"), qsTr("Fév"), qsTr("Mar"), qsTr("Avr"), qsTr("Mai"),
+                                        qsTr("Jun"), qsTr("Jul"), qsTr("Aoû"), qsTr("Sep"), qsTr("Oct"), qsTr("Nov"), qsTr("Déc")]
+
     // Calcule le lundi et dimanche de la semaine ISO sélectionnée
     readonly property string weekDateRange: {
         var jan4    = new Date(root.selectedWeekYear, 0, 4)
@@ -32,7 +35,7 @@ RowLayout {
         var mon     = new Date(week1Mon.getTime() + (root.selectedWeek - 1) * 7 * 86400000)
         var sun     = new Date(mon.getTime() + 6 * 86400000)
 
-        var months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"]
+        var months = root.shortMonths
         function fmt(d) {
             return (d.getDate() < 10 ? "0" : "") + d.getDate() + " " + months[d.getMonth()]
         }

@@ -33,8 +33,8 @@ Item {
     property bool showAllMode: false
 
     property var monthNames: [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+        qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")
     ]
 
     function reloadData() {

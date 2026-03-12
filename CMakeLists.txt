@@ -23,7 +23,7 @@ project(GestionScolaire VERSION ${APP_VERSION} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Sql LabsPlatform)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Sql LabsPlatform LinguistTools)
 
 # Politiques Qt 6 recommandées
 qt_policy(SET QTP0001 NEW) # Préfixe /qt/qml/
@@ -155,6 +155,11 @@ qt_add_executable(GestionScolaire
     src/app/app_controller.cpp
 )
 
+# ─── Traductions ───
+qt_add_translations(GestionScolaire
+    TS_FILES i18n/ar_AE.ts
+)
+
 # Module QML principal
 qt_add_qml_module(GestionScolaire
     URI GestionScolaire
@@ -254,3 +259,4 @@ target_link_libraries(GestionScolaire PRIVATE
     GestionScolaire_Components
     GestionScolaire_Pages
 )
+

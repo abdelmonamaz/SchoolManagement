@@ -32,9 +32,9 @@ Popup {
     property int viewMonth: new Date().getMonth()      // 0-based
     property int viewYear: new Date().getFullYear()
 
-    readonly property var monthNames: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                                       "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-    readonly property var dayHeaders: ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"]
+    readonly property var monthNames: [qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+                                       qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")]
+    readonly property var dayHeaders: [qsTr("LUN"), qsTr("MAR"), qsTr("MER"), qsTr("JEU"), qsTr("VEN"), qsTr("SAM"), qsTr("DIM")]
 
     function daysInMonth(m, y) { return new Date(y, m + 1, 0).getDate() }
     function firstDayOffset(m, y) {

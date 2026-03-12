@@ -138,7 +138,7 @@ ModalOverlay {
             Row {
                 spacing: 6
                 Repeater {
-                    model: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+                    model: [qsTr("Lun"), qsTr("Mar"), qsTr("Mer"), qsTr("Jeu"), qsTr("Ven"), qsTr("Sam"), qsTr("Dim")]
                     delegate: Rectangle {
                         width: 54; height: 44; radius: 10
                         property int bit: 1 << index
@@ -271,8 +271,8 @@ ModalOverlay {
     }
 
     function getMonthName(m) {
-        const months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                       "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+        const months = [qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+                       qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")];
         return months[m - 1] || "";
     }
 }

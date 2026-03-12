@@ -82,8 +82,8 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 4
                         model: [
-                            "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+                            qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+                            qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")
                         ]
                         currentIndex: root.selectedMonth - 1
 

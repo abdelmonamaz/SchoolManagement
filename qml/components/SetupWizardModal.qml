@@ -18,6 +18,9 @@ Popup {
     padding: 0
     closePolicy: Popup.NoAutoClose
 
+    LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
+    LayoutMirroring.childrenInherit: true
+
     property int currentStep: 1
     readonly property int totalSteps: 3
 
@@ -224,8 +227,14 @@ Popup {
                         color: Style.bgPage; border.color: Style.borderLight
                         ComboBox {
                             id: langueCombo
+                            property string savedValue: Qt.application.layoutDirection === Qt.RightToLeft ? "arabe" : "français"
                             anchors.fill: parent; anchors.margins: 2
-                            model: ["français", "anglais", "arabe"]
+                            model: [
+                                {"label": qsTr("Français"), "value": "français"},
+                                {"label": qsTr("Arabe"), "value": "arabe"}
+                            ]
+                            textRole: "label"
+                            valueRole: "value"
                             background: Rectangle { color: "transparent" }
                             contentItem: Text {
                                 text: langueCombo.displayText
@@ -233,8 +242,15 @@ Popup {
                                 verticalAlignment: Text.AlignVCenter; leftPadding: 8
                             }
                             Component.onCompleted: {
-                                var l = setupController.associationData.langue || "français"
-                                currentIndex = indexOfValue(l) !== -1 ? indexOfValue(l) : 0
+                                currentIndex = indexOfValue(savedValue) !== -1 ? indexOfValue(savedValue) : 0
+                            }
+                            onActivated: {
+                                savedValue = currentValue
+                                appController.applyLanguage(currentValue)
+                            }
+                            onModelChanged: {
+                                var idx = indexOfValue(savedValue)
+                                currentIndex = idx !== -1 ? idx : 0
                             }
                         }
                     }

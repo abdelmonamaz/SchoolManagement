@@ -20,7 +20,7 @@ ApplicationWindow {
     color: Style.bgPage
 
     // Activation du mode RTL global
-    LayoutMirroring.enabled: setupController.associationData.langue === "arabe"
+    LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
 
     property string currentPage: "dashboard"

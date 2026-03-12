@@ -100,10 +100,14 @@ Item {
         return { start: start, end: end }
     }
 
+    readonly property var shortMonths: [qsTr("Jan"), qsTr("Fév"), qsTr("Mar"), qsTr("Avr"), qsTr("Mai"),
+                                        qsTr("Juin"), qsTr("Juil"), qsTr("Août"), qsTr("Sep"), qsTr("Oct"), qsTr("Nov"), qsTr("Déc")]
+    readonly property var dayNames: [qsTr("DIM"), qsTr("LUN"), qsTr("MAR"), qsTr("MER"), qsTr("JEU"), qsTr("VEN"), qsTr("SAM")]
+
     function pad2(n) { return n < 10 ? "0" + n : "" + n }
 
     function weekRangeLabel(week, year) {
-        var months = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"]
+        var months = attendancePage.shortMonths
         var r = weekDateRange(week, year)
         var s = r.start, e = r.end
         var sStr = s.getDate() + " " + months[s.getMonth()]
@@ -135,7 +139,7 @@ Item {
     }
 
     function dayName(isoDate) {
-        return ["DIM","LUN","MAR","MER","JEU","VEN","SAM"][new Date(isoDate).getDay()]
+        return attendancePage.dayNames[new Date(isoDate).getDay()]
     }
     function formatTime(isoDate, durationMin) {
         var d = new Date(isoDate), e = new Date(d.getTime() + durationMin * 60000)
@@ -395,7 +399,7 @@ Item {
                                                : (valMa.containsMouse ? Style.primaryDark : Style.primary)
                                         Text {
                                             id: valLbl; anchors.centerIn: parent
-                                            text: validated ? "Modifier Présence" : "Valider Présence"
+                                            text: validated ? qsTr("Modifier Présence") : qsTr("Valider Présence")
                                             font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                                         }
                                         MouseArea {

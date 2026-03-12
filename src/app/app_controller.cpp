@@ -3,6 +3,10 @@
 #include <QQmlContext>
 #include <QStandardPaths>
 #include <QDir>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QCoreApplication>
+#include <QGuiApplication>
 
 #include "database/database_worker.h"
 
@@ -46,18 +50,75 @@
 
 AppController::AppController(QQmlApplicationEngine& engine, QObject* parent)
     : QObject(parent)
+    , m_engine(&engine)
 {
     setupDatabase();
     createRepositories();
     createServices();
     createControllers();
     registerWithQml(engine);
+    applyLanguage(getLanguage());
 }
 
 AppController::~AppController() {
     if (m_dbWorker) {
         m_dbWorker->stop();
     }
+}
+
+QString AppController::getLanguage() const {
+    QString lang = "français";
+    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString dbPath = dataDir + "/gestion_scolaire.db";
+
+    if (QFile::exists(dbPath)) {
+        // Create a distinct connection name for the main thread
+        QString connName = QStringLiteral("MainThread_Init_Lang");
+        {
+            auto db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            db.setDatabaseName(dbPath);
+            if (db.open()) {
+                QSqlQuery q(db);
+                if (q.exec(QStringLiteral("SELECT langue FROM association_config LIMIT 1")) && q.next()) {
+                    lang = q.value(0).toString();
+                }
+                db.close();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    }
+    return lang;
+}
+
+void AppController::applyLanguage(const QString& lang) {
+    if (m_translator) {
+        QCoreApplication::removeTranslator(m_translator);
+        delete m_translator;
+        m_translator = nullptr;
+    }
+
+    if (lang == "arabe") {
+        m_translator = new QTranslator(this);
+        const bool loaded =
+            m_translator->load(QStringLiteral(":/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral(":/qt/qml/GestionScolaire/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral(":/GestionScolaire/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral("ar_AE"), QStringLiteral(":/i18n/"));
+        if (loaded) {
+            QCoreApplication::installTranslator(m_translator);
+            qInfo() << "[AppController] Traduction arabe chargée.";
+        } else {
+            qWarning() << "[AppController] Impossible de charger ar_AE.qm";
+            delete m_translator;
+            m_translator = nullptr;
+        }
+    }
+
+    if (auto* guiApp = qobject_cast<QGuiApplication*>(QCoreApplication::instance()))
+        guiApp->setLayoutDirection(lang == "arabe" ? Qt::RightToLeft : Qt::LeftToRight);
+
+    if (m_engine)
+        m_engine->retranslate();
 }
 
 void AppController::setupDatabase() {

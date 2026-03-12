@@ -459,13 +459,13 @@ void ExamsController::onQueryCompleted(const QString& queryId, const QVariant& r
             int limit   = map.value("limit", 0).toInt();
             QString msg;
             if (count == 0) {
-                msg = QString("Limite déjà atteinte (%1 séances/an)").arg(limit);
+                msg = tr("Limite déjà atteinte (%1 séances/an)").arg(limit);
             } else if (count > 1) {
-                msg = QString("%1 séances créées").arg(count);
+                msg = tr("%1 séances créées").arg(count);
                 if (capped && limit > 0)
-                    msg += QString(" (limite annuelle de %1 atteinte)").arg(limit);
+                    msg += tr(" (limite annuelle de %1 atteinte)").arg(limit);
             } else {
-                msg = "Séance créée";
+                msg = tr("Séance créée");
             }
             emit operationSucceeded(msg);
         }

@@ -224,7 +224,7 @@ Popup {
                         color: "white"
                     }
                     Text {
-                        text: stats ? ("Année " + stats.anneeActiveLibelle) : ""
+                        text: stats ? (qsTr("Année ") + stats.anneeActiveLibelle) : ""
                         font.pixelSize: 13
                         color: Qt.rgba(1,1,1,0.7)
                     }
@@ -378,10 +378,10 @@ Popup {
                             }
                             Repeater {
                                 model: [
-                                    "Archiver définitivement toutes les notes et bulletins de l'année " + (stats ? stats.anneeActiveLibelle : ""),
-                                    "Verrouiller les modifications sur les données académiques de cette année",
-                                    "Faire passer automatiquement les étudiants qui ont réussi au niveau supérieur",
-                                    "Marquer les étudiants de niveau terminal comme diplômés"
+                                    qsTr("Archiver définitivement toutes les notes et bulletins de l'année %1").arg(stats ? stats.anneeActiveLibelle : ""),
+                                    qsTr("Verrouiller les modifications sur les données académiques de cette année"),
+                                    qsTr("Faire passer automatiquement les étudiants qui ont réussi au niveau supérieur"),
+                                    qsTr("Marquer les étudiants de niveau terminal comme diplômés")
                                 ]
                                 delegate: Row {
                                     spacing: 8
@@ -404,13 +404,13 @@ Popup {
 
                         Repeater {
                             model: [
-                                { label: qsTr("Étudiants Inscrits"), sub: "Année " + (stats ? stats.anneeActiveLibelle : ""),
+                                { label: qsTr("Étudiants Inscrits"), sub: qsTr("Année ") + (stats ? stats.anneeActiveLibelle : ""),
                                   value: stats ? stats.studentsInscrits : 0, color: Style.successBg, accent: Style.successColor },
-                                { label: qsTr("Taux de Réussite"), sub: "Global tous niveaux",
+                                { label: qsTr("Taux de Réussite"), sub: qsTr("Global tous niveaux"),
                                   value: (stats ? stats.tauxReussite : 0) + "%", color: Style.bgWhite, accent: Style.chart3 },
-                                { label: qsTr("Diplômés"), sub: "Niveau terminal complété",
+                                { label: qsTr("Diplômés"), sub: qsTr("Niveau terminal complété"),
                                   value: stats ? stats.diplomes : 0, color: Style.background, accent: Style.chart3 },
-                                { label: qsTr("Redoublants"), sub: "Tous niveaux confondus",
+                                { label: qsTr("Redoublants"), sub: qsTr("Tous niveaux confondus"),
                                   value: stats ? stats.redoublants : 0, color: Style.errorBg, accent: Style.errorColor }
                             ]
                             delegate: Rectangle {
@@ -513,8 +513,8 @@ Popup {
                         spacing: 8
                         Text { text: step2Valid ? "✅" : "⏳"; font.pixelSize: 14 }
                         Text {
-                            text: nbDecides + " / " + progressions.length + " résultats décidés"
-                                  + (step2Valid ? " — Prêt à continuer" : " — Décidez tous les résultats")
+                            text: qsTr("%1 / %2 résultats décidés").arg(nbDecides).arg(progressions.length)
+                                  + (step2Valid ? qsTr(" — Prêt à continuer") : qsTr(" — Décidez tous les résultats"))
                             font.pixelSize: 13; font.bold: true
                             color: step2Valid ? Style.zitouna : Style.warningColor
                         }
@@ -903,10 +903,10 @@ Popup {
                                         Text {
                                             text: modelData.titre + " (" + modelData.date + ") — "
                                                   + (modelData.notesEntrees
-                                                     ? "Notes saisies (" + modelData.notesSaisies + "/" + modelData.totalPart + ")"
+                                                     ? qsTr("Notes saisies (%1/%2)").arg(modelData.notesSaisies).arg(modelData.totalPart)
                                                      : modelData.totalPart > 0
-                                                       ? "Notes incomplètes (" + modelData.notesSaisies + "/" + modelData.totalPart + ")"
-                                                       : "Aucune participation enregistrée")
+                                                       ? qsTr("Notes incomplètes (%1/%2)").arg(modelData.notesSaisies).arg(modelData.totalPart)
+                                                       : qsTr("Aucune participation enregistrée"))
                                             font.pixelSize: 11
                                             color: modelData.notesEntrees ? Style.successColor : Style.warningColor
                                         }
@@ -932,7 +932,7 @@ Popup {
                                 spacing: 8
                                 Text { text: qsTr("⚠️"); font.pixelSize: 14 }
                                 Text {
-                                    text: (incomplete ? incomplete.length : 0) + " séance(s) sans enregistrement de présence"
+                                    text: qsTr("%1 séance(s) sans enregistrement de présence").arg(incomplete ? incomplete.length : 0)
                                     font.pixelSize: 13; font.bold: true; color: Style.warningColor
                                 }
                             }
@@ -1028,10 +1028,10 @@ Popup {
 
                     Repeater {
                         model: [
-                            "Une nouvelle année scolaire sera créée",
-                            "Les " + step4Summary.nbPromus + " élèves promus seront inscrits au niveau suivant",
-                            "Les " + step4Summary.nbRedoublants + " redoublants seront inscrits au même niveau",
-                            "Les " + step4Summary.nbDiplomesStep + " diplômés ne recevront pas de nouvelle inscription"
+                            qsTr("Une nouvelle année scolaire sera créée"),
+                            qsTr("Les %1 élèves promus seront inscrits au niveau suivant").arg(step4Summary.nbPromus),
+                            qsTr("Les %1 redoublants seront inscrits au même niveau").arg(step4Summary.nbRedoublants),
+                            qsTr("Les %1 diplômés ne recevront pas de nouvelle inscription").arg(step4Summary.nbDiplomesStep)
                         ]
                         delegate: Row {
                             spacing: 10

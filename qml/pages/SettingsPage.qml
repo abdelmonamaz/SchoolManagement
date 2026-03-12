@@ -27,6 +27,7 @@ Item {
     function _doSaveAssociation(agePassage) {
         associationSaved = true
         loadedAgePassage = agePassage
+        var langue = langueCombo.currentValue || "français"
         setupController.saveAssociation({
             nomAssociation:   nomEcoleField.text.trim(),
             adresse:          adresseEdit.text.trim(),
@@ -35,8 +36,9 @@ Item {
             exerciceFin:      exFinField.isValid   ? exFinField.dateString
                                                    : (setupController.associationData.exerciceFin   || "12-31"),
             agePassageAdulte: agePassage,
-            langue:           langueCombo.currentValue || "français"
+            langue:           langue
         })
+        appController.applyLanguage(langue)
     }
 
     ColumnLayout {

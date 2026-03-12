@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QTranslator>
 #include <memory>
 
 class DatabaseWorker;
@@ -59,6 +60,8 @@ public:
     ~AppController() override;
 
     QString dbInitError() const { return m_dbInitError; }
+    QString getLanguage() const;
+    Q_INVOKABLE void applyLanguage(const QString& lang);
 
 signals:
     void dbInitErrorChanged();
@@ -69,6 +72,10 @@ private:
     void createServices();
     void createControllers();
     void registerWithQml(QQmlApplicationEngine& engine);
+
+    // Language
+    QQmlApplicationEngine* m_engine = nullptr;
+    QTranslator* m_translator = nullptr;
 
     // Database
     QString m_dbPath;

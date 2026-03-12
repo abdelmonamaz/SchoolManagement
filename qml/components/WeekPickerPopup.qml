@@ -67,9 +67,11 @@ Popup {
         return { start: start, end: end }
     }
 
+    readonly property var shortMonths: [qsTr("Jan"), qsTr("Fév"), qsTr("Mar"), qsTr("Avr"), qsTr("Mai"),
+                                        qsTr("Juin"), qsTr("Juil"), qsTr("Août"), qsTr("Sep"), qsTr("Oct"), qsTr("Nov"), qsTr("Déc")]
+
     function formatDate(d) {
-        var months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
-        return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear()
+        return d.getDate() + " " + root.shortMonths[d.getMonth()] + " " + d.getFullYear()
     }
 
     function weekRangeText() {

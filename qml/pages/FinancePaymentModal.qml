@@ -60,7 +60,7 @@ ModalOverlay {
                 IconLabel { anchors.centerIn: parent; iconName: "wallet"; iconSize: 24; iconColor: Style.primary } }
             Column { Layout.fillWidth: true; spacing: 2
                 Text {
-                    text: page.payingEleveId > 0 ? "Paiement — " + page.payingEleveNom : "Nouveau Paiement"
+                    text: page.payingEleveId > 0 ? "Paiement — " + page.payingEleveNom : qsTr("Nouveau Paiement")
                     font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
                     elide: Text.ElideRight; width: parent.width
                 }
