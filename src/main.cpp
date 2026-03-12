@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         QStringLiteral("appVersion"),
         QStringLiteral(APP_VERSION_STR));
 
-    // Bootstrap the entire C++ backend
+    // Bootstrap the entire C++ backend (includes initial language setup)
     AppController appController(engine);
 
     const QUrl url(QStringLiteral("qrc:/qt/qml/GestionScolaire/qml/main.qml"));
@@ -75,3 +75,6 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
+
+

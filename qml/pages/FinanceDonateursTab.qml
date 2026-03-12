@@ -12,7 +12,7 @@ AppCard {
     property string viewMode:     "donateurs" // "donateurs" | "projets"
     
     // Donateurs state
-    property string filterType:   "Tous"   // "Tous" | "Physique" | "Morale"
+    property string filterType:   qsTr("Tous")   // "Tous" | "Physique" | "Morale"
     property string localSearch:  ""
     property int    currentPage:  0
     property int    pageSize:     10
@@ -47,7 +47,7 @@ AppCard {
         var result = []
         for (var i = 0; i < list.length; i++) {
             var d = list[i]
-            var dtype = (d.typePersonne && d.typePersonne !== "") ? d.typePersonne : "Physique"
+            var dtype = (d.typePersonne && d.typePersonne !== "") ? d.typePersonne : qsTr("Physique")
             if (tab.filterType !== "Tous" && dtype !== tab.filterType) continue
             if (q !== "") {
                 var haystack = (d.nom + " " + d.cin + " " + d.raisonSociale +
@@ -215,7 +215,7 @@ AppCard {
         // ── Filtres ───────────────────────────────────────────────────────────
         Row { spacing: 6; visible: tab.viewMode === "donateurs"
             Repeater {
-                model: ["Tous", "Physique", "Morale"]
+                model: [qsTr("Tous"), qsTr("Physique"), qsTr("Morale")]
                 delegate: Rectangle {
                     width: 90; height: 34; radius: 10
                     color: tab.filterType === modelData ? Style.primary : Style.bgPage
