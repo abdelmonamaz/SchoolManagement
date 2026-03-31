@@ -11,7 +11,8 @@ Item {
     // ── Helpers exercice comptable ─────────────────────────────────────────
     property bool updatingDate: false
     property bool tarifsSaved: false
-    property bool associationSaved: false
+    property bool associationSaved: true
+    property bool initializing: true
     property int loadedAgePassage: setupController.associationData.agePassageAdulte || 12
 
     function isoToLocalDate(iso) {
@@ -39,6 +40,10 @@ Item {
             langue:           langue
         })
         appController.applyLanguage(langue)
+    }
+
+    Component.onCompleted: {
+        initializing = false
     }
 
     ColumnLayout {
@@ -356,7 +361,7 @@ Item {
                         label: qsTr("NOM DE L'ASSOCIATION")
                         placeholder: qsTr("ex: Ez-Zaytouna")
                         text: setupController.associationData.nomAssociation || ""
-                        onTextChanged: settingsPage.associationSaved = false
+                        onTextChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
                     }
 
                     Column {
@@ -372,7 +377,7 @@ Item {
                                 font.pixelSize: 13; font.bold: true
                                 color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
-                                onTextChanged: settingsPage.associationSaved = false
+                                onTextChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
                             }
                         }
                     }
@@ -398,7 +403,7 @@ Item {
                                     var l = setupController.associationData.langue || "français"
                                     currentIndex = indexOfValue(l) !== -1 ? indexOfValue(l) : 0
                                 }
-                                onCurrentIndexChanged: settingsPage.associationSaved = false
+                                onCurrentIndexChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
                             }
                         }
                     }
@@ -419,12 +424,8 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
                             label: qsTr("DATE DE DÉBUT")
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceDebut || ""
-                                if (v) setDate(v)
-                            }
                             onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
+                                if (!settingsPage.initializing && !settingsPage.updatingDate && isValid)
                                     settingsPage.associationSaved = false
                                 if (settingsPage.updatingDate || !isValid) return
                                 settingsPage.updatingDate = true
@@ -441,12 +442,8 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
                             label: qsTr("DATE DE FIN")
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceFin || ""
-                                if (v) setDate(v)
-                            }
                             onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
+                                if (!settingsPage.initializing && !settingsPage.updatingDate && isValid)
                                     settingsPage.associationSaved = false
                                 if (settingsPage.updatingDate || !isValid) return
                                 settingsPage.updatingDate = true
@@ -456,6 +453,19 @@ Item {
                                 exDebutField.setDate(settingsPage.localDateToIso(d))
                                 settingsPage.updatingDate = false
                             }
+                        }
+                    }
+
+                    Connections {
+                        target: setupController
+                        function onAssociationDataChanged() {
+                            var d = setupController.associationData.exerciceDebut || ""
+                            var f = setupController.associationData.exerciceFin   || ""
+                            if (!d && !f) return
+                            settingsPage.updatingDate = true
+                            if (d && !exDebutField.isValid) exDebutField.setDate(d)
+                            if (f && !exFinField.isValid)   exFinField.setDate(f)
+                            settingsPage.updatingDate = false
                         }
                     }
 

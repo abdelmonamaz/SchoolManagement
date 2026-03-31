@@ -113,7 +113,7 @@ Result<QList<Matiere>> SchoolingService::getMatieresByNiveau(int niveauId)
     return m_matiereRepo->getByNiveauId(niveauId);
 }
 
-Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId)
+Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom de la matiere ne peut pas etre vide.");
@@ -122,11 +122,16 @@ Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId)
     Matiere m;
     m.nom = nom.trimmed();
     m.niveauId = niveauId;
-    return m_matiereRepo->create(m);
+    m.coefficient = coefficient > 0 ? coefficient : 1.0;
+    auto res = m_matiereRepo->create(m);
+    if (res.isOk() && semestreNumero > 0)
+        m_matiereRepo->setMatiereSemestre(res.value(), semestreNumero);
+    return res;
 }
 
 Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niveauId,
-                                              int nombreSeances, int dureeSeanceMinutes)
+                                              int nombreSeances, int dureeSeanceMinutes,
+                                              double coefficient)
 {
     if (nom.trimmed().isEmpty())
         return Result<bool>::error("Le nom de la matiere ne peut pas etre vide.");
@@ -136,7 +141,13 @@ Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niv
     m.niveauId = niveauId;
     m.nombreSeances = nombreSeances;
     m.dureeSeanceMinutes = dureeSeanceMinutes > 0 ? dureeSeanceMinutes : 60;
+    m.coefficient = coefficient > 0 ? coefficient : 1.0;
     return m_matiereRepo->update(m);
+}
+
+Result<bool> SchoolingService::setMatiereSemestre(int matiereId, int semestreNumero)
+{
+    return m_matiereRepo->setMatiereSemestre(matiereId, semestreNumero);
 }
 
 Result<bool> SchoolingService::deleteMatiere(int id)

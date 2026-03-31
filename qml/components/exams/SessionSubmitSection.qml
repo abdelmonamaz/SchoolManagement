@@ -25,6 +25,8 @@ Column {
     required property int    formClasseId
     required property string formRecurrence
     required property string formDescriptif
+    property string semestreStart: ""
+    property string semestreEnd:   ""
 
     // ── Internal UI state ──────────────────────────────────────────
     property bool showOverLimitWarning: false
@@ -174,6 +176,8 @@ Column {
                                 data["salleId"]    = root.formSalleId
                                 data["classeId"]   = root.formClasseId
                                 data["typeSeance"] = "Cours"
+                                if (root.semestreStart) data["semestreStart"] = root.semestreStart
+                                if (root.semestreEnd)   data["semestreEnd"]   = root.semestreEnd
                                 examsController.createCourseWithRecurrence(data, root.formRecurrence)
                             } else if (root.isExam) {
                                 data["matiereId"]  = root.formMatiereId

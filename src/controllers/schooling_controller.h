@@ -55,8 +55,9 @@ public:
     Q_INVOKABLE void updateClasse(int id, const QString& nom, int niveauId);
     Q_INVOKABLE void deleteClasse(int id);
 
-    Q_INVOKABLE void createMatiere(const QString& nom, int niveauId);
+    Q_INVOKABLE void createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0);
     Q_INVOKABLE void updateMatiere(int id, const QVariantMap& data);
+    Q_INVOKABLE void setMatiereSemestre(int matiereId, int semestreNumero);
     Q_INVOKABLE void deleteMatiere(int id);
 
     Q_INVOKABLE void loadMatiereExamens(int matiereId);

@@ -272,6 +272,21 @@ void DatabaseManager::createTables(QSqlDatabase& db)
             "  montant REAL NOT NULL DEFAULT 0.0"
             ")"),
 
+        // ── Semestres ──
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS semestres ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  annee_scolaire_id INTEGER NOT NULL REFERENCES annees_scolaires(id) ON DELETE CASCADE,"
+            "  nom TEXT NOT NULL,"
+            "  numero INTEGER NOT NULL CHECK(numero IN (1, 2)),"
+            "  date_debut TEXT NOT NULL,"
+            "  date_fin TEXT NOT NULL,"
+            "  valide INTEGER DEFAULT 1,"
+            "  date_modification TEXT,"
+            "  date_invalidation TEXT,"
+            "  UNIQUE(annee_scolaire_id, numero)"
+            ")"),
+
         // ── Cours (sous-table de séances) ──
         QStringLiteral(
             "CREATE TABLE IF NOT EXISTS cours ("
@@ -906,5 +921,37 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         "  WHERE napa.niveau_id = niveaux.id"
         ") WHERE annee_scolaire_id IS NULL AND valide = 1"));
     qInfo() << "[DatabaseManager] Migration 40: backfilled niveaux.annee_scolaire_id for legacy rows";
+
+    // ── Migration 41 : table semestres (2 semestres configurables par année scolaire) ──
+    if (!tableExists(QStringLiteral("semestres"))) {
+        execStatement(db, QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS semestres ("
+            "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "  annee_scolaire_id INTEGER NOT NULL REFERENCES annees_scolaires(id) ON DELETE CASCADE,"
+            "  nom TEXT NOT NULL,"
+            "  numero INTEGER NOT NULL CHECK(numero IN (1, 2)),"
+            "  date_debut TEXT NOT NULL,"
+            "  date_fin TEXT NOT NULL,"
+            "  valide INTEGER DEFAULT 1,"
+            "  date_modification TEXT,"
+            "  date_invalidation TEXT,"
+            "  UNIQUE(annee_scolaire_id, numero)"
+            ")"));
+        qInfo() << "[DatabaseManager] Migration 41: created table semestres";
+    }
+
+    // ── Migration 42 : matieres — ajout semestre_id ──
+    if (!columnExists(QStringLiteral("matieres"), QStringLiteral("semestre_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE matieres ADD COLUMN semestre_id INTEGER REFERENCES semestres(id)"));
+        qInfo() << "[DatabaseManager] Migration 42: added column matieres.semestre_id";
+    }
+
+    // ── Migration 43 : matieres — ajout coefficient ──
+    if (!columnExists(QStringLiteral("matieres"), QStringLiteral("coefficient"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE matieres ADD COLUMN coefficient REAL DEFAULT 1.0"));
+        qInfo() << "[DatabaseManager] Migration 43: added column matieres.coefficient";
+    }
 }
 

@@ -40,10 +40,13 @@ public:
     // Execute the full year closure.
     // progressions: list of { inscriptionId, eleveId, niveauActuelId, categorie, resultat, niveauSuivantId }
     // niveauSuivantId = 0 means "diplômé" (no new inscription created)
+    // s1DateFin/s2DateDebut: semester boundaries for the new year (empty = use defaults)
     Q_INVOKABLE void executeYearClosure(const QString& newLabel,
                                         const QString& dateDebut,
                                         const QString& dateFin,
-                                        const QVariantList& progressions);
+                                        const QVariantList& progressions,
+                                        const QString& s1DateFin = QString(),
+                                        const QString& s2DateDebut = QString());
 
 signals:
     void closureStatsChanged();

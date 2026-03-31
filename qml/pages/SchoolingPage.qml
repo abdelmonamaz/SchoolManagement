@@ -29,7 +29,7 @@ Item {
     property int deletingMatiereId: 0
     property bool showEditMatiereModal: false
     property int editingMatiereId: 0
-    property var editingMatiere: ({id: 0, nom: "", niveauId: 0, nombreSeances: 0, dureeSeanceMinutes: 60})
+    property var editingMatiere: ({id: 0, nom: "", niveauId: 0, nombreSeances: 0, dureeSeanceMinutes: 60, coefficient: 1.0})
     property bool showEditRoomModal: false
     property var editingRoom: ({id: 0, nom: "", capaciteChaises: 20, equipement: ""})
     property bool showDeleteRoomConfirm: false
@@ -229,7 +229,7 @@ Item {
                             matieres: schoolingController.matieres
                             selectedNiveauNom: schoolPage.selectedNiveauNom()
                             selectedNiveauId: schoolPage.selectedNiveauId
-                            onMatiereCreateRequested: (nom) => schoolingController.createMatiere(nom, selectedNiveauId)
+                            onMatiereCreateRequested: (nom, semestreNumero, coefficient) => schoolingController.createMatiere(nom, selectedNiveauId, semestreNumero, coefficient)
                             onMatiereDeleteRequested: (id) => {
                                 schoolPage.deletingMatiereId = id
                                 schoolPage.showDeleteMatiereConfirm = true
@@ -350,14 +350,19 @@ Item {
         initialNombreSeances:    schoolPage.editingMatiere.nombreSeances   || 0
         initialDureeMinutes:     schoolPage.editingMatiere.dureeSeanceMinutes > 0
                                      ? schoolPage.editingMatiere.dureeSeanceMinutes : 60
+        initialSemestreNumero:   schoolPage.editingMatiere.semestreNumero  || 0
+        initialCoefficient:      schoolPage.editingMatiere.coefficient     > 0
+                                     ? schoolPage.editingMatiere.coefficient : 1.0
 
         onSaveRequested: (data) => {
             schoolingController.updateMatiere(data.id, {
                 nom:                data.nom,
                 niveauId:           data.niveauId,
                 nombreSeances:      data.nombreSeances,
-                dureeSeanceMinutes: data.dureeSeanceMinutes
+                dureeSeanceMinutes: data.dureeSeanceMinutes,
+                coefficient:        data.coefficient
             })
+            schoolingController.setMatiereSemestre(data.id, data.semestreNumero)
             showEditMatiereModal = false
         }
         onCloseRequested: showEditMatiereModal = false

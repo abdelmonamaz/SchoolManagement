@@ -54,6 +54,8 @@ void SetupController::checkInitialized()
             QVariantMap tarifs = schoolYearRepo->getActiveYearTarifs();
             if (!tarifs.isEmpty())
                 result["activeTarifs"] = tarifs;
+            QVariantList semestres = schoolYearRepo->getActiveSemestres();
+            result["activeSemestres"] = semestres;
         }
         return result;
     });
@@ -69,6 +71,19 @@ void SetupController::saveAssociation(const QVariantMap& data)
         auto res = assocRepo->saveAssociation(data);
         if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
         return QVariantMap{{"ok", true}, {"data", data}};
+    });
+}
+
+// ── Étape 1→2 : année scolaire provisoire ────────────────────────────────────
+
+void SetupController::initDraftYear()
+{
+    m_worker->submit(QStringLiteral("Setup.initDraftYear"),
+        [schoolYearRepo = m_schoolYearRepo]() -> QVariant
+    {
+        auto res = schoolYearRepo->initDraftYear();
+        if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
+        return QVariantMap{{"id", res.value()}};
     });
 }
 
@@ -157,28 +172,36 @@ void SetupController::completeSetup(const QVariantMap& anneeData)
     m_worker->submit(QStringLiteral("Setup.completeSetup"),
         [assocRepo = m_assocRepo, schoolYearRepo = m_schoolYearRepo, anneeData]() -> QVariant
     {
-        // 1. Create / update the first school year
-        auto idRes = schoolYearRepo->upsertAnneeScolaire(anneeData);
+        // 1. Finalize the draft year created in step 2 (or create if missing)
+        auto idRes = schoolYearRepo->finalizeActiveYear(anneeData);
         if (!idRes.isOk()) return QVariantMap{{"error", idRes.errorMessage()}};
         const int anneeId = idRes.value();
 
-        // 2. Link all valid niveaux to this year
-        auto linkRes = schoolYearRepo->linkAllNiveauxToAnnee(anneeId);
-        if (!linkRes.isOk()) return QVariantMap{{"error", linkRes.errorMessage()}};
-
-        // 3. Mark application as initialized
+        // 2. Mark application as initialized
         auto markRes = assocRepo->markInitialized();
         if (!markRes.isOk()) return QVariantMap{{"error", markRes.errorMessage()}};
 
-        // 4. Sync tarifs_mensualites
+        // 3. Sync tarifs_mensualites
         auto syncRes = schoolYearRepo->syncTarifs(
             anneeId,
             anneeData.value("tarifJeune",  0.0).toDouble(),
             anneeData.value("tarifAdulte", 0.0).toDouble());
         if (!syncRes.isOk()) return QVariantMap{{"error", syncRes.errorMessage()}};
 
-        // 5. Return active tarifs
-        return QVariantMap{{"ok", true}, {"activeTarifs", schoolYearRepo->getActiveYearTarifs()}};
+        // 4. Create semestres with custom or default dates (idempotent via UNIQUE constraint)
+        schoolYearRepo->createDefaultSemestres(
+            anneeId,
+            anneeData.value("dateDebut").toString(),
+            anneeData.value("dateFin").toString(),
+            anneeData.value("s1DateFin").toString(),
+            anneeData.value("s2DateDebut").toString());
+
+        // 5. Return active tarifs + semestres
+        return QVariantMap{
+            {"ok", true},
+            {"activeTarifs",    schoolYearRepo->getActiveYearTarifs()},
+            {"activeSemestres", schoolYearRepo->getActiveSemestres()}
+        };
     });
 }
 
@@ -230,12 +253,27 @@ void SetupController::onQueryCompleted(const QString& queryId, const QVariant& r
                 emit activeTarifsChanged();
             }
         }
+        if (map.contains("activeSemestres")) {
+            QVariantList semestres = map.value("activeSemestres").toList();
+            if (m_activeSemestres != semestres) {
+                m_activeSemestres = semestres;
+                emit activeSemestresChanged();
+            }
+        }
         // Signal that the initial check is done — QML can now decide
         // whether to open the wizard based on isInitialized.
         if (m_isChecking) {
             m_isChecking = false;
             emit isCheckingChanged();
         }
+        return;
+    }
+
+    if (queryId == QLatin1String("Setup.initDraftYear")) {
+        const auto map = result.toMap();
+        if (map.contains("error"))
+            qWarning() << "[SetupController] initDraftYear error:" << map.value("error").toString();
+        // No QML state to update — niveaux repo auto-picks the active year.
         return;
     }
 
@@ -301,6 +339,11 @@ void SetupController::onQueryCompleted(const QString& queryId, const QVariant& r
         if (m_activeTarifs != tarifs) {
             m_activeTarifs = tarifs;
             emit activeTarifsChanged();
+        }
+        const QVariantList semestres = map.value("activeSemestres").toList();
+        if (m_activeSemestres != semestres) {
+            m_activeSemestres = semestres;
+            emit activeSemestresChanged();
         }
         emit setupCompleted();
         return;

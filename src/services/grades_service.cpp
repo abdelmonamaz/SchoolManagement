@@ -6,11 +6,14 @@
 #include <QMap>
 #include <QVariantList>
 #include "repositories/iseance_repository.h"
+#include "repositories/iniveau_repository.h"
 
 GradesService::GradesService(IParticipationRepository* participationRepo,
-                             ISeanceRepository* seanceRepo)
+                             ISeanceRepository* seanceRepo,
+                             IMatiereRepository* matiereRepo)
     : m_participationRepo(participationRepo)
     , m_seanceRepo(seanceRepo)
+    , m_matiereRepo(matiereRepo)
 {
 }
 
@@ -132,7 +135,20 @@ Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, 
         statutMap[p.seanceId] = p.statut;
     }
 
-    // 4. Group séances by matiereId (preserving first-occurrence order)
+    // 4. Load matière metadata (coefficient + semestreNumero) for weighting
+    QMap<int, double> coefMap;      // matiereId → coefficient
+    QMap<int, int>    semestreMap;  // matiereId → semestreNumero (0=all-year, 1=S1, 2=S2)
+    if (m_matiereRepo) {
+        auto matResult = m_matiereRepo->getAll();
+        if (matResult.isOk()) {
+            for (const auto& m : matResult.value()) {
+                coefMap[m.id]     = m.coefficient > 0 ? m.coefficient : 1.0;
+                semestreMap[m.id] = m.semestreNumero;
+            }
+        }
+    }
+
+    // 5. Group séances by matiereId (preserving first-occurrence order)
     QList<int> matiereOrder;
     QMap<int, QList<Seance>> seancesByMatiere;
     for (const auto& s : examSeances) {
@@ -141,12 +157,16 @@ Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, 
         seancesByMatiere[s.matiereId].append(s);
     }
 
-    // 5. Build result structure
+    // 6. Build per-matière result + accumulate weighted sums per semester bucket
     QVariantList matieresList;
-    double totalSum = 0.0;
-    int totalCount = 0;
     int presenceTotale = 0;
     int seancesTotales = 0;
+
+    // Semester accumulators: index 0=all-year, 1=S1, 2=S2
+    double weightedSum[3]  = {0.0, 0.0, 0.0};
+    double weightedCoef[3] = {0.0, 0.0, 0.0};
+    int    doneCount[3]    = {0, 0, 0};
+    int    totalInSem[3]   = {0, 0, 0};
 
     for (int matiereId : matiereOrder) {
         const auto& seances = seancesByMatiere[matiereId];
@@ -164,7 +184,6 @@ Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, 
             epreuvesList.append(ep);
             if (hasNote) { matiereSum += notesMap[s.id]; ++notesCount; }
 
-            // Present if a participation record exists with statut != Absent
             if (statutMap.contains(s.id) && statutMap[s.id] != GS::TypePresence::Absent)
                 ++presenceCount;
         }
@@ -172,7 +191,17 @@ Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, 
         // Moyenne only if ALL exam séances for this matière have a note
         bool allDone = (notesCount == seances.size()) && !seances.isEmpty();
         double moyenne = allDone ? matiereSum / notesCount : -1.0;
-        if (moyenne >= 0.0) { totalSum += moyenne; ++totalCount; }
+
+        double coef     = coefMap.value(matiereId, 1.0);
+        int    semestre = semestreMap.value(matiereId, 0);
+        int    bucket   = (semestre >= 0 && semestre <= 2) ? semestre : 0;
+
+        totalInSem[bucket]++;
+        if (moyenne >= 0.0) {
+            weightedSum[bucket]  += moyenne * coef;
+            weightedCoef[bucket] += coef;
+            doneCount[bucket]++;
+        }
 
         seancesTotales += seances.size();
         presenceTotale += presenceCount;
@@ -181,18 +210,50 @@ Result<QVariantMap> GradesService::buildBulletinData(int eleveId, int classeId, 
         mat["matiereId"]     = matiereId;
         mat["epreuves"]      = epreuvesList;
         mat["moyenne"]       = moyenne >= 0.0 ? QVariant(moyenne) : QVariant();
+        mat["coefficient"]   = coef;
+        mat["semestreNumero"]= semestre;
         mat["presenceCount"] = presenceCount;
         mat["totalSeances"]  = (int)seances.size();
         matieresList.append(mat);
     }
 
-    // Total average only if every matière has its average
-    bool allMatieresDone = (totalCount == matiereOrder.size()) && !matiereOrder.isEmpty();
+    // 7. Compute weighted averages
+    // moyenneGenerale: weighted avg of ALL matières (all buckets combined)
+    double allSum = weightedSum[0] + weightedSum[1] + weightedSum[2];
+    double allCoef= weightedCoef[0]+ weightedCoef[1]+ weightedCoef[2];
+    int    allDone= doneCount[0]   + doneCount[1]   + doneCount[2];
+    int    allTot = totalInSem[0]  + totalInSem[1]  + totalInSem[2];
+    bool allComplete = (allDone == allTot) && allTot > 0;
+
+    // moyenneSemestre1: weighted avg of S1 matières (bucket 1)
+    // + "toute l'année" (bucket 0) matières contribute to both semesters
+    // S1 = weighted(bucket1) if complete, S2 = weighted(bucket2) if complete
+    bool s1HasMatieres = (totalInSem[1] > 0);
+    bool s2HasMatieres = (totalInSem[2] > 0);
+    bool s1Complete    = s1HasMatieres && (doneCount[1] == totalInSem[1]);
+    bool s2Complete    = s2HasMatieres && (doneCount[2] == totalInSem[2]);
+
+    // Include all-year (bucket 0) into both semester averages
+    double s1Sum  = weightedSum[1]  + weightedSum[0];
+    double s1Coef = weightedCoef[1] + weightedCoef[0];
+    double s2Sum  = weightedSum[2]  + weightedSum[0];
+    double s2Coef = weightedCoef[2] + weightedCoef[0];
+    bool s1FullComplete = s1Complete && (doneCount[0] == totalInSem[0]);
+    bool s2FullComplete = s2Complete && (doneCount[0] == totalInSem[0]);
+
+    double moyS1 = (s1FullComplete && s1Coef > 0) ? s1Sum / s1Coef : -1.0;
+    double moyS2 = (s2FullComplete && s2Coef > 0) ? s2Sum / s2Coef : -1.0;
+    double moyGen = (allComplete && allCoef > 0) ? allSum / allCoef : -1.0;
+    double moyAnn = (moyS1 >= 0 && moyS2 >= 0) ? (moyS1 + moyS2) / 2.0 : -1.0;
 
     QVariantMap result;
-    result["matieres"]        = matieresList;
-    result["moyenneGenerale"] = allMatieresDone ? QVariant(totalSum / totalCount) : QVariant();
-    result["presenceTotale"]  = presenceTotale;
-    result["seancesTotales"]  = seancesTotales;
+    result["matieres"]         = matieresList;
+    result["moyenneGenerale"]  = moyGen >= 0 ? QVariant(moyGen)  : QVariant();
+    result["moyenneSemestre1"] = moyS1  >= 0 ? QVariant(moyS1)   : QVariant();
+    result["moyenneSemestre2"] = moyS2  >= 0 ? QVariant(moyS2)   : QVariant();
+    result["moyenneAnnuelle"]  = moyAnn >= 0 ? QVariant(moyAnn)  : QVariant();
+    result["hasSemestres"]     = s1HasMatieres || s2HasMatieres;
+    result["presenceTotale"]   = presenceTotale;
+    result["seancesTotales"]   = seancesTotales;
     return Result<QVariantMap>::success(result);
 }

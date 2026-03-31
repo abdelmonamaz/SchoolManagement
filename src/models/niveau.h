@@ -21,6 +21,8 @@ struct Matiere {
     int niveauId = 0;
     int nombreSeances = 0;
     int dureeSeanceMinutes = 60;
+    int semestreNumero = 0; // 0 = toute l'année, 1 = S1, 2 = S2
+    double coefficient = 1.0;
 };
 
 struct MatiereExamen {

@@ -28,8 +28,11 @@ public:
     // Executes the full year closure in a single DB transaction.
     // progressions: list of {inscriptionId, eleveId, niveauActuelId,
     //                        categorie, resultat, niveauSuivantId}
+    // s1DateFin/s2DateDebut: custom semester boundaries (empty = use defaults)
     virtual Result<bool> executeYearClosure(const QString& newLabel,
                                             const QString& dateDebut,
                                             const QString& dateFin,
-                                            const QVariantList& progressions) = 0;
+                                            const QVariantList& progressions,
+                                            const QString& s1DateFin,
+                                            const QString& s2DateDebut) = 0;
 };

@@ -70,15 +70,29 @@ ModalOverlay {
         var v = bulletinData.moyenneGenerale
         return (v !== null && v !== undefined) ? v : -1
     }
+    readonly property double moyenneSemestre1: {
+        var v = bulletinData.moyenneSemestre1
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property double moyenneSemestre2: {
+        var v = bulletinData.moyenneSemestre2
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property double moyenneAnnuelle: {
+        var v = bulletinData.moyenneAnnuelle
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property bool hasSemestres: bulletinData.hasSemestres === true
 
     // ── Largeurs de colonnes (fixes pour aligner header ↔ données) ──────────
-    readonly property int cMat: 170   // Matière
+    readonly property int cMat: 160   // Matière
+    readonly property int cCoef: 44   // Coefficient
     readonly property int cMoy: 80    // Moyenne
     readonly property int cApp: 96    // Appréciation
     readonly property int cPre: 72    // Présence
     readonly property int tableWidth: billContent.width > 0 ? billContent.width - 32 : 660
     readonly property int cEp: allTitres.length > 0
-        ? Math.max(50, Math.floor((tableWidth - cMat - cMoy - cApp - cPre) / allTitres.length))
+        ? Math.max(50, Math.floor((tableWidth - cMat - cCoef - cMoy - cApp - cPre) / allTitres.length))
         : 60
 
     // ── Données présence (niveau classe) ─────────────────────────────────────
@@ -239,6 +253,10 @@ ModalOverlay {
                                 width: root.cMat; height: parent.height
                                 Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MATIÈRE"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; verticalAlignment: Text.AlignVCenter }
                             }
+                            Item {
+                                width: root.cCoef; height: parent.height
+                                Text { anchors.fill: parent; text: qsTr("COEF."); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            }
                             Repeater {
                                 model: root.allTitres
                                 delegate: Item {
@@ -294,6 +312,18 @@ ModalOverlay {
                                 Item {
                                     width: root.cMat; height: parent.height
                                     Text { anchors.fill: parent; leftPadding: 8; text: root.matiereName(matRow.mat.matiereId); font.pixelSize: 10; font.weight: Font.Bold; color: Style.foreground; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                }
+
+                                // Coefficient
+                                Item {
+                                    width: root.cCoef; height: parent.height
+                                    property double coef: matRow.mat.coefficient !== undefined ? matRow.mat.coefficient : 1.0
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: parent.coef === 1.0 ? "1" : parent.coef % 1 === 0 ? String(parent.coef) : parent.coef.toFixed(1)
+                                        font.pixelSize: 10; font.weight: Font.Bold
+                                        color: parent.coef !== 1.0 ? Style.zitouna : Style.textTertiary
+                                    }
                                 }
 
                                 // Notes épreuves
@@ -352,7 +382,56 @@ ModalOverlay {
                         }
                     }
 
-                    // ── Moyenne générale ─────────────────────────────────────
+                    // ── Moyennes (semestres + annuelle / générale) ───────────
+                    // Semestre 1
+                    Rectangle {
+                        x: 16; width: parent.width - 32; height: 36
+                        visible: root.hasSemestres
+                        color: Style.primaryBg; border.color: Style.primary; border.width: 1; radius: 2
+                        Row {
+                            width: parent.width; height: parent.height
+                            Item {
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
+                                height: parent.height
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE SEMESTRE 1"); font.pixelSize: 9; font.weight: Font.Black; color: Style.primary; verticalAlignment: Text.AlignVCenter }
+                            }
+                            Item {
+                                width: root.cMoy; height: parent.height
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.moyenneSemestre1 >= 0 ? root.moyenneSemestre1.toFixed(2) + "/20" : "—"
+                                    font.pixelSize: 13; font.weight: Font.Black; color: Style.primary
+                                }
+                            }
+                            Item { width: root.cApp + root.cPre; height: parent.height }
+                        }
+                    }
+
+                    // Semestre 2
+                    Rectangle {
+                        x: 16; width: parent.width - 32; height: 36
+                        visible: root.hasSemestres
+                        color: Qt.rgba(0.1, 0.5, 0.9, 0.07); border.color: Style.infoColor; border.width: 1; radius: 2
+                        Row {
+                            width: parent.width; height: parent.height
+                            Item {
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
+                                height: parent.height
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE SEMESTRE 2"); font.pixelSize: 9; font.weight: Font.Black; color: Style.infoColor; verticalAlignment: Text.AlignVCenter }
+                            }
+                            Item {
+                                width: root.cMoy; height: parent.height
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.moyenneSemestre2 >= 0 ? root.moyenneSemestre2.toFixed(2) + "/20" : "—"
+                                    font.pixelSize: 13; font.weight: Font.Black; color: Style.infoColor
+                                }
+                            }
+                            Item { width: root.cApp + root.cPre; height: parent.height }
+                        }
+                    }
+
+                    // Moyenne annuelle (si semestrielle) ou générale (si pas de semestres)
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 44
                         color: Style.successBg; border.color: Style.zitouna; border.width: 1; radius: 2
@@ -361,15 +440,22 @@ ModalOverlay {
                             width: parent.width; height: parent.height
 
                             Item {
-                                width: root.cMat + root.allTitres.length * root.cEp
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
                                 height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE GÉNÉRALE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter }
+                                Text {
+                                    anchors.fill: parent; leftPadding: 8
+                                    text: root.hasSemestres ? qsTr("MOYENNE ANNUELLE") : qsTr("MOYENNE GÉNÉRALE")
+                                    font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter
+                                }
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.moyenneGenerale >= 0 ? root.moyenneGenerale.toFixed(2) + "/20" : "—"
+                                    text: {
+                                        var v = root.hasSemestres ? root.moyenneAnnuelle : root.moyenneGenerale
+                                        return v >= 0 ? v.toFixed(2) + "/20" : "—"
+                                    }
                                     font.pixelSize: 14; font.weight: Font.Black; color: Style.zitouna
                                 }
                             }
@@ -514,9 +600,17 @@ ModalOverlay {
     function buildEnrichedData() {
         var data = JSON.parse(JSON.stringify(root.bulletinData))
         var mats = data.matieres || []
-        for (var i = 0; i < mats.length; i++)
+        for (var i = 0; i < mats.length; i++) {
             if (!mats[i].nom) mats[i].nom = root.matiereName(mats[i].matiereId)
+            // Ensure coefficient is present (fallback to 1)
+            if (mats[i].coefficient === undefined) mats[i].coefficient = 1.0
+        }
         data.matieres = mats
+        // Propagate weighted averages
+        data.moyenneSemestre1 = root.moyenneSemestre1 >= 0 ? root.moyenneSemestre1 : null
+        data.moyenneSemestre2 = root.moyenneSemestre2 >= 0 ? root.moyenneSemestre2 : null
+        data.moyenneAnnuelle  = root.moyenneAnnuelle  >= 0 ? root.moyenneAnnuelle  : null
+        data.hasSemestres     = root.hasSemestres
         // Inject association info from setupController
         var assoc = setupController.associationData
         data.associationNom      = assoc.nomAssociation || "Ez-Zaytouna"

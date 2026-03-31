@@ -1,5 +1,6 @@
 #include "repositories/sqlite/sqlite_setup_repository.h"
 
+#include <QDate>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -189,6 +190,143 @@ Result<bool> SqliteSetupSchoolYearRepository::syncTarifs(int anneeId, double tar
             return Result<bool>::error(q.lastError().text());
     }
     return Result<bool>::success(true);
+}
+
+Result<int> SqliteSetupSchoolYearRepository::initDraftYear()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+
+    // If an active year already exists, reuse it.
+    QSqlQuery qExist(db);
+    qExist.exec(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1"));
+    if (qExist.next())
+        return Result<int>::success(qExist.value(0).toInt());
+
+    // Compute default academic year based on current date.
+    const QDate today = QDate::currentDate();
+    const int startYear = today.month() < 9 ? today.year() - 1 : today.year();
+    const QString libelle   = QString("%1-%2").arg(startYear).arg(startYear + 1);
+    const QString dateDebut = QString("%1-09-01").arg(startYear);
+    const QString dateFin   = QString("%1-06-30").arg(startYear + 1);
+
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "INSERT INTO annees_scolaires (libelle, date_debut, date_fin, statut, date_modification) "
+        "VALUES (?, ?, ?, 'Active', datetime('now'))"));
+    q.addBindValue(libelle);
+    q.addBindValue(dateDebut);
+    q.addBindValue(dateFin);
+    if (!q.exec())
+        return Result<int>::error(q.lastError().text());
+
+    qInfo() << "[SetupRepo] initDraftYear: created draft year" << libelle;
+    return Result<int>::success(q.lastInsertId().toInt());
+}
+
+Result<int> SqliteSetupSchoolYearRepository::finalizeActiveYear(const QVariantMap& data)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+
+    // Update existing active row with the final data from step 3.
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "UPDATE annees_scolaires SET "
+        "  libelle                  = ?, "
+        "  date_debut               = ?, "
+        "  date_fin                 = ?, "
+        "  tarif_jeune              = ?, "
+        "  tarif_adulte             = ?, "
+        "  frais_inscription_jeune  = ?, "
+        "  frais_inscription_adulte = ?, "
+        "  date_modification        = datetime('now') "
+        "WHERE statut = 'Active' AND valide = 1"));
+    q.addBindValue(data.value("libelle").toString());
+    q.addBindValue(data.value("dateDebut").toString());
+    q.addBindValue(data.value("dateFin").toString());
+    q.addBindValue(data.value("tarifJeune",             0.0).toDouble());
+    q.addBindValue(data.value("tarifAdulte",            0.0).toDouble());
+    q.addBindValue(data.value("fraisInscriptionJeune",  0.0).toDouble());
+    q.addBindValue(data.value("fraisInscriptionAdulte", 0.0).toDouble());
+
+    if (!q.exec())
+        return Result<int>::error(q.lastError().text());
+
+    // Fallback: no active row found — create via upsert.
+    if (q.numRowsAffected() == 0)
+        return upsertAnneeScolaire(data);
+
+    QSqlQuery qId(db);
+    qId.exec(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1"));
+    if (!qId.next())
+        return Result<int>::error(QStringLiteral("Impossible de retrouver l'année scolaire active."));
+    return Result<int>::success(qId.value(0).toInt());
+}
+
+Result<bool> SqliteSetupSchoolYearRepository::createDefaultSemestres(int anneeId,
+                                                                      const QString& dateDebut,
+                                                                      const QString& dateFin,
+                                                                      const QString& s1DateFin,
+                                                                      const QString& s2DateDebut)
+{
+    const QDate d1 = QDate::fromString(dateDebut, Qt::ISODate);
+    if (!d1.isValid())
+        return Result<bool>::error(QStringLiteral("Date de début invalide: ") + dateDebut);
+
+    const int nextYear = d1.year() + 1;
+    const QString s1End   = !s1DateFin.isEmpty()   ? s1DateFin   : QString("%1-01-14").arg(nextYear);
+    const QString s2Start = !s2DateDebut.isEmpty() ? s2DateDebut : QString("%1-01-15").arg(nextYear);
+
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "INSERT OR IGNORE INTO semestres "
+        "  (annee_scolaire_id, nom, numero, date_debut, date_fin) "
+        "VALUES (?, ?, ?, ?, ?)"));
+
+    const struct { const char* nom; int num; const QString& debut; const QString& fin; } semestres[2] = {
+        {"Semestre 1", 1, dateDebut, s1End},
+        {"Semestre 2", 2, s2Start,   dateFin},
+    };
+
+    for (const auto& s : semestres) {
+        q.addBindValue(anneeId);
+        q.addBindValue(QLatin1String(s.nom));
+        q.addBindValue(s.num);
+        q.addBindValue(s.debut);
+        q.addBindValue(s.fin);
+        if (!q.exec())
+            return Result<bool>::error(q.lastError().text());
+    }
+
+    qInfo() << "[SetupRepo] createDefaultSemestres: S1" << dateDebut << "→" << s1End
+            << "/ S2" << s2Start << "→" << dateFin;
+    return Result<bool>::success(true);
+}
+
+QVariantList SqliteSetupSchoolYearRepository::getActiveSemestres()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.exec(QStringLiteral(
+        "SELECT s.id, s.numero, s.nom, s.date_debut, s.date_fin "
+        "FROM semestres s "
+        "JOIN annees_scolaires a ON s.annee_scolaire_id = a.id "
+        "WHERE a.statut = 'Active' AND a.valide = 1 AND s.valide = 1 "
+        "ORDER BY s.numero"));
+
+    QVariantList list;
+    while (q.next()) {
+        list.append(QVariantMap{
+            {"id",        q.value(0).toInt()},
+            {"numero",    q.value(1).toInt()},
+            {"nom",       q.value(2).toString()},
+            {"dateDebut", q.value(3).toString()},
+            {"dateFin",   q.value(4).toString()}
+        });
+    }
+    return list;
 }
 
 Result<bool> SqliteSetupSchoolYearRepository::updateActiveTarifs(const QVariantMap& data)

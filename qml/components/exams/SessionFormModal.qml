@@ -40,6 +40,29 @@ ModalOverlay {
         return null
     }
 
+    // ── Semester-awareness ───────────────────────────────────────────
+    readonly property var   _selMatiere:  selectedMatiere()
+    readonly property int   _semestreNum: _selMatiere ? (_selMatiere.semestreNumero || 0) : 0
+    readonly property var   _semestre: {
+        if (_semestreNum <= 0) return null
+        var sems = setupController.activeSemestres
+        for (var i = 0; i < sems.length; i++)
+            if (sems[i].numero === _semestreNum) return sems[i]
+        return null
+    }
+
+    // formDate is DD/MM/YYYY — convert to YYYY-MM-DD for comparison
+    readonly property string _formDateIso: {
+        if (!formDate) return ""
+        var p = formDate.split("/")
+        if (p.length !== 3) return ""
+        return p[2] + "-" + p[1] + "-" + p[0]
+    }
+    readonly property bool _dateOutOfSemestre: {
+        if (!isCourse || _semestreNum <= 0 || !_semestre || !_formDateIso) return false
+        return _formDateIso < _semestre.dateDebut || _formDateIso > _semestre.dateFin
+    }
+
     function resetForm() {
         formTitre       = ""; formDescriptif  = ""
         formNiveauId    = -1; formMatiereId   = -1
@@ -367,6 +390,27 @@ ModalOverlay {
                 }
             }
 
+            // ── Warning date hors semestre ────────────────────────
+            Rectangle {
+                Layout.fillWidth: true; Layout.columnSpan: 2
+                height: 36; radius: 10; color: Style.warningBg
+                border.color: Style.warningColor; border.width: 1
+                visible: root._dateOutOfSemestre
+                RowLayout {
+                    anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                    IconLabel { iconName: "warning"; iconColor: Style.warningColor; iconSize: 13 }
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Cette date est hors de la plage du Semestre %1 (%2 → %3)")
+                              .arg(root._semestreNum)
+                              .arg(root._semestre ? root._semestre.dateDebut : "")
+                              .arg(root._semestre ? root._semestre.dateFin   : "")
+                        font.pixelSize: 11; font.bold: true; color: Style.warningColor
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+
             // ── Heure ─────────────────────────────────────────────
             Column {
                 Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
@@ -389,13 +433,20 @@ ModalOverlay {
             Column {
                 Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 8
                 visible: root.isCourse
+
+                readonly property string _fullLabel: {
+                    if (root._semestreNum === 1) return qsTr("TOUT LE SEMESTRE 1")
+                    if (root._semestreNum === 2) return qsTr("TOUT LE SEMESTRE 2")
+                    return qsTr("TOUTE L'ANNÉE SCOLAIRE")
+                }
+
                 SectionLabel { text: qsTr("RÉCURRENCE (OPTIONNEL)") }
                 RowLayout {
                     width: parent.width; spacing: 12
                     Repeater {
                         model: [
                             { key: "remaining", label: qsTr("SEMAINES RESTANTES") },
-                            { key: "full",      label: qsTr("TOUTE L'ANNÉE SCOLAIRE") }
+                            { key: "full",      label: parent.parent._fullLabel }
                         ]
                         Rectangle {
                             Layout.fillWidth: true; height: 44; radius: 12
@@ -418,6 +469,16 @@ ModalOverlay {
                         }
                     }
                 }
+
+                // Semester date range when "full" is selected on a semestred matière
+                SemesterBoundRow {
+                    width: parent.width
+                    visible: root.formRecurrence === "full" && root._semestre !== null
+                    leftLabel:  root._semestreNum === 1 ? qsTr("DÉBUT DU SEMESTRE 1") : qsTr("DÉBUT DU SEMESTRE 2")
+                    leftDate:   root._semestre ? root._semestre.dateDebut : ""
+                    rightLabel: root._semestreNum === 1 ? qsTr("FIN DU SEMESTRE 1")   : qsTr("FIN DU SEMESTRE 2")
+                    rightDate:  root._semestre ? root._semestre.dateFin   : ""
+                }
             }
 
             // ── Submit section (count badge + warning + confirm + button) ──
@@ -436,6 +497,8 @@ ModalOverlay {
                 formProfId: root.formProfId; formSalleId: root.formSalleId
                 formClasseId: root.formClasseId; formRecurrence: root.formRecurrence
                 formDescriptif: root.formDescriptif
+                semestreStart: (root.formRecurrence === "full" && root._semestre) ? root._semestre.dateDebut : ""
+                semestreEnd:   (root.formRecurrence === "full" && root._semestre) ? root._semestre.dateFin   : ""
             }
         }
     }

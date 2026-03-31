@@ -9,10 +9,12 @@
 
 class IParticipationRepository;
 class ISeanceRepository;
+class IMatiereRepository;
 
 class GradesService {
 public:
-    GradesService(IParticipationRepository* participationRepo, ISeanceRepository* seanceRepo);
+    GradesService(IParticipationRepository* participationRepo, ISeanceRepository* seanceRepo,
+                  IMatiereRepository* matiereRepo);
 
     Result<QList<Participation>> getGradesBySeance(int seanceId);
     Result<QList<Participation>> getGradesByStudent(int eleveId);
@@ -26,5 +28,6 @@ public:
 
 private:
     IParticipationRepository* m_participationRepo;
-    ISeanceRepository* m_seanceRepo;
+    ISeanceRepository*        m_seanceRepo;
+    IMatiereRepository*       m_matiereRepo;
 };

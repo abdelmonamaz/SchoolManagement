@@ -16,6 +16,10 @@ ModalOverlay {
     property int    initialNombreSeances:    0
     property int    initialDureeMinutes:     60
     property int    editingNiveauId:         0
+    property int    initialSemestreNumero:   0
+    property real   initialCoefficient:      1.0
+
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
 
     // État confirmation
     property bool   showConfirm:     false
@@ -31,6 +35,8 @@ ModalOverlay {
             nomInput.text           = initialNom
             nbSeancesInput.text     = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
             dureeInput.text         = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
+            coeffInput.text         = initialCoefficient   > 0 ? String(initialCoefficient)   : "1"
+            semestreSection.selectedSemestre = initialSemestreNumero > 0 ? initialSemestreNumero : 1
             newExamenCombo.editText = ""
             newExamenCombo.currentIndex = -1
             showConfirm             = false
@@ -88,7 +94,61 @@ ModalOverlay {
                 }
             }
 
-            // Nombre de séances + Durée (côte à côte)
+            // Semestre (visible seulement si l'année a des semestres)
+            Column {
+                id: semestreSection
+                width: parent.width; spacing: 6
+                visible: root.hasSemestres
+
+                property int selectedSemestre: root.initialSemestreNumero > 0 ? root.initialSemestreNumero : 1
+
+                Text { text: qsTr("SEMESTRE"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+
+                Row {
+                    spacing: 8
+
+                    Repeater {
+                        model: [
+                            { label: qsTr("Semestre 1"), value: 1, icon: "S1" },
+                            { label: qsTr("Semestre 2"), value: 2, icon: "S2" }
+                        ]
+                        Rectangle {
+                            readonly property bool active: semestreSection.selectedSemestre === modelData.value
+                            width: 110; height: 40; radius: 10
+                            color: active ? (modelData.value === 1 ? Style.primaryBg : Qt.rgba(0.1, 0.5, 0.9, 0.08))
+                                         : Style.bgPage
+                            border.color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
+                                                 : Style.borderLight
+                            border.width: active ? 2 : 1
+                            Behavior on color        { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                            Row {
+                                anchors.centerIn: parent; spacing: 6
+                                Text {
+                                    text: modelData.icon
+                                    font.pixelSize: 13; font.weight: Font.Black
+                                    color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
+                                                  : Style.textTertiary
+                                }
+                                Text {
+                                    text: modelData.label
+                                    font.pixelSize: 11; font.bold: active
+                                    color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
+                                                  : Style.textTertiary
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: semestreSection.selectedSemestre = modelData.value
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Nombre de séances + Durée + Coefficient (côte à côte)
             RowLayout {
                 width: parent.width; spacing: 16
 
@@ -160,6 +220,43 @@ ModalOverlay {
                                     Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: durDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(dureeInput.text) || 60; if (v > 5) dureeInput.text = String(v - 5) } }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    Layout.fillWidth: true; spacing: 6
+                    Text { text: qsTr("COEFFICIENT"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Rectangle {
+                        width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage
+                        border.color: coeffInput.activeFocus ? Style.primary : Style.borderLight
+                        HoverHandler { cursorShape: Qt.IBeamCursor }
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 8
+                            TextInput {
+                                id: coeffInput
+                                Layout.fillWidth: true
+                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                validator: DoubleValidator { bottom: 0.1; top: 99.9; decimals: 2; notation: DoubleValidator.StandardNotation }
+                                Text { visible: !parent.text; text: "1"; font: parent.font; color: Style.textTertiary }
+                            }
+                            Column {
+                                spacing: 2
+                                Rectangle {
+                                    width: 24; height: 18; radius: 6; color: coefUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
+                                    MouseArea { id: coefUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { var v = parseFloat(coeffInput.text) || 1; coeffInput.text = String(Math.round((v + 0.5) * 10) / 10) } }
+                                }
+                                Rectangle {
+                                    width: 24; height: 18; radius: 6; color: coefDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
+                                    MouseArea { id: coefDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { var v = parseFloat(coeffInput.text) || 1; if (v > 0.5) coeffInput.text = String(Math.round((v - 0.5) * 10) / 10) } }
                                 }
                             }
                         }
@@ -424,8 +521,10 @@ ModalOverlay {
                             id:                  root.editingMatiereId,
                             nom:                 nom,
                             niveauId:            root.editingNiveauId,
-                            nombreSeances:       parseInt(nbSeancesInput.text) || 0,
-                            dureeSeanceMinutes:  parseInt(dureeInput.text)     || 60
+                            nombreSeances:       parseInt(nbSeancesInput.text)  || 0,
+                            dureeSeanceMinutes:  parseInt(dureeInput.text)      || 60,
+                            semestreNumero:      semestreSection.selectedSemestre,
+                            coefficient:         parseFloat(coeffInput.text)    || 1.0
                         }
                         root.showConfirm = true
                     }

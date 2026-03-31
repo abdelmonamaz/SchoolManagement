@@ -1,6 +1,7 @@
 #include "repositories/sqlite/sqlite_year_closure_repository.h"
 #include "common/result.h"
 
+#include <QDate>
 #include <QDateTime>
 #include <QDebug>
 #include <QMap>
@@ -483,27 +484,54 @@ static Result<bool> duplicateClasses(QSqlDatabase& db, const QMap<int,int>& nive
 }
 
 // 5. Duplicate matieres — returns oldMatiereId → newMatiereId mapping
+// Also copies the semestre numero (1 or 2) and reassigns semestre_id to the
+// corresponding semester of the new year (looked up by numero + newYearId).
 static Result<QMap<int,int>> duplicateMatieres(QSqlDatabase& db,
-    const QMap<int,int>& niveauMapping, int /*newYearId*/)
+    const QMap<int,int>& niveauMapping, int newYearId)
 {
     QMap<int,int> mapping;
+
+    // Build numero → new semestre id map for the new year
+    QMap<int,int> newSemestreByNumero;
+    {
+        QSqlQuery qSem(db);
+        qSem.prepare(QStringLiteral(
+            "SELECT numero, id FROM semestres WHERE annee_scolaire_id = ? AND valide = 1"));
+        qSem.addBindValue(newYearId);
+        if (qSem.exec()) {
+            while (qSem.next())
+                newSemestreByNumero[qSem.value(0).toInt()] = qSem.value(1).toInt();
+        }
+    }
+
     QSqlQuery qGet(db);
     qGet.prepare(QStringLiteral(
-        "SELECT id, nom, nombre_seances, duree_seance_minutes "
-        "FROM matieres WHERE niveau_id = :niveauId AND valide = 1"));
+        "SELECT m.id, m.nom, m.nombre_seances, m.duree_seance_minutes, "
+        "       COALESCE(s.numero, 0) AS semestre_numero, COALESCE(m.coefficient, 1.0) "
+        "FROM matieres m "
+        "LEFT JOIN semestres s ON s.id = m.semestre_id "
+        "WHERE m.niveau_id = :niveauId AND m.valide = 1"));
+
     QSqlQuery qIns(db);
     qIns.prepare(QStringLiteral(
-        "INSERT INTO matieres (nom, niveau_id, nombre_seances, duree_seance_minutes) "
-        "VALUES (:nom, :niveauId, :nbS, :dur)"));
+        "INSERT INTO matieres (nom, niveau_id, nombre_seances, duree_seance_minutes, semestre_id, coefficient) "
+        "VALUES (:nom, :niveauId, :nbS, :dur, :semId, :coef)"));
 
     for (auto it = niveauMapping.cbegin(); it != niveauMapping.cend(); ++it) {
         qGet.bindValue(":niveauId", it.key());
         if (!qGet.exec()) continue;
         while (qGet.next()) {
-            qIns.bindValue(":nom",     qGet.value(1).toString());
+            int semestreNumero = qGet.value(4).toInt();
+            QVariant semId;
+            if (semestreNumero > 0 && newSemestreByNumero.contains(semestreNumero))
+                semId = newSemestreByNumero[semestreNumero];
+
+            qIns.bindValue(":nom",      qGet.value(1).toString());
             qIns.bindValue(":niveauId", it.value());
-            qIns.bindValue(":nbS",     qGet.value(2).toInt());
-            qIns.bindValue(":dur",     qGet.value(3).toInt());
+            qIns.bindValue(":nbS",      qGet.value(2).toInt());
+            qIns.bindValue(":dur",      qGet.value(3).toInt());
+            qIns.bindValue(":semId",    semId);
+            qIns.bindValue(":coef",     qGet.value(5).toDouble());
             if (!qIns.exec())
                 return Result<QMap<int,int>>::error(
                     QStringLiteral("Erreur copie matière : %1").arg(qIns.lastError().text()));
@@ -704,13 +732,53 @@ static Result<bool> closeCurrentYear(QSqlDatabase& db, int currentId, const QStr
     return Result<bool>::success(true);
 }
 
+// ── createSemestresForYear ─────────────────────────────────────────────────────
+// Creates S1 and S2 rows for the new year. Non-fatal if semestres table doesn't
+// exist yet (pre-migration databases). Idempotent via INSERT OR IGNORE.
+static void createSemestresForYear(QSqlDatabase& db, int anneeId,
+                                   const QString& dateDebut, const QString& dateFin,
+                                   const QString& s1DateFin, const QString& s2DateDebut)
+{
+    const QDate d1 = QDate::fromString(dateDebut, Qt::ISODate);
+    if (!d1.isValid()) return;
+
+    const int nextYear       = d1.year() + 1;
+    const QString effectiveS1End   = !s1DateFin.isEmpty()   ? s1DateFin   : QString("%1-01-14").arg(nextYear);
+    const QString effectiveS2Start = !s2DateDebut.isEmpty() ? s2DateDebut : QString("%1-01-15").arg(nextYear);
+
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "INSERT OR IGNORE INTO semestres "
+        "  (annee_scolaire_id, nom, numero, date_debut, date_fin) "
+        "VALUES (?, ?, ?, ?, ?)"));
+
+    const struct { const char* nom; int num; const QString& debut; const QString& fin; }
+    semestres[2] = {
+        {"Semestre 1", 1, dateDebut,       effectiveS1End},
+        {"Semestre 2", 2, effectiveS2Start, dateFin},
+    };
+
+    for (const auto& s : semestres) {
+        q.addBindValue(anneeId);
+        q.addBindValue(QLatin1String(s.nom));
+        q.addBindValue(s.num);
+        q.addBindValue(s.debut);
+        q.addBindValue(s.fin);
+        if (!q.exec())
+            qWarning() << "[YearClosure] createSemestresForYear S" << s.num << "error:" << q.lastError().text();
+    }
+    qInfo() << "[YearClosure] createSemestresForYear: S1" << dateDebut << "→" << effectiveS1End
+            << "/ S2" << effectiveS2Start << "→" << dateFin;
+}
+
 } // anonymous namespace
 
 // ── executeYearClosure ────────────────────────────────────────────────────────
 
 Result<bool> SqliteYearClosureRepository::executeYearClosure(
     const QString& newLabel, const QString& dateDebut,
-    const QString& dateFin, const QVariantList& progressions)
+    const QString& dateFin, const QVariantList& progressions,
+    const QString& s1DateFin, const QString& s2DateDebut)
 {
     auto db = QSqlDatabase::database(m_connectionName);
 
@@ -751,6 +819,9 @@ Result<bool> SqliteYearClosureRepository::executeYearClosure(
     if (!newYearRes.isOk()) { db.rollback(); return Result<bool>::error(newYearRes.errorMessage()); }
     const int newYearId = newYearRes.value();
     qDebug() << "[YearClosure] New year id:" << newYearId;
+
+    // 2.5 Create semestres for the new year (non-fatal if fails)
+    createSemestresForYear(db, newYearId, dateDebut, dateFin, s1DateFin, s2DateDebut);
 
     // 3. Duplicate niveaux (rows + hierarchy + NAPA)
     auto niveauxRes = duplicateNiveaux(db, currentId, newYearId, now);

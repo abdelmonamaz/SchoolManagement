@@ -293,13 +293,22 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
         QDate startDate = base.dateHeureDebut.date();
 
         if (recurrence == QStringLiteral("full")) {
-            if (startDate.month() >= 9) {
-                startDate = QDate(year, 9, 1);
-                endDate = QDate(year + 1, 6, 30);
+            // Use semester date range if provided, otherwise fall back to full school year
+            QString semStart = data.value("semestreStart").toString();
+            QString semEnd   = data.value("semestreEnd").toString();
+            if (!semStart.isEmpty() && !semEnd.isEmpty()) {
+                startDate = QDate::fromString(semStart, Qt::ISODate);
+                endDate   = QDate::fromString(semEnd,   Qt::ISODate);
             } else {
-                startDate = QDate(year - 1, 9, 1);
-                endDate = QDate(year, 6, 30);
+                if (startDate.month() >= 9) {
+                    startDate = QDate(year, 9, 1);
+                    endDate   = QDate(year + 1, 6, 30);
+                } else {
+                    startDate = QDate(year - 1, 9, 1);
+                    endDate   = QDate(year, 6, 30);
+                }
             }
+            // Align startDate to the same day-of-week as the chosen date
             int targetDow = base.dateHeureDebut.date().dayOfWeek();
             int startDow  = startDate.dayOfWeek();
             int diff = targetDow - startDow;

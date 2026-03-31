@@ -27,7 +27,7 @@ public:
 };
 
 // ── School-year setup operations ─────────────────────────────────────────────
-// Wraps annees_scolaires + tarifs_mensualites + niveaux_actifs_par_annee
+// Wraps annees_scolaires + tarifs_mensualites + semestres
 // operations specific to the setup/settings flow.
 class ISetupSchoolYearRepository {
 public:
@@ -44,6 +44,18 @@ public:
     // Returns id of the created/updated row.
     virtual Result<int> upsertAnneeScolaire(const QVariantMap& data) = 0;
 
+    // Creates a provisional Active year with default Sep–Jun dates if none exists.
+    // Returns the id of the existing or newly created row.
+    // Called when the user advances from step 1 → step 2 of the setup wizard so
+    // that niveaux created in step 2 auto-link via niveaux.annee_scolaire_id.
+    virtual Result<int> initDraftYear() = 0;
+
+    // UPDATE the current Active year with final details from step 3.
+    // Falls back to INSERT if no active year exists.
+    // data keys: libelle, dateDebut, dateFin, tarifJeune, tarifAdulte,
+    //            fraisInscriptionJeune, fraisInscriptionAdulte
+    virtual Result<int> finalizeActiveYear(const QVariantMap& data) = 0;
+
     // INSERT OR IGNORE all valid niveaux into niveaux_actifs_par_annee for anneeId.
     virtual Result<bool> linkAllNiveauxToAnnee(int anneeId) = 0;
 
@@ -53,4 +65,17 @@ public:
     // UPDATE active annees_scolaires tarifs + sync tarifs_mensualites.
     // data keys: tarifJeune, tarifAdulte, fraisInscriptionJeune, fraisInscriptionAdulte
     virtual Result<bool> updateActiveTarifs(const QVariantMap& data) = 0;
+
+    // INSERT OR IGNORE two semestre rows for anneeId.
+    // S1: dateDebut → s1DateFin (default: Jan 14 of following year if empty).
+    // S2: s2DateDebut (default: Jan 15 of following year if empty) → dateFin.
+    // Idempotent via UNIQUE(annee_scolaire_id, numero).
+    virtual Result<bool> createDefaultSemestres(int anneeId,
+                                                const QString& dateDebut,
+                                                const QString& dateFin,
+                                                const QString& s1DateFin,
+                                                const QString& s2DateDebut) = 0;
+
+    // Returns list of {id, numero, nom, dateDebut, dateFin} for the active year's semestres.
+    virtual QVariantList getActiveSemestres() = 0;
 };

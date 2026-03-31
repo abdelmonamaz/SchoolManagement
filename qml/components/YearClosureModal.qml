@@ -7,9 +7,9 @@ import UI.Components
 //  Wizard Clôture d'Année Scolaire — 5 étapes
 //  Étape 1 : Vue d'ensemble (stats)
 //  Étape 2 : Progressions (résultats interactifs par élève)
-//  Étape 3 : Archivage (info + séances incomplètes)
+//  Étape 3 : Archivage (bilan séances + matières)
 //  Étape 4 : Rapports (résumé des actions)
-//  Étape 5 : Confirmation (nouvelle année + clôture)
+//  Étape 5 : Confirmation (nouvelle année + semestres + clôture)
 // ═══════════════════════════════════════════════════════════════════
 Popup {
     id: root
@@ -27,11 +27,9 @@ Popup {
     // Working copy of progressions (step 2 edits)
     property var progressions: []
 
-    // Step 5 fields
-    property string newLabel:  ""
-    property string newDebut:  ""
-    property string newFin:    ""
-    property bool   libelleAutoFill: true
+    // Stats shorthand
+    readonly property var stats: yearClosureController.closureStats
+    readonly property var incomplete: yearClosureController.incompleteSessions
 
     // Computed from progressions
     readonly property int nbDecides: {
@@ -41,43 +39,17 @@ Popup {
         return c
     }
     readonly property bool step2Valid: progressions.length > 0 && nbDecides === progressions.length
-    readonly property bool step5Valid: newLabel.trim().length > 0 && newDebut.length === 10 && newFin.length === 10
 
-    // Stats shorthand
-    readonly property var stats: yearClosureController.closureStats
-    readonly property var incomplete: yearClosureController.incompleteSessions
-
-    function autoLibelle() {
-        if (!libelleAutoFill || newDebut.length < 4 || newFin.length < 4) return
-        var y1 = parseInt(newDebut.substring(0, 4))
-        var y2 = parseInt(newFin.substring(0, 4))
-        newLabel = y1 + "-" + y2
-    }
-
-    function reset() {
-        currentStep = 1
-        progressions = []
-        newLabel = ""; newDebut = ""; newFin = ""; libelleAutoFill = true
-    }
-
-    onOpened: {
-        reset()
-        // Copy progressions from controller
-        var src = yearClosureController.studentProgressions
+    function _buildProgressionsCopy(src) {
         var copy = []
         for (var i = 0; i < src.length; i++) {
             var p = src[i]
             var moy = (p.moyenneAnnuelle !== undefined) ? p.moyenneAnnuelle : -1.0
-            // Auto-fill resultat from average if still "En cours"
             var res = (p.resultat !== "" && p.resultat !== "En cours") ? p.resultat : "En cours"
             var nSuivantId = (p.niveauxSuivants && p.niveauxSuivants.length > 0) ? p.niveauxSuivants[0].id : 0
             if (res === "En cours" && moy >= 0) {
-                if (moy >= 10) {
-                    res = "Réussi"
-                } else {
-                    res = "Redoublant"
-                    nSuivantId = 0
-                }
+                if (moy >= 10) { res = "Réussi" }
+                else           { res = "Redoublant"; nSuivantId = 0 }
             }
             copy.push({
                 inscriptionId:   p.inscriptionId,
@@ -93,22 +65,32 @@ Popup {
                 moyenneAnnuelle: moy
             })
         }
-        progressions = copy
+        return copy
+    }
 
-        // Auto-fill new year label from active year
-        if (stats && stats.anneeActiveLibelle) {
-            var parts = stats.anneeActiveLibelle.split("-")
-            if (parts.length === 2) {
-                var y1n = parseInt(parts[0]) + 1
-                var y2n = parseInt(parts[1]) + 1
-                newLabel = y1n + "-" + y2n
-                newDebut = y1n + "-09-01"
-                newFin   = y2n + "-06-30"
-                libelleAutoFill = true
-                dateField5Debut.setDate(newDebut)
-                dateField5Fin.setDate(newFin)
-            }
-        }
+    function reset() {
+        currentStep = 1
+        progressions = []
+    }
+
+    function _autoFillNewYear() {
+        if (!stats || !stats.anneeActiveLibelle) return
+        var parts = stats.anneeActiveLibelle.split("-")
+        if (parts.length !== 2) return
+        var y1n = parseInt(parts[0]) + 1
+        var y2n = parseInt(parts[1]) + 1
+        var debut = y1n + "-09-01"
+        var fin   = y2n + "-06-30"
+        step5.setDebutDate(debut)
+        step5.setFinDate(fin)
+        step5.libelleAutoFill = true
+        step5.newLabel = y1n + "-" + y2n
+    }
+
+    onOpened: {
+        reset()
+        progressions = _buildProgressionsCopy(yearClosureController.studentProgressions)
+        _autoFillNewYear()
     }
 
     Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.80) }
@@ -125,60 +107,15 @@ Popup {
             errorText.text = message
             errorPopup.open()
         }
-
-        // Async data arrives after open() — populate progressions when ready
         function onStudentProgressionsChanged() {
             if (!root.visible) return
             var src = yearClosureController.studentProgressions
             if (src.length === 0) return
-            var copy = []
-            for (var i = 0; i < src.length; i++) {
-                var p = src[i]
-                var moy = (p.moyenneAnnuelle !== undefined) ? p.moyenneAnnuelle : -1.0
-                var res = (p.resultat !== "" && p.resultat !== "En cours") ? p.resultat : "En cours"
-                var nSuivantId = (p.niveauxSuivants && p.niveauxSuivants.length > 0) ? p.niveauxSuivants[0].id : 0
-                if (res === "En cours" && moy >= 0) {
-                    if (moy >= 10) {
-                        res = "Réussi"
-                    } else {
-                        res = "Redoublant"
-                        nSuivantId = 0
-                    }
-                }
-                copy.push({
-                    inscriptionId:   p.inscriptionId,
-                    eleveId:         p.eleveId,
-                    nom:             p.nom,
-                    prenom:          p.prenom,
-                    categorie:       p.categorie,
-                    niveauActuelId:  p.niveauActuelId,
-                    niveauActuelNom: p.niveauActuelNom,
-                    resultat:        res,
-                    niveauxSuivants: p.niveauxSuivants,
-                    niveauSuivantId: nSuivantId,
-                    moyenneAnnuelle: moy
-                })
-            }
-            progressions = copy
+            progressions = root._buildProgressionsCopy(src)
         }
-
-        // Async stats arrive — auto-fill new year fields when ready
         function onClosureStatsChanged() {
             if (!root.visible) return
-            var s = yearClosureController.closureStats
-            if (s && s.anneeActiveLibelle) {
-                var parts = s.anneeActiveLibelle.split("-")
-                if (parts.length === 2) {
-                    var y1n = parseInt(parts[0]) + 1
-                    var y2n = parseInt(parts[1]) + 1
-                    newLabel = y1n + "-" + y2n
-                    newDebut = y1n + "-09-01"
-                    newFin   = y2n + "-06-30"
-                    libelleAutoFill = true
-                    dateField5Debut.setDate(newDebut)
-                    dateField5Fin.setDate(newFin)
-                }
-            }
+            root._autoFillNewYear()
         }
     }
 
@@ -188,72 +125,38 @@ Popup {
 
         // ── Header ──────────────────────────────────────────────────
         Rectangle {
-            Layout.fillWidth: true
-            height: 80
-            radius: 20
-            color: Style.textPrimary
-
-            // Bottom corners square
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 20
-                color: Style.textPrimary
-            }
+            Layout.fillWidth: true; height: 80; radius: 20; color: Style.textPrimary
+            Rectangle { anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right; height: 20; color: Style.textPrimary }
 
             RowLayout {
-                anchors.fill: parent
-                anchors.margins: 24
+                anchors { fill: parent; margins: 24 }
                 spacing: 16
 
                 Rectangle {
-                    width: 44; height: 44; radius: 12
-                    color: Qt.rgba(1, 1, 1, 0.15)
-                    Text {
-                        anchors.centerIn: parent
-                        text: qsTr("🔒"); font.pixelSize: 20
-                    }
+                    width: 44; height: 44; radius: 12; color: Qt.rgba(1, 1, 1, 0.15)
+                    Text { anchors.centerIn: parent; text: qsTr("🔒"); font.pixelSize: 20 }
                 }
-
                 Column {
                     spacing: 2
-                    Text {
-                        text: qsTr("Clôture d'Année Scolaire")
-                        font.pixelSize: 18; font.bold: true
-                        color: "white"
-                    }
-                    Text {
-                        text: stats ? (qsTr("Année ") + stats.anneeActiveLibelle) : ""
-                        font.pixelSize: 13
-                        color: Qt.rgba(1,1,1,0.7)
-                    }
+                    Text { text: qsTr("Clôture d'Année Scolaire"); font.pixelSize: 18; font.bold: true; color: "white" }
+                    Text { text: stats ? (qsTr("Année ") + stats.anneeActiveLibelle) : ""; font.pixelSize: 13; color: Qt.rgba(1,1,1,0.7) }
                 }
-
                 Item { Layout.fillWidth: true }
-
                 Rectangle {
-                    width: 32; height: 32; radius: 8
-                    color: Qt.rgba(1,1,1,0.15)
+                    width: 32; height: 32; radius: 8; color: Qt.rgba(1,1,1,0.15)
                     Text { anchors.centerIn: parent; text: qsTr("✕"); color: "white"; font.pixelSize: 14 }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.close()
-                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.close() }
                 }
             }
         }
 
         // ── Step indicator ───────────────────────────────────────────
         Item {
-            Layout.fillWidth: true
-            height: 100
+            Layout.fillWidth: true; height: 100
 
             Row {
                 id: stepRow
-                anchors.centerIn: parent
-                spacing: 0
+                anchors.centerIn: parent; spacing: 0
 
                 property var stepDefs: [
                     { label: qsTr("Vue\nd'ensemble"), icon: "📊" },
@@ -267,13 +170,10 @@ Popup {
                     model: stepRow.stepDefs
                     delegate: Row {
                         spacing: 0
-
-                        // Circle + label — column width 80, circle centered horizontally
                         Column {
-                            width: 80
-                            spacing: 6
+                            width: 80; spacing: 6
                             Rectangle {
-                                x: (parent.width - width) / 2   // center 52px circle in 80px column
+                                x: (parent.width - width) / 2
                                 width: 52; height: 52; radius: 26
                                 color: {
                                     if (index + 1 < currentStep) return Style.successColor
@@ -286,23 +186,19 @@ Popup {
                                     return Style.borderMedium
                                 }
                                 border.width: 2
-
                                 Text {
                                     anchors.centerIn: parent
                                     text: (index + 1 < currentStep) ? "✓" : modelData.icon
                                     font.pixelSize: (index + 1 < currentStep) ? 18 : 20
                                     color: {
-                                        if (index + 1 < currentStep) return "white"
-                                        if (index + 1 === currentStep) return "white"
+                                        if (index + 1 <= currentStep) return "white"
                                         return Style.textTertiary
                                     }
                                 }
                             }
                             Text {
-                                width: parent.width
-                                horizontalAlignment: Text.AlignHCenter
-                                text: modelData.label
-                                font.pixelSize: 11
+                                width: parent.width; horizontalAlignment: Text.AlignHCenter
+                                text: modelData.label; font.pixelSize: 11
                                 font.bold: index + 1 === currentStep
                                 color: {
                                     if (index + 1 < currentStep) return Style.successColor
@@ -312,12 +208,8 @@ Popup {
                                 wrapMode: Text.WordWrap
                             }
                         }
-
-                        // Connector line (except last) — y=26 = center of 52px circle
                         Rectangle {
-                            visible: index < 4
-                            width: 60; height: 2
-                            y: 26
+                            visible: index < 4; width: 60; height: 2; y: 26
                             color: (index + 1 < currentStep) ? Style.successColor : Style.borderLight
                         }
                     }
@@ -331,907 +223,72 @@ Popup {
             Layout.preferredHeight: 440
             color: Style.bgPage
 
-            // Step 1: Vue d'ensemble
-            ScrollView {
-                id: step1Scroll
-                anchors.fill: parent
-                anchors.margins: 24
+            ClosureStep1Stats {
+                anchors { fill: parent; margins: 24 }
                 visible: currentStep === 1
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                Column {
-                    width: step1Scroll.width
-                    spacing: 16
-
-                    // Warning critical
-                    Rectangle {
-                        width: parent.width
-                        height: warnCol.implicitHeight + 32
-                        radius: 12
-                        color: Style.warningBg
-                        border.color: Style.warningColor
-                        border.width: 1
-
-                        Column {
-                            id: warnCol
-                            anchors.left: parent.left; anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 16
-                            spacing: 10
-
-                            Row {
-                                spacing: 10
-                                Text { text: qsTr("⚠️"); font.pixelSize: 16 }
-                                Text {
-                                    text: qsTr("Attention : Action Critique")
-                                    font.pixelSize: 15; font.bold: true
-                                    color: Style.warningColor
-                                }
-                            }
-                            Text {
-                                width: parent.width
-                                text: qsTr("La clôture d'année scolaire est une opération <b>irréversible</b> qui va :")
-                                textFormat: Text.RichText
-                                font.pixelSize: 13; color: Style.warningColor
-                                wrapMode: Text.WordWrap
-                            }
-                            Repeater {
-                                model: [
-                                    qsTr("Archiver définitivement toutes les notes et bulletins de l'année %1").arg(stats ? stats.anneeActiveLibelle : ""),
-                                    qsTr("Verrouiller les modifications sur les données académiques de cette année"),
-                                    qsTr("Faire passer automatiquement les étudiants qui ont réussi au niveau supérieur"),
-                                    qsTr("Marquer les étudiants de niveau terminal comme diplômés")
-                                ]
-                                delegate: Row {
-                                    spacing: 8
-                                    Text { text: qsTr("•"); font.pixelSize: 13; color: Style.warningColor }
-                                    Text {
-                                        width: warnCol.width - 16
-                                        text: modelData; font.pixelSize: 13; color: Style.warningColor
-                                        wrapMode: Text.WordWrap
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Stat cards 2x2
-                    Grid {
-                        width: parent.width
-                        columns: 2
-                        spacing: 12
-
-                        Repeater {
-                            model: [
-                                { label: qsTr("Étudiants Inscrits"), sub: qsTr("Année ") + (stats ? stats.anneeActiveLibelle : ""),
-                                  value: stats ? stats.studentsInscrits : 0, color: Style.successBg, accent: Style.successColor },
-                                { label: qsTr("Taux de Réussite"), sub: qsTr("Global tous niveaux"),
-                                  value: (stats ? stats.tauxReussite : 0) + "%", color: Style.bgWhite, accent: Style.chart3 },
-                                { label: qsTr("Diplômés"), sub: qsTr("Niveau terminal complété"),
-                                  value: stats ? stats.diplomes : 0, color: Style.background, accent: Style.chart3 },
-                                { label: qsTr("Redoublants"), sub: qsTr("Tous niveaux confondus"),
-                                  value: stats ? stats.redoublants : 0, color: Style.errorBg, accent: Style.errorColor }
-                            ]
-                            delegate: Rectangle {
-                                width: (step1Scroll.width - 12) / 2
-                                height: 90
-                                radius: 12
-                                color: modelData.color
-                                border.color: Qt.rgba(0,0,0,0.05)
-                                border.width: 1
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.margins: 16
-                                    spacing: 12
-
-                                    Column {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 4
-                                        Text {
-                                            text: "" + modelData.value
-                                            font.pixelSize: 28; font.bold: true
-                                            color: modelData.accent
-                                        }
-                                        Text { text: modelData.label; font.pixelSize: 13; font.bold: true; color: modelData.accent }
-                                        Text { text: modelData.sub; font.pixelSize: 11; color: Qt.darker(modelData.accent, 1.2) }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Incomplete sessions warning
-                    Rectangle {
-                        width: parent.width
-                        visible: incomplete && incomplete.length > 0
-                        height: visible ? incomplCol.implicitHeight + 24 : 0
-                        radius: 12; color: Style.warningBg
-                        border.color: Style.chart1; border.width: 1
-
-                        Column {
-                            id: incomplCol
-                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
-                            spacing: 6
-                            Row {
-                                spacing: 8
-                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
-                                Text {
-                                    text: (incomplete ? incomplete.length : 0) + " séance(s) non validée(s)"
-                                    font.pixelSize: 13; font.bold: true; color: Style.warningColor
-                                }
-                            }
-                            Text {
-                                width: parent.width
-                                text: qsTr("Ces séances passées n'ont pas d'enregistrement de présence. Vous pouvez continuer, elles seront archivées telles quelles.")
-                                font.pixelSize: 12; color: Style.warningColor
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-                    }
-
-                    // Backup recommendation
-                    Rectangle {
-                        width: parent.width
-                        height: backupRow.implicitHeight + 24
-                        radius: 12; color: Style.chart3
-                        border.color: Style.chart3; border.width: 1
-
-                        Row {
-                            id: backupRow
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                            spacing: 10
-                            Text { text: qsTr("🛡️"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text {
-                                width: parent.width - 30
-                                text: qsTr("Sauvegarde recommandée : Avant de procéder à la clôture, assurez-vous d'avoir effectué une sauvegarde complète de la base de données dans l'onglet \"Sauvegarde & Data\" des Paramètres.")
-                                font.pixelSize: 12; color: Style.chart3
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-                    }
-                }
+                stats: root.stats
+                incomplete: root.incomplete
             }
 
-            // Step 2: Progressions
-            Column {
-                anchors.fill: parent
-                anchors.margins: 16
-                spacing: 8
+            ClosureStep2Progressions {
+                anchors { fill: parent; margins: 16 }
                 visible: currentStep === 2
-
-                // Summary bar
-                Rectangle {
-                    width: parent.width
-                    height: 40; radius: 10
-                    color: step2Valid ? Style.successBg : Style.warningBg
-                    border.color: step2Valid ? Style.successColor : Style.warningBorder; border.width: 1
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 8
-                        Text { text: step2Valid ? "✅" : "⏳"; font.pixelSize: 14 }
-                        Text {
-                            text: qsTr("%1 / %2 résultats décidés").arg(nbDecides).arg(progressions.length)
-                                  + (step2Valid ? qsTr(" — Prêt à continuer") : qsTr(" — Décidez tous les résultats"))
-                            font.pixelSize: 13; font.bold: true
-                            color: step2Valid ? Style.zitouna : Style.warningColor
-                        }
-                    }
-                }
-
-                // List
-                ListView {
-                    width: parent.width
-                    height: parent.height - 48
-                    clip: true
-                    model: progressions
-                    spacing: 4
-
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-
-                    delegate: Rectangle {
-                        id: progDelegate
-                        required property var modelData
-                        required property int index
-                        width: ListView.view.width
-                        height: 66
-                        radius: 10
-                        color: Style.bgWhite
-                        border.color: {
-                            var r = modelData.resultat
-                            if (r === "Réussi")     return Style.successColor
-                            if (r === "Redoublant") return Style.errorBorder
-                            return Style.borderLight
-                        }
-                        border.width: 1
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 12
-
-                            // Avatar
-                            Rectangle {
-                                width: 38; height: 38; radius: 19
-                                color: {
-                                    var r = modelData.resultat
-                                    if (r === "Réussi")     return Style.successBg
-                                    if (r === "Redoublant") return Style.errorBorder
-                                    return Style.bgPage
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.nom.charAt(0)
-                                    font.pixelSize: 15; font.bold: true
-                                    color: {
-                                        var r = modelData.resultat
-                                        if (r === "Réussi")     return Style.zitouna
-                                        if (r === "Redoublant") return Style.errorColor
-                                        return Style.textSecondary
-                                    }
-                                }
-                            }
-
-                            // Name + niveau
-                            Column {
-                                Layout.preferredWidth: 160
-                                spacing: 2
-                                Text {
-                                    text: modelData.nom + " " + modelData.prenom
-                                    font.pixelSize: 13; font.bold: true
-                                    color: Style.textPrimary
-                                    elide: Text.ElideRight; width: parent.width
-                                }
-                                Text {
-                                    text: modelData.niveauActuelNom
-                                    font.pixelSize: 11; color: Style.textSecondary
-                                    elide: Text.ElideRight; width: parent.width
-                                }
-                            }
-
-                            // Average grade badge
-                            Rectangle {
-                                width: 56; height: 28; radius: 8
-                                visible: modelData.moyenneAnnuelle !== undefined
-                                color: {
-                                    var m = modelData.moyenneAnnuelle
-                                    if (m < 0) return Style.secondary
-                                    return m >= 10 ? Style.successBg : Style.errorBorder
-                                }
-                                border.color: {
-                                    var m = modelData.moyenneAnnuelle
-                                    if (m < 0) return Style.borderLight
-                                    return m >= 10 ? Style.successColor : Style.errorBorder
-                                }
-                                border.width: 1
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: {
-                                        var m = modelData.moyenneAnnuelle
-                                        return m < 0 ? "—" : m.toFixed(1)
-                                    }
-                                    font.pixelSize: 12; font.bold: true
-                                    color: {
-                                        var m = modelData.moyenneAnnuelle
-                                        if (m < 0) return Style.textTertiary
-                                        return m >= 10 ? Style.successColor : Style.errorColor
-                                    }
-                                }
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            // Réussi button
-                            Rectangle {
-                                width: 80; height: 30; radius: 8
-                                color: modelData.resultat === "Réussi" ? Style.successColor : Style.bgPage
-                                border.color: modelData.resultat === "Réussi" ? Style.successColor : Style.borderMedium
-                                border.width: 1
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: qsTr("Réussi")
-                                    font.pixelSize: 12; font.bold: true
-                                    color: modelData.resultat === "Réussi" ? "white" : Style.textSecondary
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var copy = progressions.slice()
-                                        var item = Object.assign({}, copy[index])
-                                        item.resultat = "Réussi"
-                                        // Set default next niveau
-                                        if (item.niveauxSuivants && item.niveauxSuivants.length > 0)
-                                            item.niveauSuivantId = item.niveauxSuivants[0].id
-                                        else
-                                            item.niveauSuivantId = 0
-                                        copy[index] = item
-                                        progressions = copy
-                                    }
-                                }
-                            }
-
-                            // Redoublant button
-                            Rectangle {
-                                width: 90; height: 30; radius: 8
-                                color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.bgPage
-                                border.color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.borderMedium
-                                border.width: 1
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: qsTr("Redoublant")
-                                    font.pixelSize: 12; font.bold: true
-                                    color: modelData.resultat === "Redoublant" ? "white" : Style.textSecondary
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var copy = progressions.slice()
-                                        var item = Object.assign({}, copy[index])
-                                        item.resultat = "Redoublant"
-                                        item.niveauSuivantId = 0
-                                        copy[index] = item
-                                        progressions = copy
-                                    }
-                                }
-                            }
-
-                            // Next niveau display / selector
-                            Rectangle {
-                                width: 160; height: 30; radius: 8
-                                color: Style.bgPage
-                                border.color: Style.borderLight; border.width: 1
-                                visible: modelData.resultat !== "En cours"
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Text {
-                                        text: {
-                                            var r = modelData.resultat
-                                            if (r === "Redoublant") return "↩"
-                                            if (r === "Réussi") {
-                                                return (modelData.niveauSuivantId > 0) ? "→" : "🎓"
-                                            }
-                                            return ""
-                                        }
-                                        font.pixelSize: 13
-                                        color: Style.textSecondary
-                                    }
-
-                                    Text {
-                                        text: {
-                                            var r = modelData.resultat
-                                            if (r === "Redoublant") return modelData.niveauActuelNom
-                                            if (r === "Réussi") {
-                                                if (modelData.niveauSuivantId <= 0) return "Diplômé"
-                                                // Find name in niveauxSuivants
-                                                for (var i = 0; i < modelData.niveauxSuivants.length; i++) {
-                                                    if (modelData.niveauxSuivants[i].id === modelData.niveauSuivantId)
-                                                        return modelData.niveauxSuivants[i].nom
-                                                }
-                                            }
-                                            return ""
-                                        }
-                                        font.pixelSize: 11; font.bold: true
-                                        color: {
-                                            var r = modelData.resultat
-                                            if (r === "Redoublant") return Style.errorColor
-                                            if (r === "Réussi" && modelData.niveauSuivantId <= 0) return Style.chart3
-                                            return Style.successColor
-                                        }
-                                        elide: Text.ElideRight
-                                        width: (modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1) ? 100 : 130
-                                    }
-                                }
-
-                                // Dropdown chevron if multiple choices
-                                Text {
-                                    anchors.right: parent.right; anchors.rightMargin: 6
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    visible: modelData.resultat === "Réussi"
-                                             && modelData.niveauxSuivants
-                                             && modelData.niveauxSuivants.length > 1
-                                    text: qsTr("▾"); font.pixelSize: 12; color: Style.textSecondary
-                                }
-
-                                // Click to cycle through next niveaux (if multiple)
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: (modelData.resultat === "Réussi"
-                                                  && modelData.niveauxSuivants
-                                                  && modelData.niveauxSuivants.length > 1)
-                                                 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    enabled: modelData.resultat === "Réussi"
-                                             && modelData.niveauxSuivants
-                                             && modelData.niveauxSuivants.length > 1
-                                    onClicked: {
-                                        var copy = progressions.slice()
-                                        var item = Object.assign({}, copy[index])
-                                        var suivants = item.niveauxSuivants
-                                        var curIdx = 0
-                                        for (var i = 0; i < suivants.length; i++) {
-                                            if (suivants[i].id === item.niveauSuivantId) { curIdx = i; break }
-                                        }
-                                        curIdx = (curIdx + 1) % suivants.length
-                                        item.niveauSuivantId = suivants[curIdx].id
-                                        copy[index] = item
-                                        progressions = copy
-                                    }
-                                }
-                            }
-                        }
-                    }
+                progressions: root.progressions
+                step2Valid: root.step2Valid
+                nbDecides: root.nbDecides
+                onProgressionChanged: function(index, updatedItem) {
+                    var copy = root.progressions.slice()
+                    copy[index] = updatedItem
+                    root.progressions = copy
                 }
             }
 
-            // Step 3: Archivage
-            ScrollView {
-                id: step3Scroll
-                anchors.fill: parent; anchors.margins: 24
+            ClosureStep3Archivage {
+                anchors { fill: parent; margins: 24 }
                 visible: currentStep === 3
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                Column {
-                    width: step3Scroll.width
-                    spacing: 16
-
-                    readonly property var arch: yearClosureController.archivageStats
-
-                    // ── Global sessions KPIs ──────────────────────────────────
-                    Text {
-                        text: qsTr("Bilan des séances")
-                        font.pixelSize: 14; font.bold: true; color: Style.textPrimary
-                    }
-
-                    Grid {
-                        width: parent.width; columns: 3; spacing: 10
-                        Repeater {
-                            model: [
-                                { label: qsTr("Cours prévus"),    value: parent.parent.arch ? parent.parent.arch.coursTotal   : 0, accent: Style.bgWhite, bg: Style.chart3 },
-                                { label: qsTr("Cours validés"),   value: parent.parent.arch ? parent.parent.arch.coursValides : 0, accent: Style.successColor, bg: Style.successBg },
-                                { label: qsTr("Examens"),         value: parent.parent.arch ? parent.parent.arch.examensTotal : 0, accent: Style.chart3, bg: Style.background }
-                            ]
-                            delegate: Rectangle {
-                                width: (step3Scroll.width - 20) / 3; height: 64
-                                radius: 10; color: modelData.bg
-                                border.color: Qt.rgba(0,0,0,0.05); border.width: 1
-                                Column {
-                                    anchors.centerIn: parent; spacing: 4
-                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: "" + modelData.value; font.pixelSize: 22; font.bold: true; color: modelData.accent }
-                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.label; font.pixelSize: 11; color: modelData.accent }
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Global presence rate ──────────────────────────────────
-                    Rectangle {
-                        width: parent.width; height: presRow.implicitHeight + 20
-                        radius: 10; color: Style.background
-                        border.color: Style.borderLight; border.width: 1
-                        Row {
-                            id: presRow
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
-                            spacing: 12
-                            Text { text: qsTr("📊"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: qsTr("Taux de présence global :"); font.pixelSize: 13; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
-                            Text {
-                                text: (parent.parent.parent.arch ? parent.parent.parent.arch.tauxPresenceGlobal : 0) + " %"
-                                font.pixelSize: 15; font.bold: true
-                                color: {
-                                    var r = parent.parent.parent.arch ? parent.parent.parent.arch.tauxPresenceGlobal : 0
-                                    return r >= 75 ? Style.successColor : r >= 50 ? Style.warningColor : Style.errorColor
-                                }
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Text {
-                                text: qsTr("| Notes examens saisies : ") + (parent.parent.parent.arch ? parent.parent.parent.arch.examensAvecNotes : 0) + "/" + (parent.parent.parent.arch ? parent.parent.parent.arch.examensTotal : 0)
-                                font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-                    }
-
-                    // ── Per-matière breakdown ─────────────────────────────────
-                    Text {
-                        text: qsTr("Détail par matière")
-                        font.pixelSize: 14; font.bold: true; color: Style.textPrimary
-                        visible: parent.arch && parent.arch.matieres && parent.arch.matieres.length > 0
-                    }
-
-                    Repeater {
-                        model: parent.arch ? parent.arch.matieres : []
-                        delegate: Rectangle {
-                            width: step3Scroll.width
-                            height: matCol.implicitHeight + 20
-                            radius: 12; color: Style.bgWhite
-                            border.color: Style.borderLight; border.width: 1
-
-                            Column {
-                                id: matCol
-                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
-                                spacing: 8
-
-                                // Header
-                                Row {
-                                    width: parent.width; spacing: 8
-                                    Text { text: qsTr("📚"); font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: qsTr("·"); font.pixelSize: 13; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: modelData.niveauNom; font.pixelSize: 11; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
-                                    Item { width: 1; height: 1 }  // spacer
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: qsTr("Présence : ") + modelData.presenceRate + "%"
-                                        font.pixelSize: 11; font.bold: true
-                                        color: modelData.presenceRate >= 75 ? Style.successColor : modelData.presenceRate >= 50 ? Style.warningColor : Style.errorColor
-                                    }
-                                }
-
-                                // Sessions bar
-                                Row {
-                                    spacing: 8
-                                    Text {
-                                        text: qsTr("Cours : ") + modelData.coursValides + "/" + modelData.coursTotal + " validés"
-                                        font.pixelSize: 11; color: Style.textSecondary
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                    Rectangle {
-                                        width: 120; height: 6; radius: 3
-                                        color: Style.bgTertiary
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Rectangle {
-                                            width: modelData.coursTotal > 0 ? parent.width * modelData.coursValides / modelData.coursTotal : 0
-                                            height: parent.height; radius: parent.radius
-                                            color: Style.successColor
-                                        }
-                                    }
-                                }
-
-                                // Exams
-                                Repeater {
-                                    model: modelData.examens
-                                    delegate: Row {
-                                        spacing: 6
-                                        Text {
-                                            text: modelData.notesEntrees ? "✅" : "⚠️"
-                                            font.pixelSize: 11
-                                        }
-                                        Text {
-                                            text: modelData.titre + " (" + modelData.date + ") — "
-                                                  + (modelData.notesEntrees
-                                                     ? qsTr("Notes saisies (%1/%2)").arg(modelData.notesSaisies).arg(modelData.totalPart)
-                                                     : modelData.totalPart > 0
-                                                       ? qsTr("Notes incomplètes (%1/%2)").arg(modelData.notesSaisies).arg(modelData.totalPart)
-                                                       : qsTr("Aucune participation enregistrée"))
-                                            font.pixelSize: 11
-                                            color: modelData.notesEntrees ? Style.successColor : Style.warningColor
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Incomplete sessions ───────────────────────────────────
-                    Rectangle {
-                        width: parent.width
-                        visible: incomplete && incomplete.length > 0
-                        height: visible ? incompl3Col.implicitHeight + 24 : 0
-                        radius: 12; color: Style.warningBg
-                        border.color: Style.chart1; border.width: 1
-
-                        Column {
-                            id: incompl3Col
-                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
-                            spacing: 8
-                            Row {
-                                spacing: 8
-                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
-                                Text {
-                                    text: qsTr("%1 séance(s) sans enregistrement de présence").arg(incomplete ? incomplete.length : 0)
-                                    font.pixelSize: 13; font.bold: true; color: Style.warningColor
-                                }
-                            }
-                            Repeater {
-                                model: incomplete
-                                delegate: Row {
-                                    spacing: 8
-                                    Text { text: qsTr("•"); font.pixelSize: 12; color: Style.warningColor }
-                                    Text {
-                                        text: qsTr("[") + modelData.type + "] " + modelData.titre + " — " + modelData.date
-                                        font.pixelSize: 12; color: Style.warningColor
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                incomplete: root.incomplete
             }
 
-            // Step 4: Rapports
-            ScrollView {
-                id: step4Scroll
-                anchors.fill: parent; anchors.margins: 24
+            ClosureStep4Rapports {
+                anchors { fill: parent; margins: 24 }
                 visible: currentStep === 4
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                Column {
-                    width: step4Scroll.width
-                    spacing: 16
-
-                    // Computed from progressions
-                    property int nbPromus: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Réussi" && progressions[i].niveauSuivantId > 0) c++
-                        return c
-                    }
-                    property int nbDiplomesStep: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Réussi" && progressions[i].niveauSuivantId <= 0) c++
-                        return c
-                    }
-                    property int nbRedoublants: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Redoublant") c++
-                        return c
-                    }
-
-                    Text {
-                        text: qsTr("Résumé des actions")
-                        font.pixelSize: 16; font.bold: true; color: Style.textPrimary
-                    }
-
-                    Grid {
-                        width: parent.width; columns: 3; spacing: 12
-
-                        Repeater {
-                            model: [
-                                { label: qsTr("Promus"),      icon: "↑", value: parent.parent.nbPromus,      color: Style.successBg, accent: Style.successColor },
-                                { label: qsTr("Redoublants"), icon: "↩", value: parent.parent.nbRedoublants, color: Style.errorBg, accent: Style.errorColor },
-                                { label: qsTr("Diplômés"),    icon: "🎓", value: parent.parent.nbDiplomesStep, color: Style.background, accent: Style.chart3 }
-                            ]
-                            delegate: Rectangle {
-                                width: (step4Scroll.width - 24) / 3; height: 80
-                                radius: 12; color: modelData.color
-                                border.color: Qt.rgba(0,0,0,0.06); border.width: 1
-
-                                Column {
-                                    anchors.centerIn: parent; spacing: 6
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "" + modelData.value
-                                        font.pixelSize: 26; font.bold: true; color: modelData.accent
-                                    }
-                                    Row {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        spacing: 4
-                                        Text { text: modelData.icon; font.pixelSize: 13; color: modelData.accent }
-                                        Text { text: modelData.label; font.pixelSize: 12; font.bold: true; color: modelData.accent }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Text {
-                        text: qsTr("Après la clôture")
-                        font.pixelSize: 14; font.bold: true; color: Style.textPrimary
-                    }
-
-                    Repeater {
-                        model: [
-                            qsTr("Une nouvelle année scolaire sera créée"),
-                            qsTr("Les %1 élèves promus seront inscrits au niveau suivant").arg(step4Summary.nbPromus),
-                            qsTr("Les %1 redoublants seront inscrits au même niveau").arg(step4Summary.nbRedoublants),
-                            qsTr("Les %1 diplômés ne recevront pas de nouvelle inscription").arg(step4Summary.nbDiplomesStep)
-                        ]
-                        delegate: Row {
-                            spacing: 10
-                            Rectangle { width: 6; height: 6; radius: 3; color: Style.primary; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: modelData; font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.WordWrap; width: step4Scroll.width - 20 }
-                        }
-                    }
-                }
-
-                // Helper for above Repeater to access parent values
-                Item {
-                    id: step4Summary
-                    property int nbPromus: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Réussi" && progressions[i].niveauSuivantId > 0) c++
-                        return c
-                    }
-                    property int nbDiplomesStep: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Réussi" && progressions[i].niveauSuivantId <= 0) c++
-                        return c
-                    }
-                    property int nbRedoublants: {
-                        var c = 0
-                        for (var i = 0; i < progressions.length; i++)
-                            if (progressions[i].resultat === "Redoublant") c++
-                        return c
-                    }
-                }
+                progressions: root.progressions
             }
 
-            // Step 5: Confirmation
-            ScrollView {
-                id: step5Scroll
-                anchors.fill: parent; anchors.margins: 24
+            ClosureStep5Confirmation {
+                id: step5
+                anchors { fill: parent; margins: 24 }
                 visible: currentStep === 5
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                Column {
-                    width: step5Scroll.width
-                    spacing: 16
-
-                    Text {
-                        text: qsTr("Paramètres de la nouvelle année scolaire")
-                        font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                stats: root.stats
+                onClosureRequested: {
+                    var payload = []
+                    for (var i = 0; i < root.progressions.length; i++) {
+                        var p = root.progressions[i]
+                        payload.push({
+                            inscriptionId:   p.inscriptionId,
+                            eleveId:         p.eleveId,
+                            niveauActuelId:  p.niveauActuelId,
+                            categorie:       p.categorie,
+                            resultat:        p.resultat,
+                            niveauSuivantId: p.resultat === "Réussi" ? p.niveauSuivantId : 0
+                        })
                     }
-
-                    // New year label
-                    Column {
-                        width: parent.width; spacing: 6
-                        Text { text: qsTr("Libellé de l'année"); font.pixelSize: 12; color: Style.textSecondary }
-                        Rectangle {
-                            width: parent.width; height: 44; radius: 10
-                            color: Style.bgWhite
-                            border.color: labelInput.activeFocus ? Style.primary : Style.borderMedium
-                            border.width: labelInput.activeFocus ? 2 : 1
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
-                            TextInput {
-                                id: labelInput
-                                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                                text: newLabel
-                                font.pixelSize: 13; color: Style.textPrimary
-                                selectByMouse: true
-                                cursorVisible: activeFocus
-                                onTextChanged: { newLabel = text; libelleAutoFill = false }
-                            }
-                            Text {
-                                visible: labelInput.text === ""
-                                anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: 12 }
-                                text: qsTr("Ex : 2026-2027"); font.pixelSize: 13; color: Style.textTertiary
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.IBeamCursor
-                                onClicked: labelInput.forceActiveFocus()
-                            }
-                        }
-                    }
-
-                    Row {
-                        width: parent.width; spacing: 12
-
-                        DateField {
-                            id: dateField5Debut
-                            width: (parent.width - 12) / 2
-                            label: qsTr("DATE DE DÉBUT")
-                            fieldColor: Style.bgWhite
-                            onDateStringChanged: {
-                                newDebut = dateString
-                                if (isValid && libelleAutoFill) root.autoLibelle()
-                            }
-                        }
-
-                        DateField {
-                            id: dateField5Fin
-                            width: (parent.width - 12) / 2
-                            label: qsTr("DATE DE FIN")
-                            fieldColor: Style.bgWhite
-                            onDateStringChanged: {
-                                newFin = dateString
-                                if (isValid && libelleAutoFill) root.autoLibelle()
-                            }
-                        }
-                    }
-
-                    // Warning important
-                    Rectangle {
-                        width: parent.width; height: impWarn.implicitHeight + 24
-                        radius: 12; color: Style.warningBg
-                        border.color: Style.warningColor; border.width: 1
-
-                        Column {
-                            id: impWarn
-                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
-                            spacing: 8
-                            Row {
-                                spacing: 8
-                                Text { text: qsTr("⚠️"); font.pixelSize: 14 }
-                                Text { text: qsTr("Avertissement Important"); font.pixelSize: 14; font.bold: true; color: Style.warningColor }
-                            }
-                            Text {
-                                width: parent.width
-                                text: qsTr("Une fois la clôture effectuée, il sera <b>impossible de revenir en arrière</b>. Assurez-vous d'avoir vérifié toutes les données et effectué une sauvegarde complète avant de continuer.")
-                                textFormat: Text.RichText; font.pixelSize: 13; color: Style.warningColor
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-                    }
-
-                    // Final close button
-                    Rectangle {
-                        width: parent.width; height: 52; radius: 14
-                        color: step5Valid ? Style.errorColor : Style.borderLight
-
-                        Behavior on color { ColorAnimation { duration: 200 } }
-
-                        Row {
-                            anchors.centerIn: parent; spacing: 10
-                            Text { text: qsTr("🔒"); font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter; color: "white" }
-                            Text {
-                                text: qsTr("CLÔTURER L'ANNÉE SCOLAIRE ") + (stats ? stats.anneeActiveLibelle.toUpperCase() : "")
-                                font.pixelSize: 13; font.bold: true; color: "white"
-                                font.letterSpacing: 0.5
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: step5Valid && !yearClosureController.isLoading
-                            cursorShape: step5Valid ? Qt.PointingHandCursor : Qt.ForbiddenCursor
-                            onClicked: {
-                                // Build the final progressions payload
-                                var payload = []
-                                for (var i = 0; i < progressions.length; i++) {
-                                    var p = progressions[i]
-                                    payload.push({
-                                        inscriptionId:  p.inscriptionId,
-                                        eleveId:        p.eleveId,
-                                        niveauActuelId: p.niveauActuelId,
-                                        categorie:      p.categorie,
-                                        resultat:       p.resultat,
-                                        niveauSuivantId: p.resultat === "Réussi" ? p.niveauSuivantId : 0
-                                    })
-                                }
-                                yearClosureController.executeYearClosure(newLabel, newDebut, newFin, payload)
-                            }
-                        }
-                    }
+                    yearClosureController.executeYearClosure(
+                        step5.newLabel, step5.newDebut, step5.newFin,
+                        payload, step5.s1DateFin, step5.s2DateDebut)
                 }
             }
         }
 
         // ── Footer navigation ────────────────────────────────────────
         Rectangle {
-            Layout.fillWidth: true
-            height: 72
-            color: Style.bgWhite
-            radius: 20
-
-            // Top corners square
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 20
-                color: Style.bgWhite
-            }
-
-            // Thin top separator
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left; anchors.right: parent.right
-                height: 1; color: Style.borderLight
-            }
+            Layout.fillWidth: true; height: 72; color: Style.bgWhite; radius: 20
+            Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 20; color: Style.bgWhite }
+            Rectangle { anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; height: 1; color: Style.borderLight }
 
             RowLayout {
-                anchors.fill: parent; anchors.margins: 20; spacing: 12
+                anchors { fill: parent; margins: 20 }
+                spacing: 12
 
                 // Précédent
                 Rectangle {
@@ -1239,48 +296,33 @@ Popup {
                     color: currentStep > 1 ? Style.bgPage : "transparent"
                     border.color: currentStep > 1 ? Style.borderMedium : "transparent"; border.width: 1
                     visible: currentStep > 1
-
                     Row {
                         anchors.centerIn: parent; spacing: 6
                         Text { text: qsTr("‹"); font.pixelSize: 16; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
                         Text { text: qsTr("Précédent"); font.pixelSize: 13; color: Style.textSecondary }
                     }
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: if (currentStep > 1) currentStep--
-                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (currentStep > 1) currentStep-- }
                 }
 
                 Item { Layout.fillWidth: true }
 
-                // Step counter
-                Text {
-                    text: qsTr("Étape ") + currentStep + " sur " + totalSteps
-                    font.pixelSize: 12; color: Style.textTertiary
-                }
+                Text { text: qsTr("Étape ") + currentStep + " sur " + totalSteps; font.pixelSize: 12; color: Style.textTertiary }
 
                 Item { Layout.fillWidth: true }
 
                 // Annuler (only step 1)
                 Rectangle {
-                    visible: currentStep === 1
-                    width: 100; height: 40; radius: 10
-                    color: Style.bgPage
-                    border.color: Style.borderMedium; border.width: 1
+                    visible: currentStep === 1; width: 100; height: 40; radius: 10
+                    color: Style.bgPage; border.color: Style.borderMedium; border.width: 1
                     Text { anchors.centerIn: parent; text: qsTr("Annuler"); font.pixelSize: 13; color: Style.textSecondary }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.close() }
                 }
 
-                // Suivant (steps 1-4)
+                // Suivant (steps 1–4)
                 Rectangle {
-                    visible: currentStep < 5
-                    width: 120; height: 40; radius: 10
-                    color: {
-                        if (currentStep === 2 && !step2Valid) return Style.borderLight
-                        return Style.textPrimary
-                    }
+                    visible: currentStep < 5; width: 120; height: 40; radius: 10
+                    color: (currentStep === 2 && !step2Valid) ? Style.borderLight : Style.textPrimary
                     Behavior on color { ColorAnimation { duration: 150 } }
-
                     Row {
                         anchors.centerIn: parent; spacing: 6
                         Text { text: qsTr("Suivant"); font.pixelSize: 13; font.bold: true; color: "white" }
@@ -1296,7 +338,7 @@ Popup {
                                     yearClosureController.loadArchivageStats()
                                 currentStep++
                                 if (currentStep === 5)
-                                    Qt.callLater(function() { labelInput.forceActiveFocus() })
+                                    Qt.callLater(function() { step5.focusLabel() })
                             }
                         }
                     }
@@ -1308,32 +350,23 @@ Popup {
     // ── Error popup ──────────────────────────────────────────────────
     Popup {
         id: errorPopup
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: 400; padding: 24
-        modal: true
-
+        parent: Overlay.overlay; anchors.centerIn: parent
+        width: 400; padding: 24; modal: true
         background: Rectangle { radius: 14; color: Style.bgWhite }
 
         Column {
             width: parent.width; spacing: 16
-
             Row {
                 spacing: 10
                 Text { text: qsTr("❌"); font.pixelSize: 18 }
                 Text { text: qsTr("Erreur"); font.pixelSize: 16; font.bold: true; color: Style.textPrimary }
             }
-
             Text {
                 id: errorText
-                width: parent.width
-                font.pixelSize: 13; color: Style.textSecondary
-                wrapMode: Text.WordWrap
+                width: parent.width; font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.WordWrap
             }
-
             Rectangle {
-                width: parent.width; height: 40; radius: 10
-                color: Style.textPrimary
+                width: parent.width; height: 40; radius: 10; color: Style.textPrimary
                 Text { anchors.centerIn: parent; text: qsTr("Fermer"); font.pixelSize: 13; font.bold: true; color: "white" }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: errorPopup.close() }
             }

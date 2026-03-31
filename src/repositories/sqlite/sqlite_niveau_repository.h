@@ -47,6 +47,7 @@ public:
     Result<bool> remove(int id) override;
 
     Result<QList<Matiere>> getByNiveauId(int niveauId) override;
+    Result<bool> setMatiereSemestre(int matiereId, int semestreNumero) override;
 
 private:
     QString m_connectionName;

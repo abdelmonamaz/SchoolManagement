@@ -136,7 +136,7 @@ ModalOverlay {
                 DateField { id: dateField; width: parent.width; label: qsTr("DATE DE LA DÉPENSE") }
 
                 FormField { id: notesField; width: parent.width
-                            label: qsTr("NOTES / COMMENTAIRES")
+                            label: qsTr("NOTES / OBSERVATIONS")
                             placeholder: qsTr("Informations supplémentaires…")
                             fieldHeight: 44 }
 

@@ -188,7 +188,7 @@ void AppController::createServices() {
         m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get());
 
     m_gradesService = std::make_unique<GradesService>(
-        m_participationRepo.get(), m_seanceRepo.get());
+        m_participationRepo.get(), m_seanceRepo.get(), m_matiereRepo.get());
 
     m_financeService = std::make_unique<FinanceService>(
         m_paiementRepo.get(), m_projetRepo.get(), m_donateurRepo.get(), m_donRepo.get(),

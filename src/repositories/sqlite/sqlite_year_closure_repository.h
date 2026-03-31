@@ -14,7 +14,9 @@ public:
     Result<bool> executeYearClosure(const QString& newLabel,
                                     const QString& dateDebut,
                                     const QString& dateFin,
-                                    const QVariantList& progressions) override;
+                                    const QVariantList& progressions,
+                                    const QString& s1DateFin,
+                                    const QString& s2DateDebut) override;
 
 private:
     QString m_connectionName;

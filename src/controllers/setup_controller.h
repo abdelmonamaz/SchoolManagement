@@ -22,6 +22,8 @@ class SetupController : public QObject {
     // Tarifs + frais de l'année scolaire active
     // { id, libelle, tarifJeune, tarifAdulte, fraisInscriptionJeune, fraisInscriptionAdulte, dateDebut, dateFin }
     Q_PROPERTY(QVariantMap activeTarifs READ activeTarifs NOTIFY activeTarifsChanged)
+    // Semestres de l'année active : list of {id, numero, nom, dateDebut, dateFin}
+    Q_PROPERTY(QVariantList activeSemestres READ activeSemestres NOTIFY activeSemestresChanged)
 
 public:
     explicit SetupController(INiveauRepository* niveauRepo,
@@ -35,12 +37,18 @@ public:
     QVariantMap associationData() const { return m_associationData; }
     QVariantList niveaux() const { return m_niveaux; }
     QVariantMap activeTarifs() const { return m_activeTarifs; }
+    QVariantList activeSemestres() const { return m_activeSemestres; }
 
     // ── Initialisation ──
     Q_INVOKABLE void checkInitialized();
 
     // ── Étape 1 : Identité de l'association ──
     Q_INVOKABLE void saveAssociation(const QVariantMap& data);
+
+    // ── Étape 1→2 : initialisation de l'année scolaire provisoire ──
+    // Crée une année scolaire Active avec des dates par défaut (Sep–Juin)
+    // pour que les niveaux créés en étape 2 soient auto-liés.
+    Q_INVOKABLE void initDraftYear();
 
     // ── Étape 2 : Catalogue des niveaux ──
     Q_INVOKABLE void loadNiveaux();
@@ -66,6 +74,7 @@ signals:
     void associationDataChanged();
     void niveauxChanged();
     void activeTarifsChanged();
+    void activeSemestresChanged();
     void niveauCreated(int id);
     void setupCompleted();
     void operationFailed(const QString& error);
@@ -85,4 +94,5 @@ private:
     QVariantMap m_associationData;
     QVariantList m_niveaux;
     QVariantMap m_activeTarifs;
+    QVariantList m_activeSemestres;
 };

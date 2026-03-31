@@ -29,6 +29,11 @@ public:
 
     virtual Result<QList<Matiere>> getByNiveauId(int niveauId) = 0;
     virtual Result<bool> update(const Matiere& entity) = 0;
+
+    // Set semester assignment for a matière.
+    // semestreNumero: 0 = toute l'année, 1 = S1, 2 = S2.
+    // Looks up the semestreId from the active year's semestres table.
+    virtual Result<bool> setMatiereSemestre(int matiereId, int semestreNumero) = 0;
 };
 
 class IMatiereExamenRepository : public IRepository<MatiereExamen> {

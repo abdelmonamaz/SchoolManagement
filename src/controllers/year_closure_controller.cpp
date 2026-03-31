@@ -61,7 +61,9 @@ void YearClosureController::loadArchivageStats()
 void YearClosureController::executeYearClosure(const QString& newLabel,
                                                const QString& dateDebut,
                                                const QString& dateFin,
-                                               const QVariantList& progressions)
+                                               const QVariantList& progressions,
+                                               const QString& s1DateFin,
+                                               const QString& s2DateDebut)
 {
     // Pre-validate on main thread: no 'En cours' remaining
     for (const QVariant& v : progressions) {
@@ -73,9 +75,9 @@ void YearClosureController::executeYearClosure(const QString& newLabel,
     }
 
     m_worker->submit("YearClosure.executeYearClosure",
-        [repo = m_repo, newLabel, dateDebut, dateFin, progressions]() -> QVariant
+        [repo = m_repo, newLabel, dateDebut, dateFin, progressions, s1DateFin, s2DateDebut]() -> QVariant
     {
-        auto res = repo->executeYearClosure(newLabel, dateDebut, dateFin, progressions);
+        auto res = repo->executeYearClosure(newLabel, dateDebut, dateFin, progressions, s1DateFin, s2DateDebut);
         if (!res.isOk())
             return QVariantMap{{"error", res.errorMessage()}};
         return QVariantMap{{"success", true}, {"newLabel", newLabel}};
