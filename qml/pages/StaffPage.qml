@@ -302,7 +302,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             } else if (formData.mode === "editContract") {
                 staffController.updateContrat(
@@ -314,7 +315,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             } else {
                 // mode "full" - new member + contract
@@ -329,7 +331,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             }
         }

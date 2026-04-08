@@ -242,7 +242,7 @@ ColumnLayout {
                 spacing: 4
                 SectionLabel { text: qsTr("TARIF JEUNE") }
                 RowLayout { spacing: 6
-                    TextField { id: tarifJeuneInput;  Layout.preferredWidth: 110; height: 48; text: "150"
+                    TextField { id: tarifJeuneInput;  Layout.preferredWidth: 110; height: 48; text: "10"
                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary; selectByMouse: true
                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0; verticalAlignment: TextInput.AlignVCenter
                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
@@ -256,7 +256,7 @@ ColumnLayout {
                 spacing: 4
                 SectionLabel { text: qsTr("TARIF ADULTE") }
                 RowLayout { spacing: 6
-                    TextField { id: tarifAdulteInput; Layout.preferredWidth: 110; height: 48; text: "250"
+                    TextField { id: tarifAdulteInput; Layout.preferredWidth: 110; height: 48; text: "20"
                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary; selectByMouse: true
                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0; verticalAlignment: TextInput.AlignVCenter
                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
@@ -279,7 +279,7 @@ ColumnLayout {
                 spacing: 4
                 SectionLabel { text: qsTr("FRAIS JEUNE") }
                 RowLayout { spacing: 6
-                    TextField { id: fraisJeuneInput;  Layout.preferredWidth: 110; height: 48; text: "50"
+                    TextField { id: fraisJeuneInput;  Layout.preferredWidth: 110; height: 48; text: "0"
                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary; selectByMouse: true
                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0; verticalAlignment: TextInput.AlignVCenter
                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }
@@ -293,7 +293,7 @@ ColumnLayout {
                 spacing: 4
                 SectionLabel { text: qsTr("FRAIS ADULTE") }
                 RowLayout { spacing: 6
-                    TextField { id: fraisAdulteInput; Layout.preferredWidth: 110; height: 48; text: "50"
+                    TextField { id: fraisAdulteInput; Layout.preferredWidth: 110; height: 48; text: "30"
                         font.pixelSize: 26; font.weight: Font.Black; color: Style.textPrimary; selectByMouse: true
                         leftPadding: 12; rightPadding: 8; topPadding: 0; bottomPadding: 0; verticalAlignment: TextInput.AlignVCenter
                         validator: RegularExpressionValidator { regularExpression: /^\d{0,5}(\.\d{0,2})?$/ }

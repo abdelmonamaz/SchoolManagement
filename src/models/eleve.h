@@ -18,9 +18,11 @@ struct Eleve {
     GS::TypePublic categorie = GS::TypePublic::Jeune;
     QString cinEleve;
     QString cinParent;
+    QString niveauScolaireEducatif; // Niveau dans le système éducatif national (ex: 6ème, CE2, Bac)
     // Populated by repository when loading lists (LEFT JOIN on active school year inscription)
     bool inscritAnneeActive   = false;
     bool fraisPayeAnneeActive = false;
     int  classeId             = 0;
     int  niveauId             = 0;
+    int  hallClasseId         = 0;
 };

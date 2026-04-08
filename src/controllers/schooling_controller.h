@@ -48,7 +48,7 @@ public:
     Q_INVOKABLE void loadEquipements();
 
     Q_INVOKABLE void createNiveau(const QString& nom);
-    Q_INVOKABLE void updateNiveau(int id, const QString& nom);
+    Q_INVOKABLE void updateNiveau(int id, const QString& nom, int parentLevelId = 0, bool isFreestyle = false);
     Q_INVOKABLE void deleteNiveau(int id);
 
     Q_INVOKABLE void createClasse(const QString& nom, int niveauId);

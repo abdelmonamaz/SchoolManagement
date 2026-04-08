@@ -192,6 +192,7 @@ Item {
         id: listEnrollmentEditModal
         student: studentController.selectedStudent
         niveaux: schoolingController.niveaux
+        classes: schoolingController.allClasses
         enrollmentData: studentsPage.pendingEnrollmentData
     }
 

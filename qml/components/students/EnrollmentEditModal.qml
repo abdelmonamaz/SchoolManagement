@@ -9,10 +9,30 @@ ModalOverlay {
     
     property var student: null
     property var niveaux: []
+    property var classes: []
     // Internal state for the current enrollment being edited
     property var enrollmentData: null
     property bool isPaid: false
+    property bool hallOnly: false
+    property int  hallClasseId: 0
     property string currentJustif: ""
+
+    // Filtered helpers
+    readonly property var normalNiveaux: {
+        var items = []
+        for (var i = 0; i < niveaux.length; i++)
+            if (!niveaux[i].isFreestyle) items.push(niveaux[i])
+        return items
+    }
+    readonly property var hallClasses: {
+        var freestyleIds = []
+        for (var i = 0; i < niveaux.length; i++)
+            if (niveaux[i].isFreestyle) freestyleIds.push(niveaux[i].id)
+        var items = [{"nom": qsTr("— Aucune —"), "id": 0}]
+        for (var j = 0; j < classes.length; j++)
+            if (freestyleIds.indexOf(classes[j].niveauId) !== -1) items.push(classes[j])
+        return items
+    }
 
     modalWidth: 560
     modalRadius: 24
@@ -27,12 +47,25 @@ ModalOverlay {
         editErrorMsg.text = ""
 
         if (enrollmentData) {
-            for (var i = 0; i < root.niveaux.length; i++) {
-                if (root.niveaux[i].id === enrollmentData.niveauId) {
-                    editLevelCombo.currentIndex = i
-                    break
+            root.hallOnly     = enrollmentData.hallOnly     || false
+            root.hallClasseId = enrollmentData.hallClasseId || 0
+
+            if (!root.hallOnly) {
+                // Trouver l'index dans le modèle filtré (normalNiveaux)
+                var idx = 0
+                for (var i = 0; i < root.normalNiveaux.length; i++) {
+                    if (root.normalNiveaux[i].id === enrollmentData.niveauId) { idx = i; break }
+                }
+                editLevelCombo.currentIndex = idx
+            } else {
+                // Trouver la classe Hall dans hallClasses
+                for (var j = 1; j < root.hallClasses.length; j++) {
+                    if (root.hallClasses[j].id === root.hallClasseId) {
+                        hallClasseEditCombo.currentIndex = j; break
+                    }
                 }
             }
+
             editFeeField.text = enrollmentData.montantInscription.toString()
             isPaid = enrollmentData.fraisInscriptionPaye
             currentJustif = enrollmentData.justificatifPath || ""
@@ -90,6 +123,50 @@ ModalOverlay {
             width: parent.width - 64; spacing: 16
             anchors.horizontalCenter: parent.horizontalCenter
 
+            // ── Checkbox Seulement Hall ─────────────────────────────
+            Rectangle {
+                width: parent.width; height: 44; radius: 12
+                color: root.hallOnly ? Style.primaryBg : Style.bgPage
+                border.color: root.hallOnly ? Style.primary : Style.borderLight
+                Behavior on color { ColorAnimation { duration: 150 } }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14; anchors.rightMargin: 14
+                    spacing: 10
+                    Rectangle {
+                        width: 18; height: 18; radius: 4
+                        color: root.hallOnly ? Style.primary : "transparent"
+                        border.color: root.hallOnly ? Style.primary : Style.borderMedium
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; font.bold: true; color: Style.background; visible: root.hallOnly }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Seulement Hall Ezzaytouna")
+                        font.pixelSize: 13; font.bold: true
+                        color: root.hallOnly ? Style.primary : Style.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+                    Text {
+                        visible: root.hallOnly
+                        text: qsTr("Frais = 0 · Gratuit")
+                        font.pixelSize: 11; font.bold: true; color: Style.primary; opacity: 0.8
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.hallOnly = !root.hallOnly
+                        if (root.hallOnly) {
+                            editFeeField.text = "0"
+                            root.isPaid = true
+                        }
+                    }
+                }
+            }
+
             RowLayout {
                 width: parent.width; spacing: 16
                 Column {
@@ -110,18 +187,38 @@ ModalOverlay {
                 }
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
+                    visible: !root.hallOnly
                     SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                         color: Style.bgPage; border.color: Style.borderLight
                         ComboBox {
                             id: editLevelCombo; anchors.fill: parent; anchors.margins: 2
-                            model: root.niveaux; textRole: "nom"
+                            model: root.normalNiveaux; textRole: "nom"
                             background: Rectangle { color: "transparent" }
                             contentItem: Text {
                                 text: editLevelCombo.displayText; font.pixelSize: 13; font.bold: true
                                 color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
                             }
+                        }
+                    }
+                }
+                Column {
+                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
+                    visible: root.hallOnly
+                    SectionLabel { text: qsTr("CLASSE HALL (optionnel)") }
+                    Rectangle {
+                        Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+                        ComboBox {
+                            id: hallClasseEditCombo; anchors.fill: parent; anchors.margins: 2
+                            model: root.hallClasses; textRole: "nom"
+                            background: Rectangle { color: "transparent" }
+                            contentItem: Text {
+                                text: hallClasseEditCombo.displayText; font.pixelSize: 13; font.bold: true
+                                color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                            }
+                            onCurrentIndexChanged: root.hallClasseId = currentIndex > 0 ? model[currentIndex].id : 0
                         }
                     }
                 }
@@ -215,10 +312,12 @@ ModalOverlay {
                                 eleveId: root.student.id,
                                 anneeScolaire: setupController.activeTarifs ? setupController.activeTarifs.libelle : "",
                                 annee_scolaire_id: setupController.activeTarifs ? setupController.activeTarifs.id : 0,
-                                niveauId: root.niveaux.length > 0 ? root.niveaux[editLevelCombo.currentIndex].id : 0,
+                                niveauId: (!root.hallOnly && root.normalNiveaux.length > 0) ? root.normalNiveaux[editLevelCombo.currentIndex].id : 0,
                                 resultat: "En cours",
                                 fraisInscriptionPaye: root.isPaid,
-                                montantInscription: parseFloat(editFeeField.text.replace(",", ".")) || 0
+                                montantInscription: parseFloat(editFeeField.text.replace(",", ".")) || 0,
+                                hallOnly: root.hallOnly,
+                                hallClasseId: root.hallClasseId
                             })
                         }
                         root.close()
@@ -240,12 +339,14 @@ ModalOverlay {
                             eleveId: root.student.id,
                             anneeScolaire: root.enrollmentData.anneeScolaire,
                             annee_scolaire_id: root.enrollmentData.annee_scolaire_id || 0,
-                            niveauId: root.niveaux[editLevelCombo.currentIndex].id,
+                            niveauId: (!root.hallOnly && root.normalNiveaux.length > 0) ? root.normalNiveaux[editLevelCombo.currentIndex].id : 0,
                             resultat: root.enrollmentData ? root.enrollmentData.resultat : "En cours",
                             fraisInscriptionPaye: root.isPaid,
                             montantInscription: parseFloat(editFeeField.text.replace(",", ".")),
                             dateInscription: editDateField.dateString !== "" ? editDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
-                            justificatifPath: editJustifField.text.trim()
+                            justificatifPath: editJustifField.text.trim(),
+                            hallOnly: root.hallOnly,
+                            hallClasseId: root.hallClasseId
                         })
                     }
                 }

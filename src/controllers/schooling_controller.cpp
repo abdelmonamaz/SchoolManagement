@@ -4,7 +4,7 @@
 #include <QDebug>
 
 static QVariantMap niveauToMap(const Niveau& n) {
-    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}, {"anneeScolaireId", n.anneeScolaireId}};
+    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}, {"anneeScolaireId", n.anneeScolaireId}, {"isFreestyle", n.isFreestyle}};
 }
 
 static QVariantMap classeToMap(const Classe& c) {
@@ -151,9 +151,9 @@ void SchoolingController::createNiveau(const QString& nom) {
     });
 }
 
-void SchoolingController::updateNiveau(int id, const QString& nom) {
-    m_worker->submit("Schooling.updateNiveau", [svc = m_service, id, nom]() -> QVariant {
-        auto result = svc->updateNiveau(id, nom, 0);
+void SchoolingController::updateNiveau(int id, const QString& nom, int parentLevelId, bool isFreestyle) {
+    m_worker->submit("Schooling.updateNiveau", [svc = m_service, id, nom, parentLevelId, isFreestyle]() -> QVariant {
+        auto result = svc->updateNiveau(id, nom, parentLevelId, isFreestyle);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};

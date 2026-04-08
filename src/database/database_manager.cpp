@@ -724,14 +724,14 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "INSERT OR IGNORE INTO tarifs_mensualites (categorie, annee_scolaire_id, montant) "
             "SELECT ?, id, ? FROM annees_scolaires WHERE libelle = ? AND valide = 1 LIMIT 1"));
         const QList<std::tuple<QString,QString,double>> defaults = {
-            {"Jeune",  "2023-2024", 150.0},
-            {"Adulte", "2023-2024", 250.0},
-            {"Jeune",  "2024-2025", 150.0},
-            {"Adulte", "2024-2025", 250.0},
-            {"Jeune",  "2025-2026", 150.0},
-            {"Adulte", "2025-2026", 250.0},
-            {"Jeune",  "2026-2027", 150.0},
-            {"Adulte", "2026-2027", 250.0},
+            {"Jeune",  "2023-2024", 10.0},
+            {"Adulte", "2023-2024", 20.0},
+            {"Jeune",  "2024-2025", 10.0},
+            {"Adulte", "2024-2025", 20.0},
+            {"Jeune",  "2025-2026", 10.0},
+            {"Adulte", "2025-2026", 20.0},
+            {"Jeune",  "2026-2027", 10.0},
+            {"Adulte", "2026-2027", 20.0},
         };
         for (const auto& [cat, annee, montant] : defaults) {
             ins.addBindValue(cat);
@@ -858,7 +858,7 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
 
     // ── Migration 34 : ajout age_passage_adulte dans association_config ──
     if (!columnExists(QStringLiteral("association_config"), QStringLiteral("age_passage_adulte"))) {
-        execStatement(db, QStringLiteral("ALTER TABLE association_config ADD COLUMN age_passage_adulte INTEGER DEFAULT 12"));
+        execStatement(db, QStringLiteral("ALTER TABLE association_config ADD COLUMN age_passage_adulte INTEGER DEFAULT 16"));
         qInfo() << "[DatabaseManager] Migration 34: added column association_config.age_passage_adulte";
     }
 
@@ -952,6 +952,41 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
         execStatement(db, QStringLiteral(
             "ALTER TABLE matieres ADD COLUMN coefficient REAL DEFAULT 1.0"));
         qInfo() << "[DatabaseManager] Migration 43: added column matieres.coefficient";
+    }
+
+    // ── Migration 44 : niveaux — ajout is_freestyle (Hall Ezzaytouna) ──
+    if (!columnExists(QStringLiteral("niveaux"), QStringLiteral("is_freestyle"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE niveaux ADD COLUMN is_freestyle INTEGER DEFAULT 0"));
+        qInfo() << "[DatabaseManager] Migration 44: added column niveaux.is_freestyle";
+    }
+
+    // ── Migration 45 : eleves — ajout niveau_scolaire_educatif ──
+    if (!columnExists(QStringLiteral("eleves"), QStringLiteral("niveau_scolaire_educatif"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE eleves ADD COLUMN niveau_scolaire_educatif TEXT"));
+        qInfo() << "[DatabaseManager] Migration 45: added column eleves.niveau_scolaire_educatif";
+    }
+
+    // ── Migration 46 : inscriptions_eleves — ajout hall_only ──
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("hall_only"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE inscriptions_eleves ADD COLUMN hall_only INTEGER DEFAULT 0"));
+        qInfo() << "[DatabaseManager] Migration 46: added column inscriptions_eleves.hall_only";
+    }
+
+    // ── Migration 47 : inscriptions_eleves — ajout hall_classe_id ──
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("hall_classe_id"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE inscriptions_eleves ADD COLUMN hall_classe_id INTEGER REFERENCES classes(id)"));
+        qInfo() << "[DatabaseManager] Migration 47: added column inscriptions_eleves.hall_classe_id";
+    }
+
+    // ── Migration 48 : contrats — ajout niveau_scolaire (diplôme/niveau d'éducation du prof) ──
+    if (!columnExists(QStringLiteral("contrats"), QStringLiteral("niveau_scolaire"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE contrats ADD COLUMN niveau_scolaire TEXT"));
+        qInfo() << "[DatabaseManager] Migration 48: added column contrats.niveau_scolaire";
     }
 }
 

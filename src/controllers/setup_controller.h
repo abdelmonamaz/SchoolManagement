@@ -52,8 +52,8 @@ public:
 
     // ── Étape 2 : Catalogue des niveaux ──
     Q_INVOKABLE void loadNiveaux();
-    Q_INVOKABLE void createNiveau(const QString& nom, int parentLevelId = 0);
-    Q_INVOKABLE void updateNiveau(int id, const QString& nom, int parentLevelId = 0);
+    Q_INVOKABLE void createNiveau(const QString& nom, int parentLevelId = 0, bool isFreestyle = false);
+    Q_INVOKABLE void updateNiveau(int id, const QString& nom, int parentLevelId = 0, bool isFreestyle = false);
     Q_INVOKABLE void deleteNiveau(int id);
 
     // ── Étape 3 : Première année scolaire ──

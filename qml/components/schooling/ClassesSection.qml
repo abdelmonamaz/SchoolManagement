@@ -104,7 +104,8 @@ AppCard {
                             property int cnt: {
                                 var c = 0
                                 for (var i = 0; i < root.students.length; i++) {
-                                    if (root.students[i].classeId === modelData.id) c++
+                                    var st = root.students[i]
+                                    if (st.classeId === modelData.id || st.hallClasseId === modelData.id) c++
                                 }
                                 return c
                             }

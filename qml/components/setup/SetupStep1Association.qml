@@ -18,7 +18,7 @@ ColumnLayout {
             adresse:          adresseField.text.trim(),
             exerciceDebut:    exDebutField.dateString,
             exerciceFin:      exFinField.dateString,
-            agePassageAdulte: parseInt(agePassageInput.text) || 12,
+            agePassageAdulte: parseInt(agePassageInput.text) || 16,
             langue:           langueCombo.currentValue || "français"
         }
     }
@@ -154,16 +154,17 @@ ColumnLayout {
     // ── Âge de passage adulte ───────────────────────────────────────────────
     SectionLabel { text: qsTr("CATÉGORISATION") }
     RowLayout {
-        Layout.fillWidth: true; spacing: 12
+        Layout.fillWidth: true;
+        spacing: 12
         Text {
-            text: qsTr("Âge de passage Adulte :")
+            text: qsTr("Âge de passage Adulte (pour Riwak Ezzaytouna):")
             font.pixelSize: 13; font.bold: true; color: Style.textPrimary
             Layout.alignment: Qt.AlignVCenter
         }
         TextField {
             id: agePassageInput
             Layout.preferredWidth: 72; height: 40
-            text: (setupController.associationData.agePassageAdulte || 12).toString()
+            text: (setupController.associationData.agePassageAdulte || 16).toString()
             font.pixelSize: 14; font.bold: true; color: Style.textPrimary
             horizontalAlignment: TextInput.AlignHCenter; selectByMouse: true
             validator: IntValidator { bottom: 1; top: 99 }

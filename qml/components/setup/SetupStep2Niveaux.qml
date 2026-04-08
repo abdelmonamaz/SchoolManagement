@@ -16,8 +16,12 @@ ColumnLayout {
     property int    editingParentId: 0
 
     // New niveau state
-    property string newNom:      ""
-    property int    newParentId: 0
+    property string newNom:         ""
+    property int    newParentId:    0
+    property bool   newIsFreestyle: false
+
+    // Edit freestyle state
+    property bool   editingIsFreestyle: false
 
     // ── Add bar ─────────────────────────────────────────────────────────────
     Rectangle {
@@ -49,13 +53,15 @@ ColumnLayout {
             Rectangle {
                 width: 170; height: 40; radius: 10
                 color: Style.background; border.color: Style.borderLight
+                visible: !root.newIsFreestyle
                 ComboBox {
                     id: parentCombo
                     anchors.fill: parent; anchors.margins: 2
                     model: {
                         var items = [{"nom": qsTr("— Aucun parent —"), "id": 0}]
                         for (var i = 0; i < setupController.niveaux.length; i++)
-                            items.push(setupController.niveaux[i])
+                            if (!setupController.niveaux[i].isFreestyle)
+                                items.push(setupController.niveaux[i])
                         return items
                     }
                     textRole: "nom"
@@ -69,6 +75,41 @@ ColumnLayout {
                 }
             }
 
+            // ── Checkbox Hall Ezzaytouna ────────────────────────────────
+            CheckBox {
+                id: freestyleCheck
+                checked: root.newIsFreestyle
+                leftPadding: 0; rightPadding: 0; spacing: 4
+                onCheckedChanged: {
+                    root.newIsFreestyle = checked
+                    if (checked) {
+                        parentCombo.currentIndex = 0
+                        root.newParentId = 0
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 18; implicitHeight: 18; radius: 4
+                    color: freestyleCheck.checked ? Style.primary : Style.bgPage
+                    border.color: freestyleCheck.checked ? Style.primary : Style.borderLight
+                    border.width: 1
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text {
+                        anchors.centerIn: parent; text: "✓"
+                        font.pixelSize: 11; font.bold: true; color: Style.background
+                        visible: freestyleCheck.checked
+                    }
+                }
+                contentItem: Text {
+                    text: qsTr("Hall")
+                    font.pixelSize: 10; font.bold: true
+                    color: freestyleCheck.checked ? Style.primary : Style.textTertiary
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: freestyleCheck.indicator.width + freestyleCheck.spacing
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                }
+                background: Item {}
+            }
+
             Rectangle {
                 id: addBtn
                 width: 76; height: 40; radius: 10
@@ -80,9 +121,10 @@ ColumnLayout {
                 }
                 function click() {
                     if (root.newNom.trim() === "") return
-                    setupController.createNiveau(root.newNom.trim(), root.newParentId)
+                    setupController.createNiveau(root.newNom.trim(), root.newParentId, root.newIsFreestyle)
                     niveauInput.text = ""; parentCombo.currentIndex = 0
-                    root.newNom = ""; root.newParentId = 0
+                    freestyleCheck.checked = false
+                    root.newNom = ""; root.newParentId = 0; root.newIsFreestyle = false
                 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -138,13 +180,17 @@ ColumnLayout {
                     opacity: root.editingId !== modelData.id ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: 100 } }
 
-                    Rectangle { width: 8; height: 8; radius: 4; color: modelData.parentLevelId > 0 ? Style.primary : Style.successColor }
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: modelData.isFreestyle ? Style.primary : (modelData.parentLevelId > 0 ? Style.primary : Style.successColor)
+                        opacity: modelData.isFreestyle ? 0.5 : 1.0
+                    }
 
                     Column {
                         Layout.fillWidth: true; spacing: 1
                         Text { text: modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                         Text {
-                            visible: modelData.parentLevelId > 0
+                            visible: !modelData.isFreestyle && modelData.parentLevelId > 0
                             text: {
                                 for (var i = 0; i < setupController.niveaux.length; i++)
                                     if (setupController.niveaux[i].id === modelData.parentLevelId)
@@ -153,10 +199,25 @@ ColumnLayout {
                             }
                             font.pixelSize: 10; color: Style.textTertiary
                         }
+                        Text {
+                            visible: modelData.isFreestyle
+                            text: qsTr("Hall Ezzaytouna — niveau libre")
+                            font.pixelSize: 10; color: Style.primary; font.italic: true
+                        }
                     }
 
                     Rectangle {
-                        visible: { for (var i = 0; i < setupController.niveaux.length; i++) if (setupController.niveaux[i].parentLevelId === modelData.id) return false; return true }
+                        visible: modelData.isFreestyle
+                        height: 20; radius: 10; width: hallLbl.implicitWidth + 16; color: Style.primaryBg
+                        Text { id: hallLbl; anchors.centerIn: parent; text: qsTr("HALL"); font.pixelSize: 9; font.weight: Font.Black; color: Style.primary }
+                    }
+                    Rectangle {
+                        visible: {
+                            if (modelData.isFreestyle) return false
+                            for (var i = 0; i < setupController.niveaux.length; i++)
+                                if (setupController.niveaux[i].parentLevelId === modelData.id) return false
+                            return true
+                        }
                         height: 20; radius: 10; width: tLbl.implicitWidth + 16; color: Style.warningBg
                         Text { id: tLbl; anchors.centerIn: parent; text: qsTr("TERMINAL"); font.pixelSize: 9; font.weight: Font.Black; color: Style.warningColor }
                     }
@@ -164,10 +225,11 @@ ColumnLayout {
                     IconButton {
                         iconName: "edit"; iconSize: 15
                         onClicked: {
-                            root.editingParentId = modelData.parentLevelId
-                            root.editingNom      = modelData.nom
-                            editInput.text       = modelData.nom
-                            root.editingId       = modelData.id
+                            root.editingParentId    = modelData.parentLevelId
+                            root.editingNom         = modelData.nom
+                            root.editingIsFreestyle = modelData.isFreestyle || false
+                            editInput.text          = modelData.nom
+                            root.editingId          = modelData.id
                         }
                     }
                     IconButton {
@@ -201,13 +263,14 @@ ColumnLayout {
                     Rectangle {
                         width: 160; height: 36; radius: 8
                         color: Style.bgPage; border.color: Style.borderLight
+                        visible: !root.editingIsFreestyle
                         ComboBox {
                             id: editParentCombo
                             anchors.fill: parent; anchors.margins: 2
                             model: {
                                 var items = [{"nom": qsTr("— Aucun parent —"), "id": 0}]
                                 for (var i = 0; i < setupController.niveaux.length; i++)
-                                    if (setupController.niveaux[i].id !== root.editingId)
+                                    if (setupController.niveaux[i].id !== root.editingId && !setupController.niveaux[i].isFreestyle)
                                         items.push(setupController.niveaux[i])
                                 return items
                             }
@@ -228,6 +291,41 @@ ColumnLayout {
                         }
                     }
 
+                    // ── Checkbox Hall Ezzaytouna (mode édition) ─────────
+                    CheckBox {
+                        id: editFreestyleCheck
+                        checked: root.editingIsFreestyle
+                        leftPadding: 0; rightPadding: 0; spacing: 4
+                        onCheckedChanged: {
+                            root.editingIsFreestyle = checked
+                            if (checked) {
+                                editParentCombo.currentIndex = 0
+                                root.editingParentId = 0
+                            }
+                        }
+                        indicator: Rectangle {
+                            implicitWidth: 18; implicitHeight: 18; radius: 4
+                            color: editFreestyleCheck.checked ? Style.primary : Style.bgPage
+                            border.color: editFreestyleCheck.checked ? Style.primary : Style.borderLight
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Text {
+                                anchors.centerIn: parent; text: "✓"
+                                font.pixelSize: 11; font.bold: true; color: Style.background
+                                visible: editFreestyleCheck.checked
+                            }
+                        }
+                        contentItem: Text {
+                            text: qsTr("Hall")
+                            font.pixelSize: 10; font.bold: true
+                            color: editFreestyleCheck.checked ? Style.primary : Style.textTertiary
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: editFreestyleCheck.indicator.width + editFreestyleCheck.spacing
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                        }
+                        background: Item {}
+                    }
+
                     Rectangle {
                         id: saveBtn
                         width: 36; height: 36; radius: 8
@@ -236,7 +334,7 @@ ColumnLayout {
                         Text { anchors.centerIn: parent; text: qsTr("✓"); font.pixelSize: 16; font.bold: true; color: Style.background }
                         function save() {
                             if (root.editingNom.trim() === "") return
-                            setupController.updateNiveau(root.editingId, root.editingNom.trim(), root.editingParentId)
+                            setupController.updateNiveau(root.editingId, root.editingNom.trim(), root.editingParentId, root.editingIsFreestyle)
                             root.editingId = -1
                         }
                         MouseArea {

@@ -79,7 +79,8 @@ Result<int> StudentService::createStudent(const QString& nom, const QString& pre
                                            const QString& dateNaissance, const QString& nomParent,
                                            const QString& telParent, const QString& commentaire,
                                            GS::TypePublic categorie,
-                                           const QString& cinEleve, const QString& cinParent)
+                                           const QString& cinEleve, const QString& cinParent,
+                                           const QString& niveauScolaireEducatif)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom de l'eleve ne peut pas etre vide.");
@@ -101,6 +102,7 @@ Result<int> StudentService::createStudent(const QString& nom, const QString& pre
     e.categorie = categorie;
     e.cinEleve = cinEleve.trimmed();
     e.cinParent = cinParent.trimmed();
+    e.niveauScolaireEducatif = niveauScolaireEducatif.trimmed();
     return m_eleveRepo->create(e);
 }
 

@@ -143,7 +143,7 @@ add_library(GS_Services STATIC
     src/controllers/year_closure_controller.cpp
 )
 
-target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql Qt6::ZlibPrivate)
+target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql)
 
 # ═══════════════════════════════════════════════════════════════
 # Exécutable principal

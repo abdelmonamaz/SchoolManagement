@@ -7,6 +7,7 @@ struct Niveau {
     QString nom;
     int parentLevelId = 0;   // 0 = niveau terminal (diplômé) ou racine
     int anneeScolaireId = 0; // FK → annees_scolaires.id (0 = global, non rattaché à une année)
+    bool isFreestyle = false; // true = niveau Hall Ezzaytouna (libre, sans suivi/examens)
 };
 
 struct Classe {

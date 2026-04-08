@@ -26,6 +26,7 @@ ModalOverlay {
     property string dateDebutText: ""
     property string dateFinText: ""
     property int joursTravailValue: 31   // bitmask Lun-Dim, bit0=Lun..bit6=Dim
+    property string niveauScolaireText: ""  // Niveau d'éducation obtenu (ex: Master Fiqh)
 
     onSelectedPostChanged: {
         if (selectedPost === "Enseignant" && selectedPaymentMode === "Jour")
@@ -54,6 +55,7 @@ ModalOverlay {
         selectedPost = "Enseignant"
         selectedPaymentMode = "Heure"
         joursTravailValue = 31
+        niveauScolaireText = ""
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
         personnelId = -1
@@ -76,6 +78,7 @@ ModalOverlay {
         specialtyText = ""
         selectedPaymentMode = data.modePaie || (data.poste === "Enseignant" ? "Heure" : "Jour")
         joursTravailValue = data.joursTravail || 31
+        niveauScolaireText = data.niveauScolaire || ""
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
@@ -89,6 +92,7 @@ ModalOverlay {
         specialtyText = data.specialite || ""
         selectedPaymentMode = data.modePaie || "Heure"
         joursTravailValue = data.joursTravail || 31
+        niveauScolaireText = data.niveauScolaire || ""
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = data.dateDebutISO || ""
         dateFinText = data.dateFinISO || ""
@@ -348,6 +352,26 @@ ModalOverlay {
                     placeholder: qsTr("ex: Fiqh & Hadith")
                     text: root.specialtyText
                     onTextChanged: root.specialtyText = text
+                }
+            }
+
+            // Niveau scolaire (si Enseignant)
+            Column {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                spacing: 6
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
+
+                SectionLabel {
+                    text: qsTr("NIVEAU D'ÉDUCATION")
+                }
+
+                FormField {
+                    id: fieldNiveauScolaire
+                    width: parent.width
+                    placeholder: qsTr("ex: Master Fiqh, Licence Arabe...")
+                    text: root.niveauScolaireText
+                    onTextChanged: root.niveauScolaireText = text
                 }
             }
 
@@ -707,6 +731,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -720,6 +745,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -735,6 +761,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })

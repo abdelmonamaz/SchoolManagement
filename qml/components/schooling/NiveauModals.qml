@@ -14,7 +14,7 @@ Item {
     required property int deletingNiveauId
 
     signal createRequested(string nom)
-    signal editRequested(int id, string nom)
+    signal editRequested(int id, string nom, int parentLevelId, bool isFreestyle)
     signal deleteRequested(int id)
     signal closeRequested()
 
@@ -101,7 +101,11 @@ Item {
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (editNiveauNameField.text.trim() !== "" && root.editingNiveau.id > 0) {
-                        root.editRequested(root.editingNiveau.id, editNiveauNameField.text.trim())
+                        root.editRequested(
+                            root.editingNiveau.id,
+                            editNiveauNameField.text.trim(),
+                            root.editingNiveau.parentLevelId || 0,
+                            root.editingNiveau.isFreestyle || false)
                         editNiveauNameField.text = ""
                     }
                 }

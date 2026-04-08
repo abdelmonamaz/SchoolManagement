@@ -29,6 +29,7 @@ AppCard {
     EnrollmentEditModal {
         id: editEnrollmentModal
         niveaux: schoolingController.niveaux
+        classes: schoolingController.allClasses
     }
 
     Connections {
@@ -60,7 +61,7 @@ AppCard {
 
     // ── Computed — tarif helper ──────────────────────────────────────────────
     function tarifForCategorie(categorie) {
-        if (!setupController.activeTarifs) return categorie === "Adulte" ? 250.0 : 150.0
+        if (!setupController.activeTarifs) return categorie === "Adulte" ? 20.0 : 10.0
         return categorie === "Adulte"
                ? setupController.activeTarifs.tarifAdulte
                : setupController.activeTarifs.tarifJeune

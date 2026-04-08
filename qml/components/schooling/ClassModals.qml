@@ -15,10 +15,19 @@ Item {
     required property string selectedNiveauNom
     required property int selectedNiveauId
     required property string activeAnneeScolaire
+    required property var niveaux
 
     // Students passed from parent to see existing assignments
     property var allStudents: studentController.students
     property var unassignedStudentsList: studentController.unassignedStudents
+
+    readonly property bool selectedNiveauIsFreestyle: {
+        for (var i = 0; i < root.niveaux.length; i++) {
+            if (root.niveaux[i].id === root.selectedNiveauId)
+                return root.niveaux[i].isFreestyle || false
+        }
+        return false
+    }
 
     signal createRequested(string nom, int niveauId, var studentIdsToAssign)
     signal editRequested(int id, string nom, int niveauId, var studentIdsToAssign, var studentIdsToRemove)
@@ -42,9 +51,12 @@ Item {
         initiallyAssignedIds = []
         if (root.showEdit && root.editingClass && root.editingClass.id > 0) {
             for (var i = 0; i < root.allStudents.length; i++) {
-                if (root.allStudents[i].classeId === root.editingClass.id) {
-                    currentAssignedStudents.push(root.allStudents[i])
-                    initiallyAssignedIds.push(root.allStudents[i].id)
+                var st = root.allStudents[i]
+                var inThisClass = st.classeId === root.editingClass.id
+                    || (root.selectedNiveauIsFreestyle && st.hallClasseId === root.editingClass.id)
+                if (inThisClass) {
+                    currentAssignedStudents.push(st)
+                    initiallyAssignedIds.push(st.id)
                 }
             }
         }
@@ -87,9 +99,10 @@ Item {
     // Assign multiple randomly
     function autoFill(count) {
         var available = []
+        var sourceList = root.selectedNiveauIsFreestyle ? root.allStudents : root.unassignedStudentsList
         // Filter out those already in currentAssignedStudents
-        for (var i = 0; i < unassignedStudentsList.length; i++) {
-            var st = unassignedStudentsList[i]
+        for (var i = 0; i < sourceList.length; i++) {
+            var st = sourceList[i]
             var alreadyAdded = false
             for (var j = 0; j < currentAssignedStudents.length; j++) {
                 if (currentAssignedStudents[j].id === st.id) {
@@ -277,7 +290,9 @@ Item {
                     }
                     
                     Text {
-                        text: root.unassignedStudentsList.length + " élèves non assignés disponibles."
+                        text: root.selectedNiveauIsFreestyle
+                            ? (root.allStudents.length + qsTr(" élèves inscrits disponibles."))
+                            : (root.unassignedStudentsList.length + qsTr(" élèves non assignés disponibles."))
                         font.pixelSize: 11; color: Style.textSecondary; Layout.fillWidth: true; wrapMode: Text.WordWrap
                     }
 
@@ -334,7 +349,9 @@ Item {
                         SearchField {
                             id: searchInput
                             Layout.fillWidth: true
-                            placeholder: qsTr("Chercher un élève non assigné...")
+                            placeholder: root.selectedNiveauIsFreestyle
+                                ? qsTr("Chercher un élève inscrit...")
+                                : qsTr("Chercher un élève non assigné...")
                             text: root.searchText
                             onTextChanged: root.searchText = text
                         }
@@ -359,11 +376,13 @@ Item {
                                         var query = root.searchText.trim().toLowerCase()
                                         var res = []
                                         if (query === "") return res
-                                        for (var i = 0; i < root.unassignedStudentsList.length; i++) {
-                                            var st = root.unassignedStudentsList[i]
+                                        var sourceList = root.selectedNiveauIsFreestyle
+                                            ? root.allStudents
+                                            : root.unassignedStudentsList
+                                        for (var i = 0; i < sourceList.length; i++) {
+                                            var st = sourceList[i]
                                             var nomComplet = (st.prenom + " " + st.nom).toLowerCase()
                                             if (nomComplet.indexOf(query) !== -1 || st.id.toString().indexOf(query) !== -1) {
-                                                // Check if already assigned
                                                 var added = false
                                                 for (var j = 0; j < root.currentAssignedStudents.length; j++) {
                                                     if (root.currentAssignedStudents[j].id === st.id) { added = true; break; }

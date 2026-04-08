@@ -39,7 +39,7 @@ QVariantMap SqliteAssociationRepository::getConfig()
             {"adresse",          q.value(2).toString()},
             {"exerciceDebut",    q.value(3).toString()},
             {"exerciceFin",      q.value(4).toString()},
-            {"agePassageAdulte", age > 0 ? age : 12},
+            {"agePassageAdulte", age > 0 ? age : 16},
             {"langue",           langue}
         }}
     };

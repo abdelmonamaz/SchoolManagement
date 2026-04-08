@@ -13,6 +13,7 @@ static QVariantMap contratToMap(const Contrat& c) {
     m["modePaie"] = c.modePaie;
     m["valeurBase"] = c.valeurBase;
     m["joursTravail"] = c.joursTravail;
+    m["niveauScolaire"] = c.niveauScolaire;
     m["dateDebut"] = c.dateDebut.toString("dd/MM/yyyy");
     m["dateFin"] = c.dateFin.isValid() ? c.dateFin.toString("dd/MM/yyyy") : "";
     m["dateDebutISO"] = c.dateDebut.toString(Qt::ISODate);
@@ -88,6 +89,7 @@ void StaffController::loadPersonnel() {
             map["specialite"] = contrat.specialite;
             map["modePaie"] = contrat.modePaie;
             map["valeurBase"] = contrat.valeurBase;
+            map["niveauScolaire"] = contrat.niveauScolaire;
             map["dateDebut"] = contrat.dateDebut.toString("dd/MM/yyyy");
             map["dateFin"] = contrat.dateFin.isValid() ? contrat.dateFin.toString("dd/MM/yyyy") : "";
             map["dateDebutISO"] = contrat.dateDebut.toString(Qt::ISODate);
@@ -174,6 +176,7 @@ void StaffController::loadAllPersonnel() {
                 map["specialite"] = latestContrat.specialite;
                 map["modePaie"] = latestContrat.modePaie;
                 map["valeurBase"] = latestContrat.valeurBase;
+                map["niveauScolaire"] = latestContrat.niveauScolaire;
                 map["joursTravail"] = latestContrat.joursTravail;
                 map["dateDebut"] = latestContrat.dateDebut.toString("dd/MM/yyyy");
                 map["dateFin"] = latestContrat.dateFin.isValid() ? latestContrat.dateFin.toString("dd/MM/yyyy") : "";
@@ -185,6 +188,7 @@ void StaffController::loadAllPersonnel() {
                 map["specialite"] = "";
                 map["modePaie"] = "";
                 map["valeurBase"] = 0;
+                map["niveauScolaire"] = "";
                 map["joursTravail"] = 31;
                 map["dateDebut"] = "";
                 map["dateFin"] = "";
@@ -203,9 +207,9 @@ void StaffController::createPersonnel(const QString& nom, const QString& telepho
                                        const QString& poste, const QString& specialite,
                                        const QString& modePaie, double valeurBase,
                                        const QString& dateDebut, const QString& dateFin,
-                                       int joursTravail) {
+                                       int joursTravail, const QString& niveauScolaire) {
     m_worker->submit("Staff.createPersonnel",
-        [svc = m_service, nom, telephone, sexe, cin, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail]() -> QVariant {
+        [svc = m_service, nom, telephone, sexe, cin, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail, niveauScolaire]() -> QVariant {
         Personnel p;
         p.nom = nom.trimmed();
         p.prenom = "";
@@ -228,6 +232,7 @@ void StaffController::createPersonnel(const QString& nom, const QString& telepho
         c.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
         c.valeurBase = valeurBase;
         c.joursTravail = joursTravail > 0 ? joursTravail : 31;
+        c.niveauScolaire = niveauScolaire.trimmed();
         c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
         if (!c.dateDebut.isValid())
             c.dateDebut = QDate::currentDate();
@@ -274,9 +279,9 @@ void StaffController::deletePersonnel(int id) {
 void StaffController::createContrat(int personnelId, const QString& poste, const QString& specialite,
                                      const QString& modePaie, double valeurBase,
                                      const QString& dateDebut, const QString& dateFin,
-                                     int joursTravail) {
+                                     int joursTravail, const QString& niveauScolaire) {
     m_worker->submit("Staff.createContrat",
-        [svc = m_service, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail]() -> QVariant {
+        [svc = m_service, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail, niveauScolaire]() -> QVariant {
         Contrat c;
         c.personnelId = personnelId;
         c.poste = poste.isEmpty() ? "Enseignant" : poste;
@@ -284,6 +289,7 @@ void StaffController::createContrat(int personnelId, const QString& poste, const
         c.modePaie = modePaie.isEmpty() ? "Heure" : modePaie;
         c.valeurBase = valeurBase;
         c.joursTravail = joursTravail > 0 ? joursTravail : 31;
+        c.niveauScolaire = niveauScolaire.trimmed();
         c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
         if (!c.dateDebut.isValid())
             c.dateDebut = QDate::currentDate();
@@ -300,9 +306,9 @@ void StaffController::createContrat(int personnelId, const QString& poste, const
 void StaffController::updateContrat(int contratId, int personnelId, const QString& poste,
                                      const QString& specialite, const QString& modePaie,
                                      double valeurBase, const QString& dateDebut, const QString& dateFin,
-                                     int joursTravail) {
+                                     int joursTravail, const QString& niveauScolaire) {
     m_worker->submit("Staff.updateContrat",
-        [svc = m_service, contratId, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail]() -> QVariant {
+        [svc = m_service, contratId, personnelId, poste, specialite, modePaie, valeurBase, dateDebut, dateFin, joursTravail, niveauScolaire]() -> QVariant {
         Contrat c;
         c.id = contratId;
         c.personnelId = personnelId;
@@ -311,6 +317,7 @@ void StaffController::updateContrat(int contratId, int personnelId, const QStrin
         c.modePaie = modePaie;
         c.valeurBase = valeurBase;
         c.joursTravail = joursTravail > 0 ? joursTravail : 31;
+        c.niveauScolaire = niveauScolaire;
         c.dateDebut = QDate::fromString(dateDebut, Qt::ISODate);
         if (!dateFin.isEmpty())
             c.dateFin = QDate::fromString(dateFin, Qt::ISODate);

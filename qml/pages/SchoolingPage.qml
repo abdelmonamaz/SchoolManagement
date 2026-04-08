@@ -209,8 +209,8 @@ Item {
                         niveaux: schoolingController.niveaux
                         selectedNiveauId: schoolPage.selectedNiveauId
                         onNiveauSelected: (niveauId) => schoolPage.selectNiveau(niveauId)
-                        onNiveauEditRequested: (id, nom) => {
-                            schoolPage.editingNiveau = {id: id, nom: nom}
+                        onNiveauEditRequested: (id, nom, isFreestyle) => {
+                            schoolPage.editingNiveau = {id: id, nom: nom, isFreestyle: isFreestyle}
                             schoolPage.showEditNiveauModal = true
                         }
                         onNiveauDeleteRequested: (id) => {
@@ -316,8 +316,8 @@ Item {
             schoolingController.createNiveau(nom)
             showNiveauModal = false
         }
-        onEditRequested: (id, nom) => {
-            schoolingController.updateNiveau(id, nom)
+        onEditRequested: (id, nom, parentLevelId, isFreestyle) => {
+            schoolingController.updateNiveau(id, nom, parentLevelId, isFreestyle)
             showEditNiveauModal = false
         }
         onDeleteRequested: (id) => {
@@ -378,6 +378,7 @@ Item {
         selectedNiveauNom: schoolPage.selectedNiveauNom()
         selectedNiveauId: schoolPage.selectedNiveauId
         activeAnneeScolaire: setupController.activeTarifs ? (setupController.activeTarifs.libelle || "") : ""
+        niveaux: schoolingController.niveaux
 
         property var pendingStudentsToAssign: []
 

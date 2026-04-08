@@ -13,7 +13,7 @@ Item {
     property bool tarifsSaved: false
     property bool associationSaved: true
     property bool initializing: true
-    property int loadedAgePassage: setupController.associationData.agePassageAdulte || 12
+    property int loadedAgePassage: setupController.associationData.agePassageAdulte || 16
 
     function isoToLocalDate(iso) {
         var p = iso.split("-")
@@ -118,7 +118,7 @@ Item {
                                     id: tarifJeuneInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.tarifJeune || 150).toString()
+                                    text: (setupController.activeTarifs.tarifJeune || 10).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.chartBlue
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -167,7 +167,7 @@ Item {
                                     id: tarifAdulteInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.tarifAdulte || 250).toString()
+                                    text: (setupController.activeTarifs.tarifAdulte || 20).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.warningColor
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -230,7 +230,7 @@ Item {
                                     id: fraisJeuneInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.fraisInscriptionJeune || 50).toString()
+                                    text: (setupController.activeTarifs.fraisInscriptionJeune || 0).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.successColor
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -279,7 +279,7 @@ Item {
                                     id: fraisAdulteInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.fraisInscriptionAdulte || 50).toString()
+                                    text: (setupController.activeTarifs.fraisInscriptionAdulte || 30).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.chart3
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -486,7 +486,7 @@ Item {
                         TextField {
                             id: agePassageField
                             Layout.preferredWidth: 72; height: 40
-                            text: (setupController.associationData.agePassageAdulte || 12).toString()
+                            text: (setupController.associationData.agePassageAdulte || 16).toString()
                             font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                             horizontalAlignment: TextInput.AlignHCenter
                             selectByMouse: true

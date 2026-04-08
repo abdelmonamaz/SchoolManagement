@@ -11,7 +11,7 @@ Column {
     required property int selectedNiveauId
 
     signal niveauSelected(int niveauId)
-    signal niveauEditRequested(int id, string nom)
+    signal niveauEditRequested(int id, string nom, bool isFreestyle)
     signal niveauDeleteRequested(int id)
     signal niveauAddRequested()
 
@@ -31,8 +31,13 @@ Column {
                 width: 220
                 height: 52
                 radius: 16
-                color: root.selectedNiveauId === modelData.id ? Style.primary : Style.bgWhite
-                border.color: root.selectedNiveauId === modelData.id ? Style.primary : Style.borderLight
+                readonly property bool freestyle: modelData.isFreestyle || false
+                color: root.selectedNiveauId === modelData.id
+                       ? (freestyle ? Style.warningColor : Style.primary)
+                       : Style.bgWhite
+                border.color: root.selectedNiveauId === modelData.id
+                              ? (freestyle ? Style.warningColor : Style.primary)
+                              : (freestyle ? Style.warningColor : Style.borderLight)
 
                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -47,8 +52,16 @@ Column {
                         text: modelData.nom
                         font.pixelSize: 13
                         font.bold: true
-                        color: root.selectedNiveauId === modelData.id ? Style.background : Style.textPrimary
+                        color: root.selectedNiveauId === modelData.id ? Style.background
+                               : (parent.parent.freestyle ? Style.warningColor : Style.textPrimary)
                         horizontalAlignment: Text.AlignLeft
+                    }
+
+                    Rectangle {
+                        visible: parent.parent.freestyle && root.selectedNiveauId !== modelData.id
+                        height: 16; radius: 8; width: hallBadge.implicitWidth + 10
+                        color: Style.warningBg
+                        Text { id: hallBadge; anchors.centerIn: parent; text: "HALL"; font.pixelSize: 8; font.weight: Font.Black; color: Style.warningColor }
                     }
 
                     Row {
@@ -58,7 +71,7 @@ Column {
                             iconName: "edit"
                             iconSize: 12
                             hoverColor: Style.background
-                            onClicked: root.niveauEditRequested(modelData.id, modelData.nom)
+                            onClicked: root.niveauEditRequested(modelData.id, modelData.nom, modelData.isFreestyle || false)
                         }
                         IconButton {
                             iconName: "delete"

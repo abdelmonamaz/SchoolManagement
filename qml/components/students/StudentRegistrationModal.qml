@@ -21,6 +21,8 @@ Popup {
     property string selectedAnneeScolaire: ""
     property double inscriptionFee: 50.0
     property bool isPaid: false
+    property bool hallOnly: false
+    property int  hallClasseId: 0
 
     // Renvoie le frais d'inscription selon la catégorie (depuis les paramètres)
     function defaultFeeForCategorie(cat) {
@@ -212,7 +214,7 @@ Popup {
                                 label: qsTr("DATE DE NAISSANCE")
                                 nextTabItem: phoneField.inputItem
                                 prevTabItem: prenomField.inputItem
-                                agePassage: setupController.associationData.agePassageAdulte || 12
+                                agePassage: setupController.associationData.agePassageAdulte || 16
                             }
                         }
                     }
@@ -285,13 +287,23 @@ Popup {
                             label: qsTr("CIN PARENT (optionnel)")
                             placeholder: qsTr("ex: 12345678")
                             prevTabItem: cinEleveField.inputItem
+                            nextTabItem: niveauScolaireField.inputItem
                         }
+                    }
+
+                    FormField {
+                        id: niveauScolaireField
+                        Layout.fillWidth: true
+                        label: qsTr("NIVEAU SCOLAIRE ÉDUCATIF (optionnel)")
+                        placeholder: qsTr("ex: CE2, 6ème, 2ème lycée...")
+                        prevTabItem: cinParentField.inputItem
+                        nextTabItem: commentField
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        SectionLabel { text: qsTr("COMMENTAIRE / NOTES") }
+                        SectionLabel { text: qsTr("OBSERVATIONS / NOTES") }
                         Rectangle {
                             Layout.fillWidth: true
                             height: 80
@@ -328,6 +340,62 @@ Popup {
                         }
                     }
 
+                    // ── Checkbox Seulement Hall ─────────────────────────
+                    Rectangle {
+                        Layout.fillWidth: true; height: 44; radius: 12
+                        color: root.hallOnly ? Style.primaryBg : Style.bgPage
+                        border.color: root.hallOnly ? Style.primary : Style.borderLight
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 14; anchors.rightMargin: 14
+                            spacing: 10
+                            // Indicateur custom
+                            Rectangle {
+                                width: 18; height: 18; radius: 4
+                                color: root.hallOnly ? Style.primary : "transparent"
+                                border.color: root.hallOnly ? Style.primary : Style.borderMedium
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Text {
+                                    anchors.centerIn: parent; text: "✓"
+                                    font.pixelSize: 11; font.bold: true; color: Style.background
+                                    visible: root.hallOnly
+                                }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: qsTr("Seulement Hall Ezzaytouna")
+                                font.pixelSize: 13; font.bold: true
+                                color: root.hallOnly ? Style.primary : Style.textPrimary
+                                verticalAlignment: Text.AlignVCenter
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                            }
+                            Text {
+                                visible: root.hallOnly
+                                text: qsTr("Inscription gratuite · Frais = 0")
+                                font.pixelSize: 11; font.bold: true; color: Style.primary; opacity: 0.8
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.hallOnly = !root.hallOnly
+                                if (root.hallOnly) {
+                                    root.inscriptionFee = 0
+                                    feeInput.text = "0"
+                                    root.isPaid = true
+                                    root.selectedNiveauId = 0
+                                } else {
+                                    var fee = root.defaultFeeForCategorie(birthDateField.categorie || "Jeune")
+                                    root.inscriptionFee = fee
+                                    feeInput.text = fee.toString()
+                                    root.isPaid = false
+                                }
+                            }
+                        }
+                    }
+
                     RowLayout {
                         spacing: 24
                         Column {
@@ -355,6 +423,7 @@ Popup {
 
                         Column {
                             Layout.fillWidth: true; spacing: 8
+                            visible: !root.hallOnly
                             SectionLabel { text: qsTr("NIVEAU") }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
@@ -362,19 +431,56 @@ Popup {
                                 ComboBox {
                                     id: niveauCombo
                                     anchors.fill: parent; anchors.margins: 2
-                                    model: root.niveaux; textRole: "nom"
-                                    
+                                    model: {
+                                        var items = []
+                                        for (var i = 0; i < root.niveaux.length; i++)
+                                            if (!root.niveaux[i].isFreestyle) items.push(root.niveaux[i])
+                                        return items
+                                    }
+                                    textRole: "nom"
                                     background: Rectangle { color: "transparent" }
                                     contentItem: Text {
                                         text: niveauCombo.displayText
                                         font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                         verticalAlignment: Text.AlignVCenter; leftPadding: 8
                                     }
-
                                     onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < root.niveaux.length) {
-                                            root.selectedNiveauId = root.niveaux[currentIndex].id
-                                        }
+                                        if (currentIndex >= 0 && currentIndex < model.length)
+                                            root.selectedNiveauId = model[currentIndex].id
+                                    }
+                                }
+                            }
+                        }
+
+                        Column {
+                            Layout.fillWidth: true; spacing: 8
+                            visible: root.hallOnly
+                            SectionLabel { text: qsTr("CLASSE HALL (optionnel)") }
+                            Rectangle {
+                                width: parent.width; height: 44; radius: 12
+                                color: Style.bgPage; border.color: Style.borderLight
+                                ComboBox {
+                                    id: hallClasseCombo
+                                    anchors.fill: parent; anchors.margins: 2
+                                    model: {
+                                        var freestyleNiveauIds = []
+                                        for (var i = 0; i < root.niveaux.length; i++)
+                                            if (root.niveaux[i].isFreestyle) freestyleNiveauIds.push(root.niveaux[i].id)
+                                        var items = [{"nom": qsTr("— Aucune —"), "id": 0}]
+                                        for (var j = 0; j < root.classes.length; j++)
+                                            if (freestyleNiveauIds.indexOf(root.classes[j].niveauId) !== -1)
+                                                items.push(root.classes[j])
+                                        return items
+                                    }
+                                    textRole: "nom"
+                                    background: Rectangle { color: "transparent" }
+                                    contentItem: Text {
+                                        text: hallClasseCombo.displayText
+                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                    }
+                                    onCurrentIndexChanged: {
+                                        root.hallClasseId = currentIndex > 0 ? model[currentIndex].id : 0
                                     }
                                 }
                             }
@@ -481,7 +587,7 @@ Popup {
                     Layout.fillWidth: true
                     height: 52; radius: 16
                     readonly property bool canNext: nameField.text.trim() !== "" && prenomField.text.trim() !== "" && birthDateField.isValid
-                    readonly property bool canConfirm: canNext && root.selectedNiveauId !== 0
+                    readonly property bool canConfirm: canNext && (root.hallOnly || root.selectedNiveauId !== 0)
                     
                     color: (root.currentStep === 1 ? canNext : canConfirm) ? Style.primary : Style.bgTertiary
                     
@@ -512,12 +618,15 @@ Popup {
                                     categorie: birthDateField.categorie,
                                     cinEleve: cinEleveField.text,
                                     cinParent: cinParentField.text,
+                                    niveauScolaireEducatif: niveauScolaireField.text,
 
                                     // Enrollment
                                     anneeScolaire: root.selectedAnneeScolaire,
                                     niveauId: root.selectedNiveauId,
                                     fraisInscriptionPaye: root.isPaid,
-                                    montantInscription: root.inscriptionFee
+                                    montantInscription: root.inscriptionFee,
+                                    hallOnly: root.hallOnly,
+                                    hallClasseId: root.hallClasseId
                                 })
                                 // Reset
                                 nameField.text = ""
@@ -528,8 +637,12 @@ Popup {
                                 parentPhoneField.text = ""
                                 cinEleveField.text = ""
                                 cinParentField.text = ""
+                                niveauScolaireField.text = ""
                                 commentField.text = ""
                                 birthDateField.clear()
+                                root.hallOnly = false
+                                root.hallClasseId = 0
+                                hallClasseCombo.currentIndex = 0
                                 root.currentStep = 1
                             }
                         }

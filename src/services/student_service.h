@@ -26,7 +26,8 @@ public:
                               const QString& telParent, const QString& commentaire,
                               GS::TypePublic categorie,
                               const QString& cinEleve = QString(),
-                              const QString& cinParent = QString());
+                              const QString& cinParent = QString(),
+                              const QString& niveauScolaireEducatif = QString());
     Result<bool> updateStudent(const Eleve& eleve);
     Result<bool> deleteStudent(int id);
     Result<int> getTotalCount();

@@ -21,7 +21,9 @@ static QVariantMap inscriptionToMap(const Inscription& i) {
         {"resultat", i.resultat}, {"fraisInscriptionPaye", i.fraisInscriptionPaye},
         {"montantInscription", i.montantInscription},
         {"dateInscription", i.dateInscription},
-        {"justificatifPath", i.justificatifPath}
+        {"justificatifPath", i.justificatifPath},
+        {"hallOnly", i.hallOnly},
+        {"hallClasseId", i.hallClasseId}
     };
 }
 
@@ -35,9 +37,11 @@ static QVariantMap eleveToMap(const Eleve& e) {
         {"commentaire", e.commentaire},
         {"categorie", typePublicToString(e.categorie)}, {"classeId", e.classeId},
         {"cinEleve", e.cinEleve}, {"cinParent", e.cinParent},
+        {"niveauScolaireEducatif", e.niveauScolaireEducatif},
         {"inscritAnneeActive", e.inscritAnneeActive},
         {"fraisPayeAnneeActive", e.fraisPayeAnneeActive},
-        {"niveauId", e.niveauId}
+        {"niveauId", e.niveauId},
+        {"hallClasseId", e.hallClasseId}
     };
 }
 
@@ -135,7 +139,8 @@ void StudentController::createStudent(const QVariantMap& data) {
             data.value("commentaire").toString(),
             stringToTypePublic(data.value("categorie").toString()),
             data.value("cinEleve").toString(),
-            data.value("cinParent").toString());
+            data.value("cinParent").toString(),
+            data.value("niveauScolaireEducatif").toString());
         
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -145,11 +150,13 @@ void StudentController::createStudent(const QVariantMap& data) {
         // Optional immediate enrollment
         if (data.contains("anneeScolaire")) {
             Inscription i;
-            i.eleveId = studentId;
-            i.anneeScolaire = data.value("anneeScolaire").toString();
-            i.niveauId = data.value("niveauId").toInt();
+            i.eleveId              = studentId;
+            i.anneeScolaire        = data.value("anneeScolaire").toString();
+            i.niveauId             = data.value("niveauId").toInt();
             i.fraisInscriptionPaye = data.value("fraisInscriptionPaye").toBool();
-            i.montantInscription = data.value("montantInscription").toDouble();
+            i.montantInscription   = data.value("montantInscription").toDouble();
+            i.hallOnly             = data.value("hallOnly").toBool();
+            i.hallClasseId         = data.value("hallClasseId").toInt();
             svc->enrollStudent(i);
         }
 
@@ -245,6 +252,7 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
         else {
             emit operationSucceeded("Inscription mise à jour");
             if (map.contains("studentId")) loadEnrollments(map["studentId"].toInt());
+            loadStudents();
         }
     }
     else if (queryId == "Student.deleteEnrollment") {
@@ -252,6 +260,7 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
         else {
             emit operationSucceeded("Inscription supprimée");
             if (m_selectedStudent.contains("id")) loadEnrollments(m_selectedStudent["id"].toInt());
+            loadStudents();
         }
     }
     else if (queryId == "Student.loadSchoolYears") {
@@ -390,6 +399,8 @@ void StudentController::updateEnrollment(int enrollmentId, const QVariantMap& da
         i.montantInscription = data.value("montantInscription").toDouble();
         i.dateInscription = data.value("dateInscription").toString();
         i.justificatifPath = data.value("justificatifPath").toString();
+        i.hallOnly = data.value("hallOnly").toBool();
+        i.hallClasseId = data.value("hallClasseId").toInt();
 
         auto result = svc->updateEnrollment(i);
         if (!result.isOk())

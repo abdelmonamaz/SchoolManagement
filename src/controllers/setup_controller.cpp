@@ -14,7 +14,8 @@ static QVariantList niveauxToList(const QList<Niveau>& niveaux)
         list.append(QVariantMap{
             {"id",            n.id},
             {"nom",           n.nom},
-            {"parentLevelId", n.parentLevelId}
+            {"parentLevelId", n.parentLevelId},
+            {"isFreestyle",   n.isFreestyle}
         });
     }
     return list;
@@ -100,7 +101,7 @@ void SetupController::loadNiveaux()
     });
 }
 
-void SetupController::createNiveau(const QString& nom, int parentLevelId)
+void SetupController::createNiveau(const QString& nom, int parentLevelId, bool isFreestyle)
 {
     if (nom.trimmed().isEmpty()) {
         emit operationFailed(QStringLiteral("Le nom du niveau ne peut pas être vide."));
@@ -109,11 +110,12 @@ void SetupController::createNiveau(const QString& nom, int parentLevelId)
 
     const QString trimmedNom = nom.trimmed();
     m_worker->submit(QStringLiteral("Setup.createNiveau"),
-        [niveauRepo = m_niveauRepo, trimmedNom, parentLevelId]() -> QVariant
+        [niveauRepo = m_niveauRepo, trimmedNom, parentLevelId, isFreestyle]() -> QVariant
     {
         Niveau n;
-        n.nom          = trimmedNom;
-        n.parentLevelId = parentLevelId;
+        n.nom           = trimmedNom;
+        n.parentLevelId = isFreestyle ? 0 : parentLevelId;
+        n.isFreestyle   = isFreestyle;
         auto res = niveauRepo->create(n);
         if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
         int newId = res.value();
@@ -125,7 +127,7 @@ void SetupController::createNiveau(const QString& nom, int parentLevelId)
     });
 }
 
-void SetupController::updateNiveau(int id, const QString& nom, int parentLevelId)
+void SetupController::updateNiveau(int id, const QString& nom, int parentLevelId, bool isFreestyle)
 {
     if (nom.trimmed().isEmpty()) {
         emit operationFailed(QStringLiteral("Le nom du niveau ne peut pas être vide."));
@@ -134,12 +136,13 @@ void SetupController::updateNiveau(int id, const QString& nom, int parentLevelId
 
     const QString trimmedNom = nom.trimmed();
     m_worker->submit(QStringLiteral("Setup.updateNiveau"),
-        [niveauRepo = m_niveauRepo, id, trimmedNom, parentLevelId]() -> QVariant
+        [niveauRepo = m_niveauRepo, id, trimmedNom, parentLevelId, isFreestyle]() -> QVariant
     {
         Niveau n;
         n.id            = id;
         n.nom           = trimmedNom;
-        n.parentLevelId = parentLevelId;
+        n.parentLevelId = isFreestyle ? 0 : parentLevelId;
+        n.isFreestyle   = isFreestyle;
         auto res = niveauRepo->update(n);
         if (!res.isOk()) return QVariantMap{{"error", res.errorMessage()}};
 

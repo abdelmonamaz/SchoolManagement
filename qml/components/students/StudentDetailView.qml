@@ -182,6 +182,7 @@ ColumnLayout {
         id: editEnrollmentModal
         student: root.student
         niveaux: root.niveaux
+        classes: schoolingController.allClasses
     }
 
     BulletinPreviewPopup {
@@ -378,7 +379,7 @@ ColumnLayout {
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
-                        SectionLabel { text: qsTr("COMMENTAIRES ET NOTES") }
+                        SectionLabel { text: qsTr("OBSERVATIONS ET NOTES") }
                         Text {
                             Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire.";
                             font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.Wrap

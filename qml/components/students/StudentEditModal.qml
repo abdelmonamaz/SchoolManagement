@@ -159,7 +159,7 @@ Popup {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
-                    SectionLabel { text: qsTr("COMMENTAIRE / NOTES") }
+                    SectionLabel { text: qsTr("OBSERVATIONS / NOTES") }
                     Rectangle {
                         Layout.fillWidth: true
                         height: 80
