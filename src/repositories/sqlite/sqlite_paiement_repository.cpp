@@ -14,11 +14,12 @@ static PaiementMensualite rowToPaiement(const QSqlQuery& q) {
     p.anneeConcernee = q.value(5).toInt();
     p.justificatifPath = q.value(6).toString();
     p.anneeScolaireId = q.value(7).toInt();
+    p.numeroRecu = q.value(8).toString();
     return p;
 }
 
 static const auto kCols = QStringLiteral(
-    "id, eleve_id, montant_paye, date_paiement, mois_concerne, annee_concernee, justificatif_path, annee_scolaire_id");
+    "id, eleve_id, montant_paye, date_paiement, mois_concerne, annee_concernee, justificatif_path, annee_scolaire_id, COALESCE(numero_recu,'')");
 
 SqlitePaiementRepository::SqlitePaiementRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
@@ -48,8 +49,8 @@ Result<int> SqlitePaiementRepository::create(const PaiementMensualite& entity) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO paiements_mensualites (eleve_id, montant_paye, date_paiement, mois_concerne, annee_concernee, justificatif_path, annee_scolaire_id) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO paiements_mensualites (eleve_id, montant_paye, date_paiement, mois_concerne, annee_concernee, justificatif_path, annee_scolaire_id, numero_recu) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.eleveId);
     query.addBindValue(entity.montantPaye);
     query.addBindValue(entity.datePaiement.toString(Qt::ISODate));
@@ -57,6 +58,7 @@ Result<int> SqlitePaiementRepository::create(const PaiementMensualite& entity) {
     query.addBindValue(entity.anneeConcernee);
     query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.anneeScolaireId > 0 ? QVariant(entity.anneeScolaireId) : QVariant());
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -66,7 +68,7 @@ Result<bool> SqlitePaiementRepository::update(const PaiementMensualite& entity) 
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "UPDATE paiements_mensualites SET eleve_id=?, montant_paye=?, date_paiement=?, "
-        "mois_concerne=?, annee_concernee=?, justificatif_path=?, annee_scolaire_id=?"
+        "mois_concerne=?, annee_concernee=?, justificatif_path=?, annee_scolaire_id=?, numero_recu=?"
         ", date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(entity.eleveId);
     query.addBindValue(entity.montantPaye);
@@ -75,6 +77,7 @@ Result<bool> SqlitePaiementRepository::update(const PaiementMensualite& entity) 
     query.addBindValue(entity.anneeConcernee);
     query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.anneeScolaireId > 0 ? QVariant(entity.anneeScolaireId) : QVariant());
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);

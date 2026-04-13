@@ -70,8 +70,12 @@ Item {
         }
         function onClasseCreated(classeId) {
             if (classModals && classModals.pendingStudentsToAssign && classModals.pendingStudentsToAssign.length > 0) {
-                studentController.assignMultipleStudentsToClasse(classModals.pendingStudentsToAssign, classeId)
+                if (classModals.pendingIsHall)
+                    studentController.assignMultipleStudentsToHallClasse(classModals.pendingStudentsToAssign, classeId)
+                else
+                    studentController.assignMultipleStudentsToClasse(classModals.pendingStudentsToAssign, classeId)
                 classModals.pendingStudentsToAssign = []
+                classModals.pendingIsHall = false
             }
         }
         function onOperationFailed(err) { console.warn("SchoolingPage error:", err) }
@@ -381,24 +385,33 @@ Item {
         niveaux: schoolingController.niveaux
 
         property var pendingStudentsToAssign: []
+        property bool pendingIsHall: false
 
         onCreateRequested: (nom, niveauId, studentIdsToAssign) => {
             pendingStudentsToAssign = studentIdsToAssign || []
+            pendingIsHall = classModals.selectedNiveauIsFreestyle
             schoolingController.createClasse(nom, niveauId)
             showClassModal = false
         }
         onEditRequested: (id, nom, niveauId, studentIdsToAdd, studentIdsToRemove) => {
             schoolingController.updateClasse(id, nom, niveauId)
-            
+
+            var isHall = classModals.selectedNiveauIsFreestyle
             if (studentIdsToRemove && studentIdsToRemove.length > 0) {
                 for (var j = 0; j < studentIdsToRemove.length; j++) {
-                    studentController.removeStudentFromClasse(studentIdsToRemove[j])
+                    if (isHall)
+                        studentController.removeStudentFromHallClasse(studentIdsToRemove[j])
+                    else
+                        studentController.removeStudentFromClasse(studentIdsToRemove[j])
                 }
             }
             if (studentIdsToAdd && studentIdsToAdd.length > 0) {
-                studentController.assignMultipleStudentsToClasse(studentIdsToAdd, id)
+                if (isHall)
+                    studentController.assignMultipleStudentsToHallClasse(studentIdsToAdd, id)
+                else
+                    studentController.assignMultipleStudentsToClasse(studentIdsToAdd, id)
             }
-            
+
             showEditClassModal = false
         }
         onDeleteRequested: (id) => {

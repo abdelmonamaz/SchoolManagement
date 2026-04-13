@@ -124,7 +124,7 @@ Item {
                 StudentListView {
                     students: studentController.students
                     niveaux: schoolingController.niveaux
-                    classes: schoolingController.classes
+                    classes: schoolingController.allClasses
                     filterLevel: studentsPage.filterLevel
 
                     onStudentViewClicked: (index) => {
@@ -164,7 +164,6 @@ Item {
     StudentRegistrationModal {
         visible: showRegistrationModal
         niveaux: schoolingController.niveaux
-        classes: schoolingController.classes
 
         onCreateRequested: (data) => {
             studentController.createStudent(data)

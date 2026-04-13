@@ -50,6 +50,16 @@ ColumnLayout {
         }
     }
 
+    FileDialog {
+        id: newEnrollJustifDialog
+        fileMode: FileDialog.OpenFile
+        title: qsTr("Sélectionner un justificatif")
+        nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
+        onAccepted: {
+            newJustifField.text = root.urlToPath(file)
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     // Look up niveau name from all niveaux (including historical years)
@@ -308,7 +318,7 @@ ColumnLayout {
                     baseColor: Style.errorColor
                     hoverColor: Style.errorColor
                     textColor: Style.background
-                    onClicked: root.deleteRequested()
+                    onClicked: deleteConfirmPopup.open()
                 }
             }
         }
@@ -376,6 +386,18 @@ ColumnLayout {
                     }
 
                     Separator { Layout.fillWidth: true }
+
+                    Column {
+                        Layout.fillWidth: true; spacing: 4
+                        visible: (root.student.niveauScolaireEducatif || "") !== ""
+                        SectionLabel { text: qsTr("NIVEAU SCOLAIRE ÉDUCATIF") }
+                        Text { text: root.student.niveauScolaireEducatif || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
+                    }
+
+                    Separator {
+                        Layout.fillWidth: true
+                        visible: (root.student.niveauScolaireEducatif || "") !== ""
+                    }
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
@@ -450,7 +472,10 @@ ColumnLayout {
                                         }
                                         IconButton {
                                             iconName: "delete"; iconSize: 16; hoverColor: Style.errorColor
-                                            onClicked: studentController.deleteEnrollment(modelData.id)
+                                            onClicked: {
+                                                deleteEnrollmentConfirmPopup.enrollmentId = modelData.id
+                                                deleteEnrollmentConfirmPopup.open()
+                                            }
                                         }
                                     }
                                 }
@@ -462,6 +487,16 @@ ColumnLayout {
                         Layout.topMargin: 10
                         text: qsTr("Inscrire pour une nouvelle année")
                         iconName: "plus"
+                        visible: {
+                            if (!setupController.activeTarifs) return true
+                            var activeId = setupController.activeTarifs.id || 0
+                            if (activeId <= 0) return true
+                            var enr = studentController.selectedStudentEnrollments
+                            for (var i = 0; i < enr.length; i++) {
+                                if ((enr[i].annee_scolaire_id || 0) === activeId) return false
+                            }
+                            return true
+                        }
                         onClicked: newEnrollmentPopup.open()
                     }
                 }
@@ -544,30 +579,24 @@ ColumnLayout {
     Popup {
         id: newEnrollmentPopup
         parent: Overlay.overlay; anchors.centerIn: parent
-        width: 500; height: 480; modal: true; padding: 0
+        width: 520; height: 680; modal: true; padding: 0
         background: Rectangle { radius: 24; color: Style.bgWhite }
 
-        property var anneeScolaireOptions: []
-        property bool isPaid: false
+        property bool isPaid:    false
+        property bool hallOnly:  false
 
         onOpened: {
             newErrorMsg.text = ""
-            var date = new Date()
-            var year = date.getFullYear()
-            var baseYear = date.getMonth() < 8 ? year - 1 : year
-            anneeScolaireOptions = [
-                (baseYear - 2) + "-" + (baseYear - 1),
-                (baseYear - 1) + "-" + baseYear,
-                baseYear + "-" + (baseYear + 1),
-                (baseYear + 1) + "-" + (baseYear + 2),
-                (baseYear + 2) + "-" + (baseYear + 3)
-            ]
-            newYearCombo.currentIndex = 2
-            isPaid = false
+            newNumeroRecuField.text = ""
+            newJustifField.text = ""
+            isPaid   = false
+            hallOnly = false
+            newDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
         }
 
         contentItem: ColumnLayout {
-            anchors.fill: parent; anchors.margins: 24; spacing: 20
+            anchors.fill: parent; anchors.margins: 24; spacing: 14
+
             Text { text: qsTr("Nouvelle Inscription"); font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
 
             Text {
@@ -579,26 +608,70 @@ ColumnLayout {
                 wrapMode: Text.Wrap
             }
 
-            Column {
-                Layout.fillWidth: true; spacing: 6
-                SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
-                Rectangle {
-                    Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                    color: Style.bgPage; border.color: Style.borderLight
-                    ComboBox {
-                        id: newYearCombo; anchors.fill: parent; anchors.margins: 2
-                        model: newEnrollmentPopup.anneeScolaireOptions
-                        background: Rectangle { color: "transparent" }
-                        contentItem: Text {
-                            text: newYearCombo.displayText; font.pixelSize: 13; font.bold: true
-                            color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+            // ── Checkbox Seulement Hall Ezzaytouna ──────────────────────────
+            Rectangle {
+                Layout.fillWidth: true; height: 44; radius: 12
+                color: newEnrollmentPopup.hallOnly ? Style.primaryBg : Style.bgPage
+                border.color: newEnrollmentPopup.hallOnly ? Style.primary : Style.borderLight
+                Behavior on color { ColorAnimation { duration: 150 } }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14; anchors.rightMargin: 14
+                    spacing: 10
+                    Rectangle {
+                        width: 18; height: 18; radius: 4
+                        color: newEnrollmentPopup.hallOnly ? Style.primary : "transparent"
+                        border.color: newEnrollmentPopup.hallOnly ? Style.primary : Style.borderMedium
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; font.bold: true; color: Style.background; visible: newEnrollmentPopup.hallOnly }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Seulement Hall Ezzaytouna")
+                        font.pixelSize: 13; font.bold: true
+                        color: newEnrollmentPopup.hallOnly ? Style.primary : Style.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+                    Text {
+                        visible: newEnrollmentPopup.hallOnly
+                        text: qsTr("Frais = 0 · Gratuit")
+                        font.pixelSize: 11; font.bold: true; color: Style.primary; opacity: 0.8
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        newEnrollmentPopup.hallOnly = !newEnrollmentPopup.hallOnly
+                        if (newEnrollmentPopup.hallOnly) {
+                            feeField.text = "0"
+                            newEnrollmentPopup.isPaid = true
                         }
                     }
                 }
             }
 
+            // Année scolaire — readonly (année courante)
             Column {
                 Layout.fillWidth: true; spacing: 6
+                SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
+                Rectangle {
+                    Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
+                    color: Style.bgSecondary; border.color: Style.borderLight
+                    Text {
+                        anchors.fill: parent; anchors.leftMargin: 12
+                        text: setupController.activeTarifs ? setupController.activeTarifs.libelle : "—"
+                        font.pixelSize: 13; font.bold: true
+                        color: Style.textSecondary; verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+
+            // Niveau
+            Column {
+                Layout.fillWidth: true; spacing: 6
+                visible: !newEnrollmentPopup.hallOnly
                 SectionLabel { text: qsTr("NIVEAU") }
                 Rectangle {
                     Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
@@ -615,9 +688,16 @@ ColumnLayout {
                 }
             }
 
+            FormField {
+                id: newNumeroRecuField
+                Layout.fillWidth: true
+                label: qsTr("N° REÇU (INSCRIPTION)")
+                placeholder: qsTr("ex: REC-2024-001")
+            }
+
             RowLayout {
-                spacing: 16
-                FormField { id: feeField; Layout.fillWidth: true; label: qsTr("FRAIS (DT)"); text: qsTr("50.0") }
+                Layout.fillWidth: true; spacing: 16
+                FormField { id: feeField; Layout.fillWidth: true; label: qsTr("FRAIS (DT)"); text: "50.0" }
                 Column {
                     spacing: 6
                     SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
@@ -642,6 +722,52 @@ ColumnLayout {
                 }
             }
 
+            DateField {
+                id: newDateField
+                Layout.fillWidth: true
+                label: qsTr("DATE D'INSCRIPTION / PAIEMENT")
+            }
+
+            Column {
+                Layout.fillWidth: true; spacing: 6
+                SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
+                RowLayout {
+                    width: parent.width; spacing: 8
+                    Rectangle {
+                        Layout.fillWidth: true; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+                        TextInput {
+                            id: newJustifField
+                            anchors.fill: parent; anchors.margins: 12
+                            font.pixelSize: 12; font.bold: true; color: Style.textPrimary
+                            clip: true; selectByMouse: true; readOnly: true
+                            Text {
+                                visible: !newJustifField.text
+                                text: qsTr("Aucun fichier sélectionné")
+                                font: newJustifField.font; color: Style.textTertiary
+                            }
+                        }
+                    }
+                    Rectangle {
+                        Layout.preferredWidth: 44; height: 44; radius: 12
+                        color: newBrowseHover.containsMouse ? Style.primary : Style.bgPage
+                        border.color: newBrowseHover.containsMouse ? Style.primary : Style.borderLight
+                        Text {
+                            anchors.centerIn: parent; text: "…"
+                            font.pixelSize: 16; font.bold: true
+                            color: newBrowseHover.containsMouse ? "white" : Style.textTertiary
+                        }
+                        MouseArea {
+                            id: newBrowseHover; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: newEnrollJustifDialog.open()
+                        }
+                    }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
+
             RowLayout {
                 Layout.fillWidth: true; spacing: 16
                 OutlineButton {
@@ -653,14 +779,105 @@ ColumnLayout {
                     onClicked: {
                         studentController.enrollStudent({
                             eleveId: root.student.id,
-                            anneeScolaire: newYearCombo.currentText,
-                            niveauId: root.niveaux[levelCombo.currentIndex].id,
+                            anneeScolaire: setupController.activeTarifs ? setupController.activeTarifs.libelle : "",
+                            annee_scolaire_id: setupController.activeTarifs ? setupController.activeTarifs.id : 0,
+                            niveauId: (!newEnrollmentPopup.hallOnly && root.niveaux.length > 0) ? root.niveaux[levelCombo.currentIndex].id : 0,
                             resultat: "En cours",
                             fraisInscriptionPaye: newEnrollmentPopup.isPaid,
-                            montantInscription: parseFloat(feeField.text),
-                            dateInscription: Qt.formatDate(new Date(), "yyyy-MM-dd"),
-                            justificatifPath: ""
+                            montantInscription: parseFloat(feeField.text.replace(",", ".")) || 0,
+                            dateInscription: newDateField.dateString !== "" ? newDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
+                            justificatifPath: newJustifField.text.trim(),
+                            numeroRecu: newNumeroRecuField.text.trim(),
+                            hallOnly: newEnrollmentPopup.hallOnly
                         })
+                    }
+                }
+            }
+        }
+    }
+
+    // Enrollment Delete Confirmation Popup
+    Popup {
+        id: deleteEnrollmentConfirmPopup
+        parent: Overlay.overlay; anchors.centerIn: parent
+        width: 460; height: 260; modal: true; padding: 0
+        background: Rectangle { radius: 20; color: Style.bgWhite }
+
+        property int enrollmentId: 0
+
+        contentItem: ColumnLayout {
+            anchors.fill: parent; anchors.margins: 28; spacing: 16
+
+            Text {
+                text: qsTr("Supprimer cette inscription ?")
+                font.pixelSize: 18; font.weight: Font.Black; color: Style.errorColor
+            }
+
+            Text {
+                text: qsTr("Cette action est irréversible.\n\nPensez à sauvegarder la base de données avant de continuer afin de pouvoir revenir en arrière si nécessaire.")
+                font.pixelSize: 13; color: Style.textSecondary
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Annuler")
+                    onClicked: deleteEnrollmentConfirmPopup.close()
+                }
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Supprimer")
+                    baseColor: Style.errorColor
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
+                    onClicked: {
+                        studentController.deleteEnrollment(deleteEnrollmentConfirmPopup.enrollmentId)
+                        deleteEnrollmentConfirmPopup.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete Confirmation Popup
+    Popup {
+        id: deleteConfirmPopup
+        parent: Overlay.overlay; anchors.centerIn: parent
+        width: 460; height: 290; modal: true; padding: 0
+        background: Rectangle { radius: 20; color: Style.bgWhite }
+
+        contentItem: ColumnLayout {
+            anchors.fill: parent; anchors.margins: 28; spacing: 16
+
+            Text {
+                text: qsTr("Confirmer la suppression")
+                font.pixelSize: 18; font.weight: Font.Black; color: Style.errorColor
+            }
+
+            Text {
+                text: qsTr("Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.\n\nPensez à sauvegarder la base de données avant de continuer afin de pouvoir revenir en arrière si nécessaire.")
+                font.pixelSize: 13; color: Style.textSecondary
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Annuler")
+                    onClicked: deleteConfirmPopup.close()
+                }
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Supprimer définitivement")
+                    baseColor: Style.errorColor
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
+                    onClicked: {
+                        deleteConfirmPopup.close()
+                        root.deleteRequested()
                     }
                 }
             }

@@ -26,6 +26,17 @@ ApplicationWindow {
     property string currentPage: "dashboard"
     property int pendingStudentId: 0
 
+    // ─── Bascule plein écran Alt+Entrée ───
+    Shortcut {
+        sequence: "Alt+Return"
+        onActivated: {
+            if (root.visibility === Window.FullScreen)
+                root.visibility = Window.Maximized
+            else
+                root.visibility = Window.FullScreen
+        }
+    }
+
     // ─── Wizard de Mise en Marche ───
     SetupWizardModal {
         id: setupWizard
@@ -273,7 +284,9 @@ ApplicationWindow {
                                 IconButton {
                                     iconName: "logout"
                                     iconSize: 18
-                                    hoverColor: Style.errorColor
+                                    baseColor: Style.errorColor
+                                    baseIconColor: "white"
+                                    hoverColor: "white"
                                     onClicked: Qt.quit()
                                 }
                             }

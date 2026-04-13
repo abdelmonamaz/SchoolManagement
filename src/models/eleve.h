@@ -25,4 +25,5 @@ struct Eleve {
     int  classeId             = 0;
     int  niveauId             = 0;
     int  hallClasseId         = 0;
+    bool hallOnly             = false;
 };

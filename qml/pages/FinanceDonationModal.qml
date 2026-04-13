@@ -74,6 +74,7 @@ ModalOverlay {
         }
 
         donJustifField.text = don.justificatifPath || ""
+        donNumeroRecuField.text = don.numeroRecu || ""
         if (don.dateDon && don.dateDon !== "") donDateField.setDate(don.dateDon)
         else donDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
     }
@@ -86,7 +87,7 @@ ModalOverlay {
         newNomField.text = ""; newTelField.text = ""; newAdrField.text = ""
         newCinField.text = ""; newRsField.text = ""; newMfField.text = ""
         newRlField.text = ""; donMontantField.text = ""; donValeurField.text = ""
-        donDescField.text = ""; donJustifField.text = ""
+        donDescField.text = ""; donJustifField.text = ""; donNumeroRecuField.text = ""
         donDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
         root.useExisting = true; root.typePersonne = "Physique"
         root.natureDon = "Numéraire"; root.modePaiement = "Espèces"
@@ -357,6 +358,14 @@ ModalOverlay {
                         label: qsTr("DATE DU DON")
                     }
 
+                    FormField {
+                        id: donNumeroRecuField
+                        width: parent.width
+                        label: qsTr("N° REÇU")
+                        placeholder: qsTr("ex: REC-2024-001")
+                        fieldHeight: 44
+                    }
+
                     // ── Justificatif ───────────────────────────────────────
                     Column { width: parent.width; spacing: 6
                         SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
@@ -426,7 +435,8 @@ ModalOverlay {
                         descriptionMateriel: root.natureDon === "Nature" ? donDescField.text.trim() : "",
                         valeurEstimee:       valeur,
                         etatMateriel:        root.natureDon === "Nature" ? root.etatMateriel : "",
-                        justificatifPath:    donJustifField.text.trim()
+                        justificatifPath:    donJustifField.text.trim(),
+                        numeroRecu:          donNumeroRecuField.text.trim()
                     }
 
                     if (root.editMode) {

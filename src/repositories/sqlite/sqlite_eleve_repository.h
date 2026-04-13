@@ -20,6 +20,8 @@ public:
     Result<bool> unassignClasse(int classeId) override;
     Result<bool> removeFromClasse(int studentId) override;
     Result<bool> assignToClasse(int studentId, int classeId) override;
+    Result<bool> removeFromHallClasse(int studentId) override;
+    Result<bool> assignToHallClasse(int studentId, int hallClasseId) override;
     Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) override;
 
     // Enrollments

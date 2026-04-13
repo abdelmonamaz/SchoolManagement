@@ -36,6 +36,7 @@ Item {
             page.showEditModal = false
             page.editingPayId = -1
             editNewAmountField.text = ""
+            editNumeroRecuField.text = ""
             root.editCurrentDate = ""
             root.editCurrentJustif = ""
             editJustifField.text = ""
@@ -45,6 +46,7 @@ Item {
             if (!show) {
                 page.editingPayId = -1
                 editNewAmountField.text = ""
+                editNumeroRecuField.text = ""
                 root.editCurrentDate = ""
                 root.editCurrentJustif = ""
                 editJustifField.text = ""
@@ -103,7 +105,8 @@ Item {
                                                 editDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
                                             }
                                             editJustifField.text      = root.editCurrentJustif
-                                            
+                                            editNumeroRecuField.text  = modelData.numeroRecu || ""
+
                                             editNewAmountField.forceActiveFocus()
                                         }
                                     }
@@ -144,7 +147,10 @@ Item {
                 }
                 FormField { id: editNewAmountField; width: parent.width
                             label: qsTr("NOUVEAU MONTANT (DT)"); placeholder: qsTr("0.00"); fieldHeight: 44 }
-                
+
+                FormField { id: editNumeroRecuField; width: parent.width
+                            label: qsTr("N° REÇU"); placeholder: qsTr("ex: REC-2024-001"); fieldHeight: 44 }
+
                 DateField {
                     id: editDateField
                     width: parent.width
@@ -248,15 +254,17 @@ Item {
                     if (page.editingNewAmount === 0)
                         financeController.deletePayment(page.editingPayId)
                     else
-                        financeController.updatePayment(page.editingPayId, { 
+                        financeController.updatePayment(page.editingPayId, {
                             montant: page.editingNewAmount,
                             datePaiement: root.editCurrentDate,
-                            justificatifPath: root.editCurrentJustif
+                            justificatifPath: root.editCurrentJustif,
+                            numeroRecu: editNumeroRecuField.text.trim()
                         })
                     
                     // Reset edit state
                     page.editingPayId         = -1
                     editNewAmountField.text = ""
+                    editNumeroRecuField.text = ""
                     root.editCurrentDate = ""
                     root.editCurrentJustif = ""
                     editJustifField.text = ""

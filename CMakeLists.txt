@@ -260,3 +260,12 @@ target_link_libraries(GestionScolaire PRIVATE
     GestionScolaire_Pages
 )
 
+# Force UTF-8 source and execution charset on MSVC so that
+# string literals containing accented/Arabic characters are
+# encoded correctly in the compiled binary.
+if(MSVC)
+    target_compile_options(GestionScolaire  PRIVATE /utf-8)
+    target_compile_options(GS_Core          PRIVATE /utf-8)
+    target_compile_options(GS_Services      PRIVATE /utf-8)
+endif()
+

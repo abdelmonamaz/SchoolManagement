@@ -35,6 +35,7 @@ Popup {
         editParentPhoneField.text = root.student.telParent || ""
         editCinEleveField.text = root.student.cinEleve || ""
         editCinParentField.text = root.student.cinParent || ""
+        editNiveauScolaireField.text = root.student.niveauScolaireEducatif || ""
         editCommentField.text = root.student.commentaire || ""
         editDateField.setDate(root.student.dateNaissance || "")
 
@@ -153,7 +154,15 @@ Popup {
                     Layout.fillWidth: true
                     spacing: 16
                     FormField { id: editCinEleveField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("CIN ÉLÈVE (optionnel)"); placeholder: qsTr("ex: 12345678"); nextTabItem: editCinParentField.inputItem; prevTabItem: editParentPhoneField.inputItem }
-                    FormField { id: editCinParentField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("CIN PARENT (optionnel)"); placeholder: qsTr("ex: 12345678"); prevTabItem: editCinEleveField.inputItem }
+                    FormField { id: editCinParentField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("CIN PARENT (optionnel)"); placeholder: qsTr("ex: 12345678"); prevTabItem: editCinEleveField.inputItem; nextTabItem: editNiveauScolaireField.inputItem }
+                }
+
+                FormField {
+                    id: editNiveauScolaireField
+                    Layout.fillWidth: true
+                    label: qsTr("NIVEAU SCOLAIRE ÉDUCATIF (optionnel)")
+                    placeholder: qsTr("ex: CE2, 6ème, 2ème lycée...")
+                    prevTabItem: editCinParentField.inputItem
                 }
 
                 ColumnLayout {
@@ -196,7 +205,8 @@ Popup {
                         categorie: editDateField.categorie,
                         classeId: root.selectedEditClasseId,
                         cinEleve: editCinEleveField.text,
-                        cinParent: editCinParentField.text
+                        cinParent: editCinParentField.text,
+                        niveauScolaireEducatif: editNiveauScolaireField.text
                     })
                 }
             }

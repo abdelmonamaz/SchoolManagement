@@ -59,4 +59,5 @@ struct Don {
     double  valeurEstimee       = 0.0;         // Nature seulement
     QString etatMateriel        = "Neuf";      // "Neuf" | "Occasion"
     QString justificatifPath;                  // chemin fichier local
+    QString numeroRecu;                        // Numéro de reçu
 };

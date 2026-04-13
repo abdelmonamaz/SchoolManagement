@@ -235,13 +235,56 @@ Result<bool> SqliteClasseRepository::update(const Classe& entity)
 Result<bool> SqliteClasseRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    if (!db.transaction())
+        return Result<bool>::error("Transaction impossible: " + db.lastError().text());
+
     QSqlQuery query(db);
+
+    // 1. Supprimer les séances liées aux cours et examens de cette classe.
+    //    ON DELETE CASCADE sur seances → supprime en cascade participations, cours et examens.
+    query.prepare(
+        "DELETE FROM seances WHERE id IN ("
+        "  SELECT seance_id FROM cours    WHERE classe_id = ? "
+        "  UNION "
+        "  SELECT seance_id FROM examens  WHERE classe_id = ?"
+        ")");
+    query.addBindValue(id);
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur suppression séances: " + query.lastError().text());
+    }
+
+    // 2. Libérer l'affectation de classe dans les inscriptions (classe normale)
+    query.prepare("UPDATE inscriptions_eleves SET classe_id = NULL WHERE classe_id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur nullification classe_id: " + query.lastError().text());
+    }
+
+    // 3. Libérer l'affectation de salle dans les inscriptions (niveau de type hall/freestyle)
+    query.prepare("UPDATE inscriptions_eleves SET hall_classe_id = NULL WHERE hall_classe_id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur nullification hall_classe_id: " + query.lastError().text());
+    }
+
+    // 4. Suppression douce de la classe
     query.prepare("UPDATE classes SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
-
     if (!query.exec()) {
+        db.rollback();
         return Result<bool>::error(query.lastError().text());
     }
+
+    if (!db.commit()) {
+        db.rollback();
+        return Result<bool>::error("Erreur commit: " + db.lastError().text());
+    }
+
     return Result<bool>::success(true);
 }
 

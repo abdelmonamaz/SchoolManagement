@@ -80,6 +80,15 @@ public:
     Q_INVOKABLE void loadAnnualBalanceForAccountingYear(int year, int month);
     Q_INVOKABLE void loadTotalBalance();
 
+    // Exports légaux CSV
+    Q_INVOKABLE void exportMonthlyPaiementsCSV(int month, int year, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportMonthlyDonsCSV(int month, int year, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportMonthlyDepensesCSV(int month, int year, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportMonthlySalairesCSV(int month, int year, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportRegistreDonsAnnuelCSV(const QString& dateFrom, const QString& dateTo, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportLivreCaisseCSV(const QString& dateFrom, const QString& dateTo, const QString& nomAssociation, const QString& filePath);
+    Q_INVOKABLE void exportBilanExerciceCSV(const QString& dateFrom, const QString& dateTo, const QString& nomAssociation, const QString& filePath);
+
 signals:
     void paymentsChanged();
     void projetsChanged();
@@ -94,6 +103,8 @@ signals:
     void errorMessageChanged();
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
+    void exportSucceeded(const QString& message);
+    void exportFailed(const QString& error);
 
 private slots:
     void onQueryCompleted(const QString& queryId, const QVariant& result);

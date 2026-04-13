@@ -143,6 +143,16 @@ Result<bool> StudentService::assignToClasse(int studentId, int classeId)
     return m_eleveRepo->assignToClasse(studentId, classeId);
 }
 
+Result<bool> StudentService::removeStudentFromHallClasse(int studentId)
+{
+    return m_eleveRepo->removeFromHallClasse(studentId);
+}
+
+Result<bool> StudentService::assignToHallClasse(int studentId, int hallClasseId)
+{
+    return m_eleveRepo->assignToHallClasse(studentId, hallClasseId);
+}
+
 Result<QList<Eleve>> StudentService::getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie)
 {
     return m_eleveRepo->getUnassignedStudents(niveauId, sexe, categorie);

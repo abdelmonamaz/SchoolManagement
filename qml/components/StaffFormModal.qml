@@ -69,6 +69,9 @@ ModalOverlay {
         cinText = data.cin || ""
         selectedSexe = data.sexe || "M"
         personnelId = data.id || -1
+        selectedPost = data.poste || "Enseignant"
+        specialtyText = data.specialite || ""
+        niveauScolaireText = data.niveauScolaire || ""
         editMode = "identity"
     }
 
@@ -340,7 +343,7 @@ ModalOverlay {
                 Layout.fillWidth: true
                 Layout.preferredWidth: parent.width / 2 - 8
                 spacing: 6
-                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract" || editMode === "identity") && root.selectedPost === "Enseignant"
 
                 SectionLabel {
                     text: qsTr("SPÉCIALITÉ")
@@ -360,7 +363,7 @@ ModalOverlay {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
                 spacing: 6
-                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract" || editMode === "identity") && root.selectedPost === "Enseignant"
 
                 SectionLabel {
                     text: qsTr("NIVEAU D'ÉDUCATION")
@@ -720,7 +723,9 @@ ModalOverlay {
                         nom: root.nomText,
                         telephone: root.telephoneText,
                         sexe: root.selectedSexe,
-                        cin: root.cinText
+                        cin: root.cinText,
+                        specialite: root.selectedPost === "Enseignant" ? root.specialtyText : "",
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : ""
                     })
                 } else if (editMode === "contract") {
                     root.confirmed({

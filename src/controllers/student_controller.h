@@ -45,6 +45,8 @@ public:
     Q_INVOKABLE void removeStudentFromClasse(int studentId);
     Q_INVOKABLE void assignStudentToClasse(int studentId, int classeId);
     Q_INVOKABLE void assignMultipleStudentsToClasse(const QVariantList& studentIds, int classeId);
+    Q_INVOKABLE void removeStudentFromHallClasse(int studentId);
+    Q_INVOKABLE void assignMultipleStudentsToHallClasse(const QVariantList& studentIds, int hallClasseId);
 
     // Enrollments
     Q_INVOKABLE void loadEnrollments(int studentId);

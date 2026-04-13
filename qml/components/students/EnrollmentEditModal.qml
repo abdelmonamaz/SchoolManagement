@@ -24,15 +24,6 @@ ModalOverlay {
             if (!niveaux[i].isFreestyle) items.push(niveaux[i])
         return items
     }
-    readonly property var hallClasses: {
-        var freestyleIds = []
-        for (var i = 0; i < niveaux.length; i++)
-            if (niveaux[i].isFreestyle) freestyleIds.push(niveaux[i].id)
-        var items = [{"nom": qsTr("— Aucune —"), "id": 0}]
-        for (var j = 0; j < classes.length; j++)
-            if (freestyleIds.indexOf(classes[j].niveauId) !== -1) items.push(classes[j])
-        return items
-    }
 
     modalWidth: 560
     modalRadius: 24
@@ -57,15 +48,9 @@ ModalOverlay {
                     if (root.normalNiveaux[i].id === enrollmentData.niveauId) { idx = i; break }
                 }
                 editLevelCombo.currentIndex = idx
-            } else {
-                // Trouver la classe Hall dans hallClasses
-                for (var j = 1; j < root.hallClasses.length; j++) {
-                    if (root.hallClasses[j].id === root.hallClasseId) {
-                        hallClasseEditCombo.currentIndex = j; break
-                    }
-                }
             }
 
+            editNumeroRecuField.text = enrollmentData.numeroRecu || ""
             editFeeField.text = enrollmentData.montantInscription.toString()
             isPaid = enrollmentData.fraisInscriptionPaye
             currentJustif = enrollmentData.justificatifPath || ""
@@ -203,25 +188,13 @@ ModalOverlay {
                         }
                     }
                 }
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    visible: root.hallOnly
-                    SectionLabel { text: qsTr("CLASSE HALL (optionnel)") }
-                    Rectangle {
-                        Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: hallClasseEditCombo; anchors.fill: parent; anchors.margins: 2
-                            model: root.hallClasses; textRole: "nom"
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                text: hallClasseEditCombo.displayText; font.pixelSize: 13; font.bold: true
-                                color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                            }
-                            onCurrentIndexChanged: root.hallClasseId = currentIndex > 0 ? model[currentIndex].id : 0
-                        }
-                    }
-                }
+            }
+
+            FormField {
+                id: editNumeroRecuField
+                width: parent.width
+                label: qsTr("N° REÇU (INSCRIPTION)")
+                placeholder: qsTr("ex: REC-2024-001")
             }
 
             RowLayout {
@@ -285,9 +258,15 @@ ModalOverlay {
                 }
             }
             
-            // Désinscrire / Inscrire — full width
+            // Désinscrire / Inscrire — full width (seulement pour l'année scolaire courante)
             Rectangle {
                 width: parent.width; height: 44; radius: 12
+                visible: {
+                    if (!root.enrollmentData || !setupController.activeTarifs) return false
+                    var enrollId = root.enrollmentData.annee_scolaire_id || 0
+                    var activeId = setupController.activeTarifs.id || 0
+                    return enrollId > 0 && activeId > 0 && enrollId === activeId
+                }
                 readonly property bool isEnrolled: root.student && root.student.inscritAnneeActive
                 color: actionMa.containsMouse
                        ? (isEnrolled ? Style.errorColor : Style.successColor)
@@ -317,7 +296,8 @@ ModalOverlay {
                                 fraisInscriptionPaye: root.isPaid,
                                 montantInscription: parseFloat(editFeeField.text.replace(",", ".")) || 0,
                                 hallOnly: root.hallOnly,
-                                hallClasseId: root.hallClasseId
+                                hallClasseId: root.hallClasseId,
+                                numeroRecu: editNumeroRecuField.text.trim()
                             })
                         }
                         root.close()
@@ -346,7 +326,8 @@ ModalOverlay {
                             dateInscription: editDateField.dateString !== "" ? editDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
                             justificatifPath: editJustifField.text.trim(),
                             hallOnly: root.hallOnly,
-                            hallClasseId: root.hallClasseId
+                            hallClasseId: root.hallClasseId,
+                            numeroRecu: editNumeroRecuField.text.trim()
                         })
                     }
                 }

@@ -303,6 +303,52 @@ Rectangle {
             }
         }
 
+        // Spécialité et niveau d'éducation (Enseignant uniquement)
+        Column {
+            width: parent.width
+            spacing: 10
+            visible: staffData.poste === "Enseignant" && (staffData.specialite || staffData.niveauScolaire)
+
+            Row {
+                width: parent.width
+                spacing: 16
+
+                Column {
+                    width: staffData.niveauScolaire ? (parent.width - 16) / 2 : parent.width
+                    spacing: 6
+                    visible: staffData.specialite && staffData.specialite !== ""
+
+                    SectionLabel { text: qsTr("SPÉCIALITÉ") }
+
+                    Text {
+                        text: staffData.specialite || "—"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: Style.textSecondary
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                }
+
+                Column {
+                    width: staffData.specialite ? (parent.width - 16) / 2 : parent.width
+                    spacing: 6
+                    visible: staffData.niveauScolaire && staffData.niveauScolaire !== ""
+
+                    SectionLabel { text: qsTr("NIVEAU D'ÉDUCATION") }
+
+                    Text {
+                        text: staffData.niveauScolaire || "—"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: Style.textSecondary
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                }
+            }
+        }
+
         Separator {
             width: parent.width
             visible: !isShowAllMode

@@ -4,17 +4,69 @@ import QtQuick.Controls
 import UI.Components
 
 // ── Clôture Étape 2 : Progressions par élève ──────────────────────────────────
+// Le composant gère son état en interne via un ListModel.
+// Seuls `resultat` et `niveauSuivantId` sont mutables ; toutes les autres données
+// statiques sont lues depuis `progressions[index]` (la prop initiale).
 Column {
     id: root
     spacing: 8
 
-    required property var  progressions
-    required property bool step2Valid
-    required property int  nbDecides
+    required property var progressions   // données initiales (lecture seule après chargement)
 
-    signal progressionChanged(int index, var updatedItem)
+    // Exposés en lecture au parent
+    readonly property int  nbDecides:  _nbDecides
+    readonly property bool step2Valid: _step2Valid
 
-    // Summary bar
+    property int  _nbDecides:  0
+    property bool _step2Valid: false
+
+    // ── Modèle interne (uniquement les champs mutables) ──────────────────────
+    ListModel { id: internalModel }
+
+    onProgressionsChanged: {
+        internalModel.clear()
+        for (var i = 0; i < progressions.length; i++) {
+            internalModel.append({
+                resultat:        progressions[i].resultat,
+                niveauSuivantId: progressions[i].niveauSuivantId
+            })
+        }
+        _recalcValid()
+    }
+
+    function _recalcValid() {
+        var c = 0
+        for (var i = 0; i < internalModel.count; i++) {
+            if (internalModel.get(i).resultat !== "En cours") c++
+        }
+        _nbDecides  = c
+        _step2Valid = (internalModel.count > 0 && c === internalModel.count)
+    }
+
+    // Appelé par le parent pour obtenir le tableau final avant clôture
+    function getProgressions() {
+        var arr = []
+        for (var i = 0; i < internalModel.count; i++) {
+            var src = root.progressions[i]
+            var m   = internalModel.get(i)
+            arr.push({
+                inscriptionId:   src.inscriptionId,
+                eleveId:         src.eleveId,
+                nom:             src.nom,
+                prenom:          src.prenom,
+                categorie:       src.categorie,
+                niveauActuelId:  src.niveauActuelId,
+                niveauActuelNom: src.niveauActuelNom,
+                resultat:        m.resultat,
+                niveauxSuivants: src.niveauxSuivants,
+                niveauSuivantId: m.niveauSuivantId,
+                moyenneAnnuelle: src.moyenneAnnuelle
+            })
+        }
+        return arr
+    }
+
+    // ── Summary bar ───────────────────────────────────────────────────────────
     Rectangle {
         width: parent.width; height: 40; radius: 10
         color: root.step2Valid ? Style.successBg : Style.warningBg
@@ -24,7 +76,7 @@ Column {
             anchors.centerIn: parent; spacing: 8
             Text { text: root.step2Valid ? "✅" : "⏳"; font.pixelSize: 14 }
             Text {
-                text: qsTr("%1 / %2 résultats décidés").arg(root.nbDecides).arg(root.progressions.length)
+                text: qsTr("%1 / %2 résultats décidés").arg(root.nbDecides).arg(internalModel.count)
                       + (root.step2Valid ? qsTr(" — Prêt à continuer") : qsTr(" — Décidez tous les résultats"))
                 font.pixelSize: 13; font.bold: true
                 color: root.step2Valid ? Style.zitouna : Style.warningColor
@@ -32,24 +84,36 @@ Column {
         }
     }
 
-    // List
+    // ── Liste ─────────────────────────────────────────────────────────────────
     ListView {
+        id: listView
         width: parent.width
         height: 360
         clip: true
-        model: root.progressions
+        model: internalModel   // ListModel → setProperty() ne remet pas contentY à zéro
         spacing: 4
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
         delegate: Rectangle {
             id: progDelegate
-            required property var modelData
-            required property int index
+            required property int    index
+            // Rôles mutables déclarés en `required property` → QML les met à jour
+            // automatiquement à chaque internalModel.setProperty()
+            required property string resultat
+            required property int    niveauSuivantId
+
+            // Données statiques depuis le tableau original (non stockées dans le ListModel)
+            readonly property var    pOrig:           root.progressions[index] ?? {}
+            readonly property string pNom:            pOrig.nom             ?? ""
+            readonly property string pPrenom:         pOrig.prenom          ?? ""
+            readonly property string pNiveauActuelNom:pOrig.niveauActuelNom  ?? ""
+            readonly property double pMoyenne:        pOrig.moyenneAnnuelle  ?? -1.0
+            readonly property var    pNiveauxSuivants:pOrig.niveauxSuivants  ?? []
+
             width: ListView.view.width; height: 66; radius: 10; color: Style.bgWhite
             border.color: {
-                var r = modelData.resultat
-                if (r === "Réussi")     return Style.successColor
-                if (r === "Redoublant") return Style.errorBorder
+                if (resultat === "Réussi")     return Style.successColor
+                if (resultat === "Redoublant") return Style.errorBorder
                 return Style.borderLight
             }
             border.width: 1
@@ -62,52 +126,50 @@ Column {
                 Rectangle {
                     width: 38; height: 38; radius: 19
                     color: {
-                        var r = modelData.resultat
-                        if (r === "Réussi")     return Style.successBg
-                        if (r === "Redoublant") return Style.errorBorder
+                        if (progDelegate.resultat === "Réussi")     return Style.successBg
+                        if (progDelegate.resultat === "Redoublant") return Style.errorBorder
                         return Style.bgPage
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.nom.charAt(0)
+                        text: progDelegate.pNom.charAt(0)
                         font.pixelSize: 15; font.bold: true
                         color: {
-                            var r = modelData.resultat
-                            if (r === "Réussi")     return Style.zitouna
-                            if (r === "Redoublant") return Style.errorColor
+                            if (progDelegate.resultat === "Réussi")     return Style.zitouna
+                            if (progDelegate.resultat === "Redoublant") return Style.errorColor
                             return Style.textSecondary
                         }
                     }
                 }
 
-                // Name + niveau
+                // Nom + niveau actuel
                 Column {
                     Layout.preferredWidth: 160; spacing: 2
-                    Text { text: modelData.nom + " " + modelData.prenom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; elide: Text.ElideRight; width: parent.width }
-                    Text { text: modelData.niveauActuelNom; font.pixelSize: 11; color: Style.textSecondary; elide: Text.ElideRight; width: parent.width }
+                    Text { text: progDelegate.pNom + " " + progDelegate.pPrenom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; elide: Text.ElideRight; width: parent.width }
+                    Text { text: progDelegate.pNiveauActuelNom; font.pixelSize: 11; color: Style.textSecondary; elide: Text.ElideRight; width: parent.width }
                 }
 
-                // Average grade badge
+                // Badge moyenne
                 Rectangle {
                     width: 56; height: 28; radius: 8
-                    visible: modelData.moyenneAnnuelle !== undefined
+                    visible: progDelegate.pMoyenne !== undefined
                     color: {
-                        var m = modelData.moyenneAnnuelle
+                        var m = progDelegate.pMoyenne
                         if (m < 0) return Style.secondary
                         return m >= 10 ? Style.successBg : Style.errorBorder
                     }
                     border.color: {
-                        var m = modelData.moyenneAnnuelle
+                        var m = progDelegate.pMoyenne
                         if (m < 0) return Style.borderLight
                         return m >= 10 ? Style.successColor : Style.errorBorder
                     }
                     border.width: 1
                     Text {
                         anchors.centerIn: parent
-                        text: { var m = modelData.moyenneAnnuelle; return m < 0 ? "—" : m.toFixed(1) }
+                        text: { var m = progDelegate.pMoyenne; return m < 0 ? "—" : m.toFixed(1) }
                         font.pixelSize: 12; font.bold: true
                         color: {
-                            var m = modelData.moyenneAnnuelle
+                            var m = progDelegate.pMoyenne
                             if (m < 0) return Style.textTertiary
                             return m >= 10 ? Style.successColor : Style.errorColor
                         }
@@ -116,114 +178,111 @@ Column {
 
                 Item { Layout.fillWidth: true }
 
-                // Réussi button
+                // Bouton Réussi
                 Rectangle {
                     width: 80; height: 30; radius: 8
-                    color: modelData.resultat === "Réussi" ? Style.successColor : Style.bgPage
-                    border.color: modelData.resultat === "Réussi" ? Style.successColor : Style.borderMedium; border.width: 1
+                    color: progDelegate.resultat === "Réussi" ? Style.successColor : Style.bgPage
+                    border.color: progDelegate.resultat === "Réussi" ? Style.successColor : Style.borderMedium; border.width: 1
                     Text {
                         anchors.centerIn: parent; text: qsTr("Réussi"); font.pixelSize: 12; font.bold: true
-                        color: modelData.resultat === "Réussi" ? "white" : Style.textSecondary
+                        color: progDelegate.resultat === "Réussi" ? "white" : Style.textSecondary
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            var item = Object.assign({}, modelData)
-                            item.resultat = "Réussi"
-                            if (item.niveauxSuivants && item.niveauxSuivants.length > 0)
-                                item.niveauSuivantId = item.niveauxSuivants[0].id
-                            else
-                                item.niveauSuivantId = 0
-                            root.progressionChanged(index, item)
+                            var suivants = progDelegate.pNiveauxSuivants
+                            internalModel.setProperty(progDelegate.index, "resultat", "Réussi")
+                            internalModel.setProperty(progDelegate.index, "niveauSuivantId",
+                                (suivants && suivants.length > 0) ? suivants[0].id : 0)
+                            root._recalcValid()
                         }
                     }
                 }
 
-                // Redoublant button
+                // Bouton Redoublant
                 Rectangle {
                     width: 90; height: 30; radius: 8
-                    color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.bgPage
-                    border.color: modelData.resultat === "Redoublant" ? Style.errorColor : Style.borderMedium; border.width: 1
+                    color: progDelegate.resultat === "Redoublant" ? Style.errorColor : Style.bgPage
+                    border.color: progDelegate.resultat === "Redoublant" ? Style.errorColor : Style.borderMedium; border.width: 1
                     Text {
                         anchors.centerIn: parent; text: qsTr("Redoublant"); font.pixelSize: 12; font.bold: true
-                        color: modelData.resultat === "Redoublant" ? "white" : Style.textSecondary
+                        color: progDelegate.resultat === "Redoublant" ? "white" : Style.textSecondary
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            var item = Object.assign({}, modelData)
-                            item.resultat = "Redoublant"; item.niveauSuivantId = 0
-                            root.progressionChanged(index, item)
+                            internalModel.setProperty(progDelegate.index, "resultat", "Redoublant")
+                            internalModel.setProperty(progDelegate.index, "niveauSuivantId", 0)
+                            root._recalcValid()
                         }
                     }
                 }
 
-                // Next niveau display / selector
+                // Affichage / sélecteur du niveau suivant
                 Rectangle {
                     width: 160; height: 30; radius: 8
                     color: Style.bgPage; border.color: Style.borderLight; border.width: 1
-                    visible: modelData.resultat !== "En cours"
+                    visible: progDelegate.resultat !== "En cours"
 
                     Row {
                         anchors.centerIn: parent; spacing: 4
                         Text {
                             text: {
-                                var r = modelData.resultat
+                                var r = progDelegate.resultat
                                 if (r === "Redoublant") return "↩"
-                                if (r === "Réussi") return (modelData.niveauSuivantId > 0) ? "→" : "🎓"
+                                if (r === "Réussi") return (progDelegate.niveauSuivantId > 0) ? "→" : "🎓"
                                 return ""
                             }
                             font.pixelSize: 13; color: Style.textSecondary
                         }
                         Text {
                             text: {
-                                var r = modelData.resultat
-                                if (r === "Redoublant") return modelData.niveauActuelNom
+                                var r = progDelegate.resultat
+                                if (r === "Redoublant") return progDelegate.pNiveauActuelNom
                                 if (r === "Réussi") {
-                                    if (modelData.niveauSuivantId <= 0) return "Diplômé"
-                                    for (var i = 0; i < modelData.niveauxSuivants.length; i++) {
-                                        if (modelData.niveauxSuivants[i].id === modelData.niveauSuivantId)
-                                            return modelData.niveauxSuivants[i].nom
+                                    if (progDelegate.niveauSuivantId <= 0) return "Diplômé"
+                                    var suivants = progDelegate.pNiveauxSuivants
+                                    for (var i = 0; i < suivants.length; i++) {
+                                        if (suivants[i].id === progDelegate.niveauSuivantId)
+                                            return suivants[i].nom
                                     }
                                 }
                                 return ""
                             }
                             font.pixelSize: 11; font.bold: true
                             color: {
-                                var r = modelData.resultat
+                                var r = progDelegate.resultat
                                 if (r === "Redoublant") return Style.errorColor
-                                if (r === "Réussi" && modelData.niveauSuivantId <= 0) return Style.chart3
+                                if (r === "Réussi" && progDelegate.niveauSuivantId <= 0) return Style.chart3
                                 return Style.successColor
                             }
                             elide: Text.ElideRight
-                            width: (modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1) ? 100 : 130
+                            width: (progDelegate.resultat === "Réussi" && progDelegate.pNiveauxSuivants && progDelegate.pNiveauxSuivants.length > 1) ? 100 : 130
                         }
                     }
 
-                    // Dropdown chevron if multiple choices
+                    // Chevron si plusieurs choix
                     Text {
                         anchors.right: parent.right; anchors.rightMargin: 6
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1
+                        visible: progDelegate.resultat === "Réussi" && progDelegate.pNiveauxSuivants && progDelegate.pNiveauxSuivants.length > 1
                         text: qsTr("▾"); font.pixelSize: 12; color: Style.textSecondary
                     }
 
-                    // Click to cycle through next niveaux
+                    // Clic pour cycler parmi les niveaux suivants
                     MouseArea {
                         anchors.fill: parent
-                        cursorShape: (modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1)
+                        cursorShape: (progDelegate.resultat === "Réussi" && progDelegate.pNiveauxSuivants && progDelegate.pNiveauxSuivants.length > 1)
                                      ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        enabled: modelData.resultat === "Réussi" && modelData.niveauxSuivants && modelData.niveauxSuivants.length > 1
+                        enabled: progDelegate.resultat === "Réussi" && progDelegate.pNiveauxSuivants && progDelegate.pNiveauxSuivants.length > 1
                         onClicked: {
-                            var item = Object.assign({}, modelData)
-                            var suivants = item.niveauxSuivants
+                            var suivants = progDelegate.pNiveauxSuivants
                             var curIdx = 0
                             for (var i = 0; i < suivants.length; i++) {
-                                if (suivants[i].id === item.niveauSuivantId) { curIdx = i; break }
+                                if (suivants[i].id === progDelegate.niveauSuivantId) { curIdx = i; break }
                             }
                             curIdx = (curIdx + 1) % suivants.length
-                            item.niveauSuivantId = suivants[curIdx].id
-                            root.progressionChanged(index, item)
+                            internalModel.setProperty(progDelegate.index, "niveauSuivantId", suivants[curIdx].id)
                         }
                     }
                 }

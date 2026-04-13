@@ -162,6 +162,9 @@ Item {
         }
 
         function onOperationSucceeded(message) {
+            // CSV exports handled by exportSucceeded signal — skip here
+            if (message === "CSV.exported") return
+
             financeController.loadPaymentsByMonth(financePage.selectedMonthIndex + 1, financePage.selectedYear)
             financeController.loadAllDons()
             financeController.loadProjets()
@@ -263,10 +266,11 @@ Item {
                 Repeater {
                     model: [
                         { id: "schooling",  label: qsTr("Scolarité"),       icon: "wallet"   },
-                        { id: "donations",  label: qsTr("Dons & Waqf"),     icon: "heart"    },
-                        { id: "expenses",   label: qsTr("Dépenses"),         icon: "receipt"  },
-                        { id: "donateurs",  label: qsTr("Donateurs"),        icon: "users"    },
-                        { id: "journal",    label: qsTr("Journal Unifié"),   icon: "history"  }
+                        { id: "donations",  label: qsTr("Dons & Revenues"), icon: "heart"    },
+                        { id: "expenses",   label: qsTr("Dépenses"),        icon: "receipt"  },
+                        { id: "donateurs",  label: qsTr("Donateurs"),       icon: "users"    },
+                        { id: "journal",    label: qsTr("Journal Unifié"),  icon: "history"  },
+                        { id: "exports",    label: qsTr("Documents"),       icon: "download" }
                     ]
                     delegate: Item {
                         Layout.fillHeight: true; implicitWidth: tabContent.implicitWidth
@@ -313,6 +317,8 @@ Item {
                  sourceComponent: Component { FinanceDonateursTab { page: financePage } } }
         Loader { Layout.fillWidth: true; active: activeTab === "journal"; visible: active
                  sourceComponent: Component { FinanceJournalTab { page: financePage } } }
+        Loader { Layout.fillWidth: true; active: activeTab === "exports"; visible: active
+                 sourceComponent: Component { FinanceExportsTab { page: financePage } } }
 
         Item { Layout.preferredHeight: 32 }
     }
@@ -370,6 +376,7 @@ Item {
     }
 
     FinanceProjectModal { page: financePage }
+    FinanceProjectModal { page: financePage; editMode: true }
 
     // ── Month/year picker (floating) ──────────────────────────────────────────
     MonthYearSelector {

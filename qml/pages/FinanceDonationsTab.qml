@@ -82,7 +82,7 @@ AppCard {
     }
 
     // ── AppCard header ───────────────────────────────────────────────────────
-    title:    tab.viewMode === "dons" ? "Dons & Revenue — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
+    title:    tab.viewMode === "dons" ? "Dons & Revenues — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
     subtitle: tab.viewMode === "dons" ? "Donations enregistrées ce mois" : projetsStats.total + " projet(s) au total"
 
     headerAction: Component {

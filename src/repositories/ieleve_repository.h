@@ -17,6 +17,8 @@ public:
     virtual Result<bool> unassignClasse(int classeId) = 0;
     virtual Result<bool> removeFromClasse(int studentId) = 0;
     virtual Result<bool> assignToClasse(int studentId, int classeId) = 0;
+    virtual Result<bool> removeFromHallClasse(int studentId) = 0;
+    virtual Result<bool> assignToHallClasse(int studentId, int hallClasseId) = 0;
     virtual Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) = 0;
 
     // Enrollments

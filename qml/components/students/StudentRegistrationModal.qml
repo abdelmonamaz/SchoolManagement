@@ -13,7 +13,6 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     required property var niveaux
-    required property var classes
 
     property int currentStep: 1
     property string selectedSexe: "M"
@@ -22,7 +21,6 @@ Popup {
     property double inscriptionFee: 50.0
     property bool isPaid: false
     property bool hallOnly: false
-    property int  hallClasseId: 0
 
     // Renvoie le frais d'inscription selon la catégorie (depuis les paramètres)
     function defaultFeeForCategorie(cat) {
@@ -34,6 +32,29 @@ Popup {
     signal createRequested(var data)
     signal closeRequested()
 
+    function reset() {
+        currentStep = 1
+        selectedSexe = "M"
+        selectedNiveauId = 0
+        inscriptionFee = defaultFeeForCategorie("Jeune")
+        isPaid = false
+        hallOnly = false
+        nameField.text = ""
+        prenomField.text = ""
+        phoneField.text = ""
+        addressField.text = ""
+        parentNameField.text = ""
+        parentPhoneField.text = ""
+        cinEleveField.text = ""
+        cinParentField.text = ""
+        niveauScolaireField.text = ""
+        commentField.text = ""
+        numeroRecuField.text = ""
+        feeInput.text = inscriptionFee.toString()
+        birthDateField.clear()
+        niveauCombo.currentIndex = 0
+    }
+
     // Met à jour le frais automatiquement quand la catégorie de l'élève change
     Connections {
         target: birthDateField
@@ -44,16 +65,15 @@ Popup {
     }
 
     onOpened: {
-        // Utiliser l'année scolaire active depuis les paramètres
         selectedAnneeScolaire = setupController.activeTarifs.libelle || ""
-        // Pré-remplir avec le frais Jeune par défaut
         root.inscriptionFee = root.defaultFeeForCategorie("Jeune")
+        feeInput.text = root.inscriptionFee.toString()
         nameField.inputItem.forceActiveFocus()
     }
 
     onClosed: {
         root.closeRequested()
-        currentStep = 1
+        root.reset()
     }
 
     background: Rectangle {
@@ -452,39 +472,13 @@ Popup {
                             }
                         }
 
-                        Column {
-                            Layout.fillWidth: true; spacing: 8
-                            visible: root.hallOnly
-                            SectionLabel { text: qsTr("CLASSE HALL (optionnel)") }
-                            Rectangle {
-                                width: parent.width; height: 44; radius: 12
-                                color: Style.bgPage; border.color: Style.borderLight
-                                ComboBox {
-                                    id: hallClasseCombo
-                                    anchors.fill: parent; anchors.margins: 2
-                                    model: {
-                                        var freestyleNiveauIds = []
-                                        for (var i = 0; i < root.niveaux.length; i++)
-                                            if (root.niveaux[i].isFreestyle) freestyleNiveauIds.push(root.niveaux[i].id)
-                                        var items = [{"nom": qsTr("— Aucune —"), "id": 0}]
-                                        for (var j = 0; j < root.classes.length; j++)
-                                            if (freestyleNiveauIds.indexOf(root.classes[j].niveauId) !== -1)
-                                                items.push(root.classes[j])
-                                        return items
-                                    }
-                                    textRole: "nom"
-                                    background: Rectangle { color: "transparent" }
-                                    contentItem: Text {
-                                        text: hallClasseCombo.displayText
-                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
-                                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                                    }
-                                    onCurrentIndexChanged: {
-                                        root.hallClasseId = currentIndex > 0 ? model[currentIndex].id : 0
-                                    }
-                                }
-                            }
-                        }
+                    }
+
+                    FormField {
+                        id: numeroRecuField
+                        Layout.fillWidth: true
+                        label: qsTr("N° REÇU (INSCRIPTION)")
+                        placeholder: qsTr("ex: REC-2024-001")
                     }
 
                     // Financial Section
@@ -603,6 +597,11 @@ Popup {
                         onClicked: {
                             if (root.currentStep === 1) {
                                 root.currentStep = 2
+                                // Initialiser selectedNiveauId depuis le premier item du combo
+                                // (onCurrentIndexChanged ne se déclenche pas si currentIndex est déjà 0)
+                                var m = niveauCombo.model
+                                if (!root.hallOnly && m && m.length > 0)
+                                    root.selectedNiveauId = m[niveauCombo.currentIndex >= 0 ? niveauCombo.currentIndex : 0].id
                             } else {
                                 root.createRequested({
                                     // Identity
@@ -626,24 +625,10 @@ Popup {
                                     fraisInscriptionPaye: root.isPaid,
                                     montantInscription: root.inscriptionFee,
                                     hallOnly: root.hallOnly,
-                                    hallClasseId: root.hallClasseId
+                                    hallClasseId: 0,
+                                    numeroRecu: numeroRecuField.text.trim()
                                 })
-                                // Reset
-                                nameField.text = ""
-                                prenomField.text = ""
-                                phoneField.text = ""
-                                addressField.text = ""
-                                parentNameField.text = ""
-                                parentPhoneField.text = ""
-                                cinEleveField.text = ""
-                                cinParentField.text = ""
-                                niveauScolaireField.text = ""
-                                commentField.text = ""
-                                birthDateField.clear()
-                                root.hallOnly = false
-                                root.hallClasseId = 0
-                                hallClasseCombo.currentIndex = 0
-                                root.currentStep = 1
+                                root.reset()
                             }
                         }
                     }

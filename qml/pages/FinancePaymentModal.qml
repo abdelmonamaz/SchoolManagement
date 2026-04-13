@@ -35,6 +35,7 @@ ModalOverlay {
         overwrite = false
         payDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
         payJustifField.text = ""
+        payNumeroRecuField.text = ""
         if (page.payingEleveId > 0) {
             var students = studentController.students
             for (var i = 0; i < students.length; i++) {
@@ -102,6 +103,9 @@ ModalOverlay {
 
         FormField { id: payMontantField; width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
                     label: qsTr("MONTANT PAYÉ (DT)"); placeholder: qsTr("0.00"); fieldHeight: 44 }
+
+        FormField { id: payNumeroRecuField; width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
+                    label: qsTr("N° REÇU"); placeholder: qsTr("ex: REC-2024-001"); fieldHeight: 44 }
 
         // ── Date et Justificatif ──────────────────────────────────────────────
         Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 6
@@ -171,6 +175,7 @@ ModalOverlay {
                 payEleveCombo.currentIndex = -1
                 payMontantField.text = ""
                 payJustifField.text = ""
+                payNumeroRecuField.text = ""
                 root.overwrite = false
             }
             onConfirm: {
@@ -183,7 +188,8 @@ ModalOverlay {
                     mois:    page.selectedMonthIndex + 1,
                     annee:   page.selectedYear,
                     datePaiement: payDateField.dateString !== "" ? payDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
-                    justificatifPath: payJustifField.text.trim()
+                    justificatifPath: payJustifField.text.trim(),
+                    numeroRecu: payNumeroRecuField.text.trim()
                 }
                 if (root.overwrite)
                     financeController.overwritePayment(payload)
@@ -192,6 +198,7 @@ ModalOverlay {
                 payEleveCombo.currentIndex = -1
                 payMontantField.text = ""
                 payJustifField.text = ""
+                payNumeroRecuField.text = ""
                 root.overwrite = false
             }
         }

@@ -40,7 +40,7 @@ static Eleve rowToEleve(const QSqlQuery& query) {
     return e;
 }
 
-// 18 columns: rowToEleve(14) + inscrit(14) frais_paye(15) classe_id_from_inscription(16) niveau_id(17)
+// 20 columns: rowToEleve(14) + inscrit(14) frais_paye(15) classe_id(16) niveau_id(17) hall_classe_id(18) hall_only(19)
 static Eleve rowToEleveWithStatus(const QSqlQuery& query) {
     Eleve e = rowToEleve(query);
     e.inscritAnneeActive   = query.value(14).toInt() != 0;
@@ -48,6 +48,7 @@ static Eleve rowToEleveWithStatus(const QSqlQuery& query) {
     e.classeId             = query.value(16).toInt();
     e.niveauId             = query.value(17).toInt();
     e.hallClasseId         = query.value(18).toInt();
+    e.hallOnly             = query.value(19).toInt() != 0;
     return e;
 }
 
@@ -66,7 +67,8 @@ Result<QList<Eleve>> SqliteEleveRepository::getAll() {
             "  COALESCE(i.frais_inscription_paye, 0), "
             "  COALESCE(i.classe_id, 0), "
             "  COALESCE(i.niveau_id, 0), "
-            "  COALESCE(i.hall_classe_id, 0) "
+            "  COALESCE(i.hall_classe_id, 0), "
+            "  COALESCE(i.hall_only, 0) "
             "FROM eleves e "
             "LEFT JOIN inscriptions_eleves i ON e.id = i.eleve_id "
             "  AND i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1) "
@@ -172,7 +174,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getBySchoolYear(const QString& annee
         "  COALESCE(e.cin_eleve,''), COALESCE(e.cin_parent,''), "
         "  COALESCE(e.niveau_scolaire_educatif,''), "
         "  1, i.frais_inscription_paye, COALESCE(i.classe_id, 0), COALESCE(i.niveau_id, 0), "
-        "  COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_classe_id, 0), COALESCE(i.hall_only, 0) "
         "FROM eleves e "
         "JOIN inscriptions_eleves i ON e.id = i.eleve_id "
         "WHERE e.valide = 1 "
@@ -195,7 +197,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getByClasseId(int classeId) {
         "  e.categorie, COALESCE(e.cin_eleve,''), COALESCE(e.cin_parent,''), "
         "  COALESCE(e.niveau_scolaire_educatif,''), "
         "  1, COALESCE(i.frais_inscription_paye, 0), ?, COALESCE(i.niveau_id, 0), "
-        "  COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_classe_id, 0), COALESCE(i.hall_only, 0) "
         "FROM eleves e "
         "JOIN inscriptions_eleves i ON e.id = i.eleve_id "
         "  AND i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1) "
@@ -219,7 +221,7 @@ Result<QList<Eleve>> SqliteEleveRepository::getByClasseAndYear(int classeId, int
         "  COALESCE(e.niveau_scolaire_educatif,''), "
         "  1, COALESCE(i.frais_inscription_paye, 0), "
         "  COALESCE(i.classe_id, 0), COALESCE(i.niveau_id, 0), "
-        "  COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_classe_id, 0), COALESCE(i.hall_only, 0) "
         "FROM eleves e "
         "JOIN inscriptions_eleves i ON e.id = i.eleve_id "
         "WHERE i.classe_id = ? AND i.annee_scolaire_id = ? "
@@ -275,6 +277,31 @@ Result<bool> SqliteEleveRepository::assignToClasse(int studentId, int classeId) 
         "WHERE eleve_id = ? AND valide = 1 "
         "AND annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"));
     query.addBindValue(classeId);
+    query.addBindValue(studentId);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteEleveRepository::removeFromHallClasse(int studentId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "UPDATE inscriptions_eleves SET hall_classe_id = NULL, date_modification = datetime('now') "
+        "WHERE eleve_id = ? AND valide = 1 "
+        "AND annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"));
+    query.addBindValue(studentId);
+    if (!query.exec()) return Result<bool>::error(query.lastError().text());
+    return Result<bool>::success(true);
+}
+
+Result<bool> SqliteEleveRepository::assignToHallClasse(int studentId, int hallClasseId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "UPDATE inscriptions_eleves SET hall_classe_id = ?, date_modification = datetime('now') "
+        "WHERE eleve_id = ? AND valide = 1 "
+        "AND annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1)"));
+    query.addBindValue(hallClasseId);
     query.addBindValue(studentId);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -356,8 +383,8 @@ Result<int> SqliteEleveRepository::createEnrollment(const Inscription& entity) {
     query.prepare(QStringLiteral(
         "INSERT INTO inscriptions_eleves "
         "  (eleve_id, annee_scolaire_id, niveau_id, resultat, frais_inscription_paye, "
-        "   montant_inscription, date_inscription, justificatif_path, hall_only, hall_classe_id)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+        "   montant_inscription, date_inscription, justificatif_path, hall_only, hall_classe_id, numero_recu)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.eleveId);
     query.addBindValue(anneeId > 0 ? anneeId : QVariant());
     query.addBindValue(entity.niveauId > 0 ? entity.niveauId : QVariant());
@@ -368,6 +395,7 @@ Result<int> SqliteEleveRepository::createEnrollment(const Inscription& entity) {
     query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.hallOnly ? 1 : 0);
     query.addBindValue(entity.hallClasseId > 0 ? entity.hallClasseId : QVariant());
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -397,7 +425,7 @@ Result<bool> SqliteEleveRepository::updateEnrollment(const Inscription& entity) 
     query.prepare(QStringLiteral(
         "UPDATE inscriptions_eleves SET annee_scolaire_id=?, niveau_id=?, resultat=?, "
         "  frais_inscription_paye=?, montant_inscription=?, date_inscription=?, "
-        "  justificatif_path=?, hall_only=?, hall_classe_id=?, "
+        "  justificatif_path=?, hall_only=?, hall_classe_id=?, numero_recu=?, "
         "  classe_id = CASE WHEN ? THEN NULL ELSE classe_id END, "
         "  date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(anneeId > 0 ? anneeId : QVariant());
@@ -409,6 +437,7 @@ Result<bool> SqliteEleveRepository::updateEnrollment(const Inscription& entity) 
     query.addBindValue(entity.justificatifPath);
     query.addBindValue(entity.hallOnly ? 1 : 0);
     query.addBindValue(entity.hallClasseId > 0 ? entity.hallClasseId : QVariant());
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     query.addBindValue(entity.hallOnly ? 1 : 0); // CASE WHEN: clear classe_id if hall_only
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
@@ -422,7 +451,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsByStudentId(int 
         "SELECT i.id, i.eleve_id, COALESCE(a.libelle,''), i.niveau_id, i.resultat, i.frais_inscription_paye, "
         "  i.montant_inscription, i.date_inscription, i.justificatif_path, "
         "  COALESCE(i.annee_scolaire_id, 0), COALESCE(i.classe_id, 0), "
-        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0), COALESCE(i.numero_recu,'') "
         "FROM inscriptions_eleves i "
         "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
         "WHERE i.eleve_id = ? AND i.valide = 1 ORDER BY i.date_inscription DESC"));
@@ -444,6 +473,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsByStudentId(int 
         i.classeId             = query.value(10).toInt();
         i.hallOnly             = query.value(11).toInt() != 0;
         i.hallClasseId         = query.value(12).toInt();
+        i.numeroRecu           = query.value(13).toString();
         list.append(i);
     }
     return Result<QList<Inscription>>::success(list);
@@ -456,7 +486,7 @@ Result<std::optional<Inscription>> SqliteEleveRepository::getEnrollmentByYear(in
         "SELECT i.id, i.eleve_id, COALESCE(a.libelle,''), i.niveau_id, i.resultat, i.frais_inscription_paye, "
         "  i.montant_inscription, i.date_inscription, i.justificatif_path, "
         "  COALESCE(i.annee_scolaire_id, 0), COALESCE(i.classe_id, 0), "
-        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0), COALESCE(i.numero_recu,'') "
         "FROM inscriptions_eleves i "
         "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
         "WHERE i.eleve_id = ? "
@@ -483,6 +513,7 @@ Result<std::optional<Inscription>> SqliteEleveRepository::getEnrollmentByYear(in
         i.classeId             = query.value(10).toInt();
         i.hallOnly             = query.value(11).toInt() != 0;
         i.hallClasseId         = query.value(12).toInt();
+        i.numeroRecu           = query.value(13).toString();
         return Result<std::optional<Inscription>>::success(i);
     }
     return Result<std::optional<Inscription>>::success(std::nullopt);
@@ -495,7 +526,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForYear(const QS
         "SELECT i.id, i.eleve_id, COALESCE(a.libelle,''), i.niveau_id, i.resultat, i.frais_inscription_paye, "
         "  i.montant_inscription, i.date_inscription, i.justificatif_path, "
         "  COALESCE(i.annee_scolaire_id, 0), COALESCE(i.classe_id, 0), "
-        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0), COALESCE(i.numero_recu,'') "
         "FROM inscriptions_eleves i "
         "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
         "WHERE i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE libelle = ? AND valide=1 LIMIT 1) "
@@ -518,6 +549,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForYear(const QS
         i.classeId             = query.value(10).toInt();
         i.hallOnly             = query.value(11).toInt() != 0;
         i.hallClasseId         = query.value(12).toInt();
+        i.numeroRecu           = query.value(13).toString();
         list.append(i);
     }
     return Result<QList<Inscription>>::success(list);
@@ -530,7 +562,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForActiveYear() 
         "SELECT i.id, i.eleve_id, COALESCE(a.libelle,''), i.niveau_id, i.resultat, i.frais_inscription_paye, "
         "  i.montant_inscription, i.date_inscription, i.justificatif_path, "
         "  COALESCE(i.annee_scolaire_id, 0), COALESCE(i.classe_id, 0), "
-        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0) "
+        "  COALESCE(i.hall_only, 0), COALESCE(i.hall_classe_id, 0), COALESCE(i.numero_recu,'') "
         "FROM inscriptions_eleves i "
         "LEFT JOIN annees_scolaires a ON a.id = i.annee_scolaire_id "
         "WHERE i.annee_scolaire_id = (SELECT id FROM annees_scolaires WHERE statut='Active' AND valide=1 LIMIT 1) "
@@ -552,6 +584,7 @@ Result<QList<Inscription>> SqliteEleveRepository::getEnrollmentsForActiveYear() 
         i.classeId             = query.value(10).toInt();
         i.hallOnly             = query.value(11).toInt() != 0;
         i.hallClasseId         = query.value(12).toInt();
+        i.numeroRecu           = query.value(13).toString();
         list.append(i);
     }
     return Result<QList<Inscription>>::success(list);

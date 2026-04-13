@@ -29,9 +29,9 @@ public:
     // Paiements mensuels
     Result<QList<PaiementMensualite>> getPaymentsByMonth(int month, int year);
     Result<QList<PaiementMensualite>> getPaymentsByStudent(int eleveId);
-    Result<int>  recordPayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString());
-    Result<int>  overwritePayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString());
-    Result<bool> updatePayment(int id, double newMontant, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString());
+    Result<int>  recordPayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString(), const QString& numeroRecu = QString());
+    Result<int>  overwritePayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString(), const QString& numeroRecu = QString());
+    Result<bool> updatePayment(int id, double newMontant, const QDate& datePaiement = QDate::currentDate(), const QString& justificatifPath = QString(), const QString& numeroRecu = QString());
     Result<bool> deletePayment(int id);
 
     // Projets & Dons

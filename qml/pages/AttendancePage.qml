@@ -34,7 +34,8 @@ Item {
     readonly property var classStudents: {
         var result = [], all = studentController.students
         for (var i = 0; i < all.length; i++)
-            if (all[i].classeId === selectedClasseId) result.push(all[i])
+            if (all[i].classeId === selectedClasseId || all[i].hallClasseId === selectedClasseId)
+                result.push(all[i])
         return result
     }
 
@@ -58,23 +59,16 @@ Item {
         return result
     }
 
-    // Students eligible as guests: same niveau, different class
+    // Students eligible as guests: all enrolled students except those already in the call modal
     readonly property var guestCandidates: {
         if (selectedClasseId <= 0) return []
-        var classes = schoolingController.allClasses
-        var currentNiveauId = -1
-        for (var i = 0; i < classes.length; i++) {
-            if (classes[i].id === selectedClasseId) { currentNiveauId = classes[i].niveauId; break }
-        }
-        if (currentNiveauId === -1) return []
-        var sameNiveauClassIds = []
-        for (var j = 0; j < classes.length; j++) {
-            if (classes[j].niveauId === currentNiveauId && classes[j].id !== selectedClasseId)
-                sameNiveauClassIds.push(classes[j].id)
-        }
+        var inModal = {}
+        var modal = callModalStudents
+        for (var i = 0; i < modal.length; i++) inModal[modal[i].id] = true
         var all = studentController.students, result = []
-        for (var k = 0; k < all.length; k++) {
-            if (sameNiveauClassIds.indexOf(all[k].classeId) !== -1) result.push(all[k])
+        for (var j = 0; j < all.length; j++) {
+            if (!inModal[all[j].id] && all[j].inscritAnneeActive)
+                result.push(all[j])
         }
         return result
     }

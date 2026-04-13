@@ -287,7 +287,7 @@ Item {
                     Column {
                         Layout.fillWidth: true; spacing: 2
                         Text { text: qsTr("Ajouter un Invité"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                        Text { text: qsTr("Même niveau · autre classe"); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
+                        Text { text: qsTr("Tous les élèves inscrits de l'année"); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
                     }
 
                     IconButton { iconName: "close"; onClicked: { page.showGuestModal = false; guestSearch.text = "" } }
@@ -391,7 +391,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             visible: guestList.count === 0
-                            text: guestSearch.text ? "Aucun résultat pour \"" + guestSearch.text + "\"" : "Aucun élève disponible dans le même niveau"
+                            text: guestSearch.text ? "Aucun résultat pour \"" + guestSearch.text + "\"" : "Aucun autre élève inscrit cette année"
                             font.pixelSize: 12; font.italic: true; color: Style.textTertiary
                             horizontalAlignment: Text.AlignHCenter
                             width: parent.width - 40

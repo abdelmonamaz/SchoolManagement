@@ -30,6 +30,8 @@ ColumnLayout {
     readonly property int colCat:      90
     readonly property int colStatut:   100
     readonly property int colPaiement: 80
+    readonly property int colNiveau:   120
+    readonly property int colClasse:   100
     readonly property int colActions:  116
 
     // ─── Filter & Sort State ───
@@ -61,8 +63,10 @@ ColumnLayout {
         var result = []
         for (var i = 0; i < students.length; i++) {
             var s = students[i]
-            // Filtre niveau : filtrer par niveauId de l'inscription (sauf si une classe spécifique est sélectionnée)
-            if (activeNiveauId !== 0 && classeSelectedFilter === 0 && s.niveauId !== activeNiveauId) continue
+            // Filtre Hall Ezzaytouna (activeNiveauId === -1)
+            if (activeNiveauId === -1) { if (!s.hallOnly) continue }
+            // Filtre niveau normal (sauf si une classe spécifique est sélectionnée)
+            else if (activeNiveauId !== 0 && classeSelectedFilter === 0 && s.niveauId !== activeNiveauId) continue
             if (sexeFilter      !== "all" && s.sexe      !== sexeFilter)      continue
             if (categorieFilter !== "all" && s.categorie !== categorieFilter)  continue
             if (statutFilter === "inscrit"     && !s.inscritAnneeActive)  continue
@@ -76,8 +80,16 @@ ColumnLayout {
             result.sort(function(a, b) {
                 var va = a.s[col] !== undefined ? a.s[col] : ""
                 var vb = b.s[col] !== undefined ? b.s[col] : ""
-                if (typeof va === "number" && typeof vb === "number")
+                if (typeof va === "boolean" || typeof vb === "boolean") {
+                    var na = va ? 1 : 0, nb = vb ? 1 : 0
+                    return asc ? na - nb : nb - na
+                }
+                if (typeof va === "number" && typeof vb === "number") {
+                    // 0 = pas de valeur (niveau/classe non assigné) → toujours en dernier
+                    if (va === 0 && vb !== 0) return 1
+                    if (vb === 0 && va !== 0) return -1
                     return asc ? va - vb : vb - va
+                }
                 va = String(va).toLowerCase()
                 vb = String(vb).toLowerCase()
                 if (va < vb) return asc ? -1 : 1
@@ -96,6 +108,35 @@ ColumnLayout {
         var pages = [], start = Math.max(0, currentPage - 2), end = Math.min(totalPages - 1, currentPage + 2)
         for (var p = start; p <= end; p++) pages.push(p)
         return pages
+    }
+
+    // ─── Helper: lookup ───
+    function niveauNomById(nId) {
+        if (!nId) return "—"
+        for (var i = 0; i < niveaux.length; i++)
+            if (niveaux[i].id === nId) return niveaux[i].nom
+        return "—"
+    }
+    function classeNomById(cId) {
+        if (!cId) return "—"
+        for (var i = 0; i < classes.length; i++)
+            if (classes[i].id === cId) return classes[i].nom
+        return "—"
+    }
+    // Pour les élèves hallOnly : niveauId=0/classeId=0, seul hallClasseId est renseigné.
+    // On remonte le niveau depuis la classe du hall.
+    function niveauNomForStudent(s) {
+        if (s.niveauId) return niveauNomById(s.niveauId)
+        if (s.hallClasseId) {
+            for (var i = 0; i < classes.length; i++)
+                if (classes[i].id === s.hallClasseId) return niveauNomById(classes[i].niveauId)
+        }
+        return "—"
+    }
+    function classeNomForStudent(s) {
+        if (s.classeId)     return classeNomById(s.classeId)
+        if (s.hallClasseId) return classeNomById(s.hallClasseId)
+        return "—"
     }
 
     // ─── Helper: sort arrow ───
@@ -219,9 +260,33 @@ ColumnLayout {
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("fraisPayeAnneeActive") }
                 }
+                // NIVEAU
+                Item {
+                    width: root.colNiveau; height: parent.height
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("NIVEAU") + root.sortArrow("niveauId")
+                        font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("niveauId")
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("niveauId") }
+                }
+                // CLASSE
+                Item {
+                    width: root.colClasse; height: parent.height
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("CLASSE") + root.sortArrow("classeId")
+                        font.pixelSize: 10; font.weight: Font.Bold; color: root.sortColor("classeId")
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.onSortCol("classeId") }
+                }
                 // CONTACT (fills remaining space)
                 Item {
-                    width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colActions
+                    width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colNiveau - root.colClasse - root.colActions
                     height: parent.height
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -327,9 +392,33 @@ ColumnLayout {
                                     customBorderColor: modelData.s.fraisPayeAnneeActive ? Style.successColor : Style.errorColor
                                 }
                             }
+                            // NIVEAU
+                            Item {
+                                width: root.colNiveau; height: parent.height
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 4
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: root.niveauNomForStudent(modelData.s)
+                                    font.pixelSize: 12; font.weight: Font.Medium; color: Style.textSecondary
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            // CLASSE
+                            Item {
+                                width: root.colClasse; height: parent.height
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 4
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: root.classeNomForStudent(modelData.s)
+                                    font.pixelSize: 12; font.weight: Font.Medium; color: Style.textSecondary
+                                    elide: Text.ElideRight
+                                }
+                            }
                             // CONTACT
                             Item {
-                                width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colActions
+                                width: parent.width - root.colNom - root.colId - root.colSexe - root.colCat - root.colStatut - root.colPaiement - root.colNiveau - root.colClasse - root.colActions
                                 height: parent.height
                                 Column {
                                     anchors.verticalCenter: parent.verticalCenter

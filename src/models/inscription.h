@@ -17,4 +17,5 @@ struct Inscription {
     QString justificatifPath;
     bool hallOnly    = false; // true = inscrit uniquement au Hall Ezzaytouna
     int  hallClasseId = 0;   // FK → classes.id (classe d'un niveau freestyle)
+    QString numeroRecu;      // Numéro du reçu de paiement
 };

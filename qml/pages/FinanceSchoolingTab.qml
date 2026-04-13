@@ -85,7 +85,7 @@ AppCard {
             }
             for (var j = 0; j < _students.length; j++) {
                 var s = _students[j]
-                if (!s.classeId || s.classeId <= 0) continue
+                if (!s.inscritAnneeActive) continue
                 var montantDu    = tarifForCategorie(s.categorie)
                 var montantPaye  = payMap[s.id] || 0
                 var montantReste = Math.max(0, montantDu - montantPaye)

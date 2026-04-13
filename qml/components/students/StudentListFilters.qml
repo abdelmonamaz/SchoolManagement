@@ -19,7 +19,7 @@ ColumnLayout {
     property string selectedPaiement:  "all"
 
     readonly property var filteredClasses: {
-        if (selectedNiveauId === 0) return classes
+        if (selectedNiveauId === 0) return []
         var r = []
         for (var i = 0; i < classes.length; i++)
             if (classes[i].niveauId === selectedNiveauId) r.push(classes[i])
@@ -57,7 +57,8 @@ ColumnLayout {
                 Text {
                     Layout.fillWidth: true
                     text: {
-                        if (root.selectedNiveauId === 0) return "Niveaux"
+                        if (root.selectedNiveauId === 0)  return "Niveaux"
+                        if (root.selectedNiveauId === -1) return "Hall Ezzaytouna"
                         for (var i = 0; i < root.niveaux.length; i++)
                             if (root.niveaux[i].id === root.selectedNiveauId) return root.niveaux[i].nom
                         return "Niveaux"
@@ -83,7 +84,7 @@ ColumnLayout {
                     }
                 }
                 Repeater {
-                    model: root.niveaux
+                    model: root.niveaux.filter(function(n) { return !n.isFreestyle })
                     MenuItem {
                         text: modelData.nom
                         onTriggered: {
@@ -92,6 +93,15 @@ ColumnLayout {
                             root.niveauFilterChanged(modelData.id)
                             root.searchCleared()
                         }
+                    }
+                }
+                MenuItem {
+                    text: qsTr("Hall Ezzaytouna")
+                    onTriggered: {
+                        root.selectedNiveauId = -1
+                        root.selectedClass    = "all"
+                        root.niveauFilterChanged(-1)
+                        root.searchCleared()
                     }
                 }
             }
@@ -228,7 +238,7 @@ ColumnLayout {
     Row {
         Layout.fillWidth: true
         spacing: 4
-        visible: root.filteredClasses.length > 0
+        visible: root.selectedNiveauId !== 0
 
         Rectangle {
             width: allClsTxt.implicitWidth + 24; height: 34; radius: 12

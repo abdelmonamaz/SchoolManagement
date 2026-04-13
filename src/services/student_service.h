@@ -36,6 +36,8 @@ public:
     Result<bool> unassignStudentsFromClasse(int classeId);
     Result<bool> removeStudentFromClasse(int studentId);
     Result<bool> assignToClasse(int studentId, int classeId);
+    Result<bool> removeStudentFromHallClasse(int studentId);
+    Result<bool> assignToHallClasse(int studentId, int hallClasseId);
     Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie);
 
     // Enrollments

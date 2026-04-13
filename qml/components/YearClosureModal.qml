@@ -24,21 +24,15 @@ Popup {
     property int currentStep: 1
     readonly property int totalSteps: 5
 
-    // Working copy of progressions (step 2 edits)
+    // Données initiales pour step 2 (le composant gère ensuite son propre état)
     property var progressions: []
 
     // Stats shorthand
     readonly property var stats: yearClosureController.closureStats
     readonly property var incomplete: yearClosureController.incompleteSessions
 
-    // Computed from progressions
-    readonly property int nbDecides: {
-        var c = 0
-        for (var i = 0; i < progressions.length; i++)
-            if (progressions[i].resultat !== "En cours") c++
-        return c
-    }
-    readonly property bool step2Valid: progressions.length > 0 && nbDecides === progressions.length
+    // Snapshot des progressions capturé au passage étape 2 → 3 (pour step4 et payload clôture)
+    property var _closureProgressions: []
 
     function _buildProgressionsCopy(src) {
         var copy = []
@@ -231,16 +225,10 @@ Popup {
             }
 
             ClosureStep2Progressions {
+                id: step2Comp
                 anchors { fill: parent; margins: 16 }
                 visible: currentStep === 2
                 progressions: root.progressions
-                step2Valid: root.step2Valid
-                nbDecides: root.nbDecides
-                onProgressionChanged: function(index, updatedItem) {
-                    var copy = root.progressions.slice()
-                    copy[index] = updatedItem
-                    root.progressions = copy
-                }
             }
 
             ClosureStep3Archivage {
@@ -252,7 +240,7 @@ Popup {
             ClosureStep4Rapports {
                 anchors { fill: parent; margins: 24 }
                 visible: currentStep === 4
-                progressions: root.progressions
+                progressions: root._closureProgressions
             }
 
             ClosureStep5Confirmation {
@@ -262,8 +250,8 @@ Popup {
                 stats: root.stats
                 onClosureRequested: {
                     var payload = []
-                    for (var i = 0; i < root.progressions.length; i++) {
-                        var p = root.progressions[i]
+                    for (var i = 0; i < root._closureProgressions.length; i++) {
+                        var p = root._closureProgressions[i]
                         payload.push({
                             inscriptionId:   p.inscriptionId,
                             eleveId:         p.eleveId,
@@ -321,7 +309,7 @@ Popup {
                 // Suivant (steps 1–4)
                 Rectangle {
                     visible: currentStep < 5; width: 120; height: 40; radius: 10
-                    color: (currentStep === 2 && !step2Valid) ? Style.borderLight : Style.textPrimary
+                    color: (currentStep === 2 && !step2Comp.step2Valid) ? Style.borderLight : Style.textPrimary
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Row {
                         anchors.centerIn: parent; spacing: 6
@@ -330,12 +318,15 @@ Popup {
                     }
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !(currentStep === 2 && !step2Valid)
-                        cursorShape: (currentStep === 2 && !step2Valid) ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                        enabled: !(currentStep === 2 && !step2Comp.step2Valid)
+                        cursorShape: (currentStep === 2 && !step2Comp.step2Valid) ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                         onClicked: {
                             if (currentStep < 5) {
-                                if (currentStep === 2)
+                                if (currentStep === 2) {
+                                    // Capturer l'état final avant de quitter l'étape 2
+                                    root._closureProgressions = step2Comp.getProgressions()
                                     yearClosureController.loadArchivageStats()
+                                }
                                 currentStep++
                                 if (currentStep === 5)
                                     Qt.callLater(function() { step5.focusLabel() })

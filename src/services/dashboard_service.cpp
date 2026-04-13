@@ -45,30 +45,22 @@ Result<int> DashboardService::getActiveCoursesCount()
 
 Result<double> DashboardService::getAverageAttendanceRate()
 {
-    QDateTime todayStart = QDateTime::currentDateTime();
-    todayStart.setTime(QTime(0, 0, 0));
+    int activeYearId = m_seanceRepo->getActiveSchoolYearId();
 
-    QDateTime todayEnd = todayStart;
-    todayEnd.setTime(QTime(23, 59, 59));
-
-    auto seancesResult = m_seanceRepo->getByDateRange(todayStart, todayEnd);
+    auto seancesResult = m_seanceRepo->getAll();
     if (!seancesResult.isOk()) {
         return Result<double>::error(seancesResult.errorMessage());
-    }
-
-    const auto& seances = seancesResult.value();
-    if (seances.isEmpty()) {
-        return Result<double>::success(0.0);
     }
 
     int totalParticipations = 0;
     int presentCount = 0;
 
-    for (const auto& seance : seances) {
+    for (const auto& seance : seancesResult.value()) {
+        if (activeYearId > 0 && seance.anneeScolaireId != activeYearId) continue;
+        if (!seance.presenceValide) continue;
+
         auto partResult = m_participationRepo->getBySeanceId(seance.id);
-        if (!partResult.isOk()) {
-            continue;
-        }
+        if (!partResult.isOk()) continue;
 
         const auto& participations = partResult.value();
         totalParticipations += participations.size();

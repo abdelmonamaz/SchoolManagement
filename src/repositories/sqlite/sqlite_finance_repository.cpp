@@ -220,12 +220,14 @@ static Don rowToDon(const QSqlQuery& q) {
     d.valeurEstimee       = q.value(8).toDouble();
     d.etatMateriel        = q.value(9).toString();
     d.justificatifPath    = q.value(10).toString();
+    d.numeroRecu          = q.value(11).toString();
     return d;
 }
 
 static const auto kDonCols = QStringLiteral(
     "id, donateur_id, projet_id, montant, date_don,"
-    " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path");
+    " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path,"
+    " COALESCE(numero_recu,'')");
 
 SqliteDonRepository::SqliteDonRepository(const QString& connectionName)
     : m_connectionName(connectionName) {}
@@ -256,8 +258,8 @@ Result<int> SqliteDonRepository::create(const Don& entity) {
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "INSERT INTO dons (donateur_id, projet_id, montant, date_don,"
-        " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+        " nature_don, mode_paiement, description_materiel, valeur_estimee, etat_materiel, justificatif_path, numero_recu)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(entity.donateurId);
     // projet_id : NULL si pas d'affectation (évite la violation de FK avec -1)
     query.addBindValue(entity.projetId > 0 ? QVariant(entity.projetId) : QVariant());
@@ -269,6 +271,7 @@ Result<int> SqliteDonRepository::create(const Don& entity) {
     query.addBindValue(entity.valeurEstimee);
     query.addBindValue(entity.etatMateriel.isEmpty() ? QStringLiteral("Neuf") : entity.etatMateriel);
     query.addBindValue(entity.justificatifPath);
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     if (!query.exec()) return Result<int>::error(query.lastError().text());
     return Result<int>::success(query.lastInsertId().toInt());
 }
@@ -278,7 +281,7 @@ Result<bool> SqliteDonRepository::update(const Don& entity) {
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "UPDATE dons SET donateur_id=?, projet_id=?, montant=?, date_don=?,"
-        " nature_don=?, mode_paiement=?, description_materiel=?, valeur_estimee=?, etat_materiel=?, justificatif_path=?"
+        " nature_don=?, mode_paiement=?, description_materiel=?, valeur_estimee=?, etat_materiel=?, justificatif_path=?, numero_recu=?"
         " , date_modification = datetime('now') WHERE id=?"));
     query.addBindValue(entity.donateurId);
     query.addBindValue(entity.projetId > 0 ? QVariant(entity.projetId) : QVariant());
@@ -290,6 +293,7 @@ Result<bool> SqliteDonRepository::update(const Don& entity) {
     query.addBindValue(entity.valeurEstimee);
     query.addBindValue(entity.etatMateriel);
     query.addBindValue(entity.justificatifPath);
+    query.addBindValue(entity.numeroRecu.isEmpty() ? QVariant() : entity.numeroRecu);
     query.addBindValue(entity.id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
     return Result<bool>::success(true);
@@ -501,10 +505,10 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFi
 
     // Scolarité
     if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"));
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites WHERE valide = 1"));
     } else {
         q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
-                                 " WHERE strftime('%Y', date_paiement) = ?"));
+                                 " WHERE valide = 1 AND strftime('%Y', date_paiement) = ?"));
         q.addBindValue(yearFilter);
         q.exec();
     }
@@ -512,10 +516,10 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFi
 
     // Inscriptions
     if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves WHERE frais_inscription_paye = 1"));
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves WHERE valide = 1 AND frais_inscription_paye = 1"));
     } else {
         q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_inscription),0) FROM inscriptions_eleves"
-                                 " WHERE frais_inscription_paye = 1 AND strftime('%Y', date_inscription) = ?"));
+                                 " WHERE valide = 1 AND frais_inscription_paye = 1 AND strftime('%Y', date_inscription) = ?"));
         q.addBindValue(yearFilter);
         q.exec();
     }
@@ -524,11 +528,11 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFi
     // Dons
     const QString donSql = QStringLiteral(
         "SELECT COALESCE(SUM(CASE WHEN nature_don='Nature' THEN valeur_estimee ELSE montant END),0)"
-        " FROM dons");
+        " FROM dons WHERE valide = 1");
     if (yearFilter.isEmpty()) {
         q.exec(donSql);
     } else {
-        q.prepare(donSql + QStringLiteral(" WHERE strftime('%Y', date_don) = ?"));
+        q.prepare(donSql + QStringLiteral(" AND strftime('%Y', date_don) = ?"));
         q.addBindValue(yearFilter);
         q.exec();
     }
@@ -536,10 +540,10 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFi
 
     // Dépenses
     if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"));
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses WHERE valide = 1"));
     } else {
         q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant),0) FROM depenses"
-                                 " WHERE strftime('%Y', date) = ?"));
+                                 " WHERE valide = 1 AND strftime('%Y', date) = ?"));
         q.addBindValue(yearFilter);
         q.exec();
     }
@@ -547,10 +551,10 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalance(const QString& yearFi
 
     // Salaires personnel
     if (yearFilter.isEmpty()) {
-        q.exec(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"));
+        q.exec(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel WHERE valide = 1"));
     } else {
         q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
-                                 " WHERE strftime('%Y', COALESCE(date_paiement, date_modification)) = ?"));
+                                 " WHERE valide = 1 AND strftime('%Y', COALESCE(date_paiement, date_modification)) = ?"));
         q.addBindValue(yearFilter);
         q.exec();
     }
@@ -579,7 +583,7 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalanceForRange(const QString
     double scolarite = 0.0, inscriptions = 0.0, dons = 0.0, depenses = 0.0, salaires = 0.0;
 
     q.prepare(QStringLiteral("SELECT COALESCE(SUM(montant_paye),0) FROM paiements_mensualites"
-                             " WHERE date_paiement >= ? AND date_paiement <= ?"));
+                             " WHERE valide = 1 AND date_paiement >= ? AND date_paiement <= ?"));
     q.addBindValue(dateFrom); q.addBindValue(dateTo);
     if (!q.exec()) qWarning() << "[Balance] scolarite query error:" << q.lastError().text();
     if (q.next()) scolarite = q.value(0).toDouble();
@@ -607,7 +611,7 @@ QVariantMap SqliteFinanceBalanceRepository::computeBalanceForRange(const QString
     qInfo() << "[Balance]   depenses =" << depenses;
 
     q.prepare(QStringLiteral("SELECT COALESCE(SUM(somme_payee),0) FROM paiements_personnel"
-                             " WHERE COALESCE(date_paiement, date_modification) >= ? AND COALESCE(date_paiement, date_modification) <= ?"));
+                             " WHERE valide = 1 AND COALESCE(date_paiement, date_modification) >= ? AND COALESCE(date_paiement, date_modification) <= ?"));
     q.addBindValue(dateFrom); q.addBindValue(dateTo);
     if (!q.exec()) qWarning() << "[Balance] salaires query error:" << q.lastError().text();
     if (q.next()) salaires = q.value(0).toDouble();

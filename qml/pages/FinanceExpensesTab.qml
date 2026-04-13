@@ -49,7 +49,7 @@ AppCard {
             if (q !== "" && nomComplet.indexOf(q) < 0) continue
 
             var p = payMap[s.id]
-            var sommeDue = p ? p.sommeDue : 0
+            var sommeDue = p ? p.sommeDue : (s.sommeDue || 0)
             var sommePaye = p ? p.sommePaye : 0
             var reste = Math.max(0, sommeDue - sommePaye)
             var status = "pending"

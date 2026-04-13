@@ -5,6 +5,7 @@ Rectangle {
     id: control
     property string placeholder: qsTr("Rechercher...")
     property alias text: input.text
+    property alias inputFocused: input.activeFocus
 
     implicitHeight: 48
     radius: 16

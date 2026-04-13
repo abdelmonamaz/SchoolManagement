@@ -988,5 +988,26 @@ void DatabaseManager::runMigrations(QSqlDatabase& db)
             "ALTER TABLE contrats ADD COLUMN niveau_scolaire TEXT"));
         qInfo() << "[DatabaseManager] Migration 48: added column contrats.niveau_scolaire";
     }
+
+    // ── Migration 49 : paiements_mensualites — numéro de reçu ──
+    if (!columnExists(QStringLiteral("paiements_mensualites"), QStringLiteral("numero_recu"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE paiements_mensualites ADD COLUMN numero_recu TEXT"));
+        qInfo() << "[DatabaseManager] Migration 49: added column paiements_mensualites.numero_recu";
+    }
+
+    // ── Migration 50 : inscriptions_eleves — numéro de reçu ──
+    if (!columnExists(QStringLiteral("inscriptions_eleves"), QStringLiteral("numero_recu"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE inscriptions_eleves ADD COLUMN numero_recu TEXT"));
+        qInfo() << "[DatabaseManager] Migration 50: added column inscriptions_eleves.numero_recu";
+    }
+
+    // ── Migration 51 : dons — numéro de reçu ──
+    if (!columnExists(QStringLiteral("dons"), QStringLiteral("numero_recu"))) {
+        execStatement(db, QStringLiteral(
+            "ALTER TABLE dons ADD COLUMN numero_recu TEXT"));
+        qInfo() << "[DatabaseManager] Migration 51: added column dons.numero_recu";
+    }
 }
 

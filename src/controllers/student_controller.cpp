@@ -23,7 +23,8 @@ static QVariantMap inscriptionToMap(const Inscription& i) {
         {"dateInscription", i.dateInscription},
         {"justificatifPath", i.justificatifPath},
         {"hallOnly", i.hallOnly},
-        {"hallClasseId", i.hallClasseId}
+        {"hallClasseId", i.hallClasseId},
+        {"numeroRecu", i.numeroRecu}
     };
 }
 
@@ -41,7 +42,8 @@ static QVariantMap eleveToMap(const Eleve& e) {
         {"inscritAnneeActive", e.inscritAnneeActive},
         {"fraisPayeAnneeActive", e.fraisPayeAnneeActive},
         {"niveauId", e.niveauId},
-        {"hallClasseId", e.hallClasseId}
+        {"hallClasseId", e.hallClasseId},
+        {"hallOnly", e.hallOnly}
     };
 }
 
@@ -157,6 +159,7 @@ void StudentController::createStudent(const QVariantMap& data) {
             i.montantInscription   = data.value("montantInscription").toDouble();
             i.hallOnly             = data.value("hallOnly").toBool();
             i.hallClasseId         = data.value("hallClasseId").toInt();
+            i.numeroRecu           = data.value("numeroRecu").toString();
             svc->enrollStudent(i);
         }
 
@@ -180,6 +183,7 @@ void StudentController::updateStudent(int id, const QVariantMap& data) {
         e.categorie = stringToTypePublic(data.value("categorie").toString());
         e.cinEleve = data.value("cinEleve").toString();
         e.cinParent = data.value("cinParent").toString();
+        e.niveauScolaireEducatif = data.value("niveauScolaireEducatif").toString();
         auto result = svc->updateStudent(e);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
@@ -291,6 +295,14 @@ void StudentController::onQueryCompleted(const QString& queryId, const QVariant&
         if (isError) emit operationFailed(map["error"].toString());
         else { emit operationSucceeded("Élèves ajoutés à la classe"); loadStudents(); }
     }
+    else if (queryId == "Student.removeFromHallClasse") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Élève retiré du groupe hall"); loadStudents(); }
+    }
+    else if (queryId == "Student.assignMultipleToHallClasse") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else { emit operationSucceeded("Élèves ajoutés au groupe hall"); loadStudents(); }
+    }
 }
 
 void StudentController::unassignStudentsFromClasse(int classeId) {
@@ -327,6 +339,26 @@ void StudentController::assignMultipleStudentsToClasse(const QVariantList& stude
             if (!result.isOk()) {
                 return QVariantMap{{"error", result.errorMessage()}};
             }
+        }
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void StudentController::removeStudentFromHallClasse(int studentId) {
+    m_worker->submit("Student.removeFromHallClasse", [svc = m_service, studentId]() -> QVariant {
+        auto result = svc->removeStudentFromHallClasse(studentId);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void StudentController::assignMultipleStudentsToHallClasse(const QVariantList& studentIds, int hallClasseId) {
+    m_worker->submit("Student.assignMultipleToHallClasse", [svc = m_service, studentIds, hallClasseId]() -> QVariant {
+        for (const QVariant& idVar : studentIds) {
+            auto result = svc->assignToHallClasse(idVar.toInt(), hallClasseId);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
         }
         return QVariantMap{{"success", true}};
     });
@@ -401,6 +433,7 @@ void StudentController::updateEnrollment(int enrollmentId, const QVariantMap& da
         i.justificatifPath = data.value("justificatifPath").toString();
         i.hallOnly = data.value("hallOnly").toBool();
         i.hallClasseId = data.value("hallClasseId").toInt();
+        i.numeroRecu = data.value("numeroRecu").toString();
 
         auto result = svc->updateEnrollment(i);
         if (!result.isOk())

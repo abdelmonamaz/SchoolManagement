@@ -36,7 +36,7 @@ Result<QList<PaiementMensualite>> FinanceService::getPaymentsByStudent(int eleve
     return m_paiementRepo->getByEleveId(eleveId);
 }
 
-Result<int> FinanceService::recordPayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement, const QString& justificatifPath)
+Result<int> FinanceService::recordPayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement, const QString& justificatifPath, const QString& numeroRecu)
 {
     if (montant <= 0.0) {
         return Result<int>::error("Le montant du paiement doit etre superieur a zero.");
@@ -55,10 +55,11 @@ Result<int> FinanceService::recordPayment(int eleveId, double montant, int mois,
     p.moisConcerne = mois;
     p.anneeConcernee = annee;
     p.justificatifPath = justificatifPath;
+    p.numeroRecu = numeroRecu;
     return m_paiementRepo->create(p);
 }
 
-Result<int> FinanceService::overwritePayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement, const QString& justificatifPath)
+Result<int> FinanceService::overwritePayment(int eleveId, double montant, int mois, int annee, const QDate& datePaiement, const QString& justificatifPath, const QString& numeroRecu)
 {
     if (montant <= 0.0)
         return Result<int>::error("Le montant du paiement doit etre superieur a zero.");
@@ -78,10 +79,11 @@ Result<int> FinanceService::overwritePayment(int eleveId, double montant, int mo
     p.moisConcerne   = mois;
     p.anneeConcernee = annee;
     p.justificatifPath = justificatifPath;
+    p.numeroRecu = numeroRecu;
     return m_paiementRepo->create(p);
 }
 
-Result<bool> FinanceService::updatePayment(int id, double newMontant, const QDate& datePaiement, const QString& justificatifPath)
+Result<bool> FinanceService::updatePayment(int id, double newMontant, const QDate& datePaiement, const QString& justificatifPath, const QString& numeroRecu)
 {
     if (newMontant < 0.0)
         return Result<bool>::error("Le montant ne peut pas etre negatif.");
@@ -96,6 +98,7 @@ Result<bool> FinanceService::updatePayment(int id, double newMontant, const QDat
         p.datePaiement = datePaiement;
     }
     p.justificatifPath = justificatifPath;
+    p.numeroRecu = numeroRecu;
     return m_paiementRepo->update(p);
 }
 

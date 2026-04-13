@@ -67,6 +67,7 @@ qt_add_qml_module(GestionScolaire_Components
         BulletinPreviewPopup.qml
         SetupWizardModal.qml
         YearClosureModal.qml
+        ExportDocCard.qml
         setup/SetupStep1Association.qml
         setup/SetupStep2Niveaux.qml
         setup/SetupStep3AnneeScolaire.qml

@@ -119,6 +119,7 @@ QVariantList SqliteYearClosureRepository::loadStudentProgressions()
         "JOIN eleves e ON e.id = ie.eleve_id AND e.valide = 1 "
         "LEFT JOIN niveaux n ON n.id = ie.niveau_id "
         "WHERE ie.annee_scolaire_id = :id AND ie.valide = 1 "
+        "  AND COALESCE(ie.hall_only, 0) = 0 "
         "  AND NOT EXISTS ("
         "    SELECT 1 FROM inscriptions_eleves ie2 "
         "    WHERE ie2.eleve_id = ie.eleve_id "
@@ -350,7 +351,23 @@ QVariantMap SqliteYearClosureRepository::loadArchivageStats()
 
 namespace {
 
-// 1. Persist the final resultat on each inscription
+// 0b. Mark all hall_only inscriptions of the closing year as 'Réussi'
+static Result<bool> updateHallOnlyResults(QSqlDatabase& db, int currentId, const QString& now)
+{
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "UPDATE inscriptions_eleves "
+        "SET resultat='R\u00e9ussi', date_modification=:now "
+        "WHERE annee_scolaire_id=:yearId AND COALESCE(hall_only,0)=1 AND valide=1"));
+    q.bindValue(":now",    now);
+    q.bindValue(":yearId", currentId);
+    if (!q.exec())
+        return Result<bool>::error(
+            QStringLiteral("Erreur mise \u00e0 jour r\u00e9sultats hall_only : %1")
+                .arg(q.lastError().text()));
+    return Result<bool>::success(true);
+}
+
 static Result<bool> updateProgressionResults(QSqlDatabase& db,
     const QVariantList& progressions, const QString& now)
 {
@@ -400,14 +417,15 @@ static Result<int> createNewYear(QSqlDatabase& db,
 static Result<QMap<int,int>> duplicateNiveaux(QSqlDatabase& db,
     int currentId, int newYearId, const QString& now)
 {
-    struct NvInfo { int id; QString nom; int parentId; };
+    struct NvInfo { int id; QString nom; int parentId; bool isFreestyle; };
     QList<NvInfo> current;
 
     // 3a. Fetch all niveaux active for the current year
     {
         QSqlQuery q(db);
         q.prepare(QStringLiteral(
-            "SELECT DISTINCT n.id, n.nom, COALESCE(n.parent_level_id, 0) "
+            "SELECT DISTINCT n.id, n.nom, COALESCE(n.parent_level_id, 0), "
+            "       COALESCE(n.is_freestyle, 0) "
             "FROM niveaux n "
             "WHERE n.valide = 1 "
             "  AND (n.annee_scolaire_id = :y1 "
@@ -420,7 +438,8 @@ static Result<QMap<int,int>> duplicateNiveaux(QSqlDatabase& db,
             return Result<QMap<int,int>>::error(
                 QStringLiteral("Erreur lecture niveaux : %1").arg(q.lastError().text()));
         while (q.next())
-            current.append({q.value(0).toInt(), q.value(1).toString(), q.value(2).toInt()});
+            current.append({q.value(0).toInt(), q.value(1).toString(),
+                            q.value(2).toInt(), q.value(3).toBool()});
     }
 
     // 3b. Insert copies → build niveauMapping
@@ -428,12 +447,13 @@ static Result<QMap<int,int>> duplicateNiveaux(QSqlDatabase& db,
     {
         QSqlQuery q(db);
         q.prepare(QStringLiteral(
-            "INSERT INTO niveaux (nom, valide, annee_scolaire_id, date_modification) "
-            "VALUES (:nom, 1, :anneeId, :now)"));
+            "INSERT INTO niveaux (nom, valide, annee_scolaire_id, is_freestyle, date_modification) "
+            "VALUES (:nom, 1, :anneeId, :isFreestyle, :now)"));
         for (const auto& n : std::as_const(current)) {
-            q.bindValue(":nom",     n.nom);
-            q.bindValue(":anneeId", newYearId);
-            q.bindValue(":now",     now);
+            q.bindValue(":nom",         n.nom);
+            q.bindValue(":anneeId",     newYearId);
+            q.bindValue(":isFreestyle", n.isFreestyle ? 1 : 0);
+            q.bindValue(":now",         now);
             if (!q.exec())
                 return Result<QMap<int,int>>::error(
                     QStringLiteral("Erreur copie niveau '%1' : %2").arg(n.nom, q.lastError().text()));
@@ -465,7 +485,7 @@ static Result<QMap<int,int>> duplicateNiveaux(QSqlDatabase& db,
 static Result<bool> duplicateClasses(QSqlDatabase& db, const QMap<int,int>& niveauMapping)
 {
     QSqlQuery qGet(db);
-    qGet.prepare(QStringLiteral("SELECT nom FROM classes WHERE niveau_id = :oldId"));
+    qGet.prepare(QStringLiteral("SELECT nom FROM classes WHERE niveau_id = :oldId AND valide = 1"));
     QSqlQuery qIns(db);
     qIns.prepare(QStringLiteral("INSERT INTO classes (nom, niveau_id) VALUES (:nom, :newId)"));
 
@@ -812,6 +832,9 @@ Result<bool> SqliteYearClosureRepository::executeYearClosure(
 
     // 1. Persist resultat on current inscriptions
     YC_CHECK(updateProgressionResults(db, progressions, now))
+
+    // 1b. Auto-set hall_only inscriptions to 'Réussi' (they are excluded from the progressions list)
+    YC_CHECK(updateHallOnlyResults(db, currentId, now))
 
     // 2. Create the new school year row
     auto newYearRes = createNewYear(db, newLabel, dateDebut, dateFin,
