@@ -413,6 +413,26 @@ Result<bool> SqliteMatiereRepository::update(const Matiere& entity)
 Result<bool> SqliteMatiereRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    // Soft-delete matiere_examens liés à cette matière
+    QSqlQuery q1(db);
+    q1.prepare("UPDATE matiere_examens SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE matiere_id = ?");
+    q1.addBindValue(id);
+    q1.exec();
+
+    // Soft-delete séances liées via la table cours
+    QSqlQuery q2(db);
+    q2.prepare("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id IN (SELECT seance_id FROM cours WHERE matiere_id = ?)");
+    q2.addBindValue(id);
+    q2.exec();
+
+    // Soft-delete séances liées via la table examens
+    QSqlQuery q3(db);
+    q3.prepare("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id IN (SELECT seance_id FROM examens WHERE matiere_id = ?)");
+    q3.addBindValue(id);
+    q3.exec();
+
+    // Soft-delete la matière elle-même
     QSqlQuery query(db);
     query.prepare("UPDATE matieres SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);

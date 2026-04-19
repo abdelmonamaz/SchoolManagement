@@ -8,10 +8,36 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     // ── Sélection ──
-    property int selNiveauId:  -1
-    property int selClasseId:  -1
-    property int selMatiereId: -1
-    property int selSeanceId:  -1
+    property int selNiveauId:   -1
+    property int selClasseId:   -1
+    property int selMatiereId:  -1
+    property int selSeanceId:   -1
+    // 0 = tous, 1 = Semestre 1, 2 = Semestre 2
+    property int selSemestreNum: 0
+
+    // ── Gestion des semestres ──
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
+
+    // Semestre actif en fonction de la date du jour (pour pré-sélection)
+    function detectSemestreToday() {
+        if (!hasSemestres) return 0
+        var sems = setupController.activeSemestres
+        var iso = new Date().toISOString().substring(0, 10)
+        for (var i = 0; i < sems.length; i++)
+            if (iso >= sems[i].dateDebut && iso <= sems[i].dateFin) return sems[i].numero
+        return sems.length > 0 ? sems[0].numero : 0
+    }
+
+    // Liste des matières filtrées (semestreNumero 0 = toute l'année → toujours inclus)
+    readonly property var filteredGradesMatieres: {
+        var m = schoolingController.matieres
+        if (!hasSemestres || selSemestreNum <= 0) return m
+        var out = []
+        for (var i = 0; i < m.length; i++)
+            if (m[i].semestreNumero === 0 || m[i].semestreNumero === selSemestreNum)
+                out.push(m[i])
+        return out
+    }
 
     // ── Contexte pour le bulletin ──
     property string selNiveauNom:  ""
@@ -117,6 +143,16 @@ Item {
         schoolingController.loadNiveauxGlobal()
         studentController.loadStudents()
         studentController.loadSchoolYears()
+        if (hasSemestres) selSemestreNum = detectSemestreToday()
+    }
+
+    // Quand activeSemestres est chargé (peut arriver après onCompleted), ré-initialiser
+    Connections {
+        target: setupController
+        function onActiveSemestresChanged() {
+            if (gradesPage.hasSemestres && gradesPage.selSemestreNum <= 0)
+                gradesPage.selSemestreNum = gradesPage.detectSemestreToday()
+        }
     }
 
     // Rechargement automatique quand la page redevient visible
@@ -135,16 +171,18 @@ Item {
         target: yearClosureController
         function onClosureSuccess(newYearLabel) {
             // Reset all selections — old year data is no longer valid
-            niveauCombo.currentIndex  = -1
-            classeCombo.currentIndex  = -1
-            matiereCombo.currentIndex = -1
-            epreuveCombo.currentIndex = -1
-            gradesPage.selNiveauId  = -1
-            gradesPage.selNiveauNom = ""
-            gradesPage.selClasseId  = -1
-            gradesPage.selClasseNom = ""
-            gradesPage.selMatiereId = -1
-            gradesPage.selSeanceId  = -1
+            niveauCombo.currentIndex   = -1
+            classeCombo.currentIndex   = -1
+            semestreCombo.currentIndex = 0    // revenir à "Tous"
+            matiereCombo.currentIndex  = -1
+            epreuveCombo.currentIndex  = -1
+            gradesPage.selNiveauId    = -1
+            gradesPage.selNiveauNom   = ""
+            gradesPage.selClasseId    = -1
+            gradesPage.selClasseNom   = ""
+            gradesPage.selMatiereId   = -1
+            gradesPage.selSeanceId    = -1
+            gradesPage.selSemestreNum = gradesPage.hasSemestres ? gradesPage.detectSemestreToday() : 0
             gradesPage.pendingGrades  = ({})
             gradesPage.pendingVersion++
             // Refresh year list + niveaux so BulletinConfigPopup sees the new year
@@ -401,6 +439,58 @@ Item {
                     }
                 }
 
+                // Semestre — visible seulement si l'année a des semestres
+                Column {
+                    Layout.preferredWidth: 180
+                    spacing: 6
+                    visible: gradesPage.hasSemestres
+                    SectionLabel { text: qsTr("SEMESTRE") }
+                    Rectangle {
+                        width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+
+                        ComboBox {
+                            id: semestreCombo
+                            anchors.fill: parent; anchors.margins: 4
+                            // 0 = Tous, 1 = S1, 2 = S2
+                            model: ListModel {
+                                ListElement { label: qsTr("Tous les semestres"); value: 0 }
+                                ListElement { label: qsTr("Semestre 1");          value: 1 }
+                                ListElement { label: qsTr("Semestre 2");          value: 2 }
+                            }
+                            textRole: "label"
+                            background: Rectangle { color: "transparent" }
+                            contentItem: Text {
+                                leftPadding: 8
+                                text: semestreCombo.currentIndex >= 0 ? semestreCombo.currentText : "Sélectionner..."
+                                font.pixelSize: 13; font.bold: true
+                                color: Style.textPrimary
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            // Pré-sélection basée sur selSemestreNum
+                            Component.onCompleted: {
+                                if (gradesPage.selSemestreNum > 0)
+                                    currentIndex = gradesPage.selSemestreNum   // index 1 = S1, index 2 = S2
+                                else
+                                    currentIndex = 0
+                            }
+                            onCurrentIndexChanged: {
+                                if (currentIndex < 0) return
+                                var newVal = model.get(currentIndex).value
+                                if (gradesPage.selSemestreNum !== newVal) {
+                                    gradesPage.selSemestreNum = newVal
+                                    // Réinitialiser la matière et l'épreuve si hors filtre
+                                    matiereCombo.currentIndex = -1
+                                    epreuveCombo.currentIndex = -1
+                                    gradesPage.selMatiereId = -1
+                                    gradesPage.selSeanceId  = -1
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Matière — plus large
                 Column {
                     Layout.fillWidth: true
@@ -417,7 +507,7 @@ Item {
                             id: matiereCombo
                             anchors.fill: parent; anchors.margins: 4
                             enabled: gradesPage.selNiveauId >= 0
-                            model: schoolingController.matieres
+                            model: gradesPage.filteredGradesMatieres
                             textRole: "nom"; valueRole: "id"
                             currentIndex: -1
                             background: Rectangle { color: "transparent" }

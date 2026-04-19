@@ -208,16 +208,18 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
     QSqlQuery sub(db);
     switch (entity.typeSeance) {
         case GS::CategorieSeance::Cours:
+            // cours n'a pas de colonne date_modification
             sub.prepare(QStringLiteral(
-                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.profId);
             sub.addBindValue(entity.classeId);
             sub.addBindValue(entity.id);
             break;
         case GS::CategorieSeance::Examen:
+            // examens n'a pas de colonne date_modification
             sub.prepare(QStringLiteral(
-                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.classeId);
             sub.addBindValue(entity.titre);
@@ -226,7 +228,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
             break;
         case GS::CategorieSeance::Evenement:
             sub.prepare(QStringLiteral(
-                "UPDATE events SET titre=?, salle_id=?, descriptif=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE events SET titre=?, salle_id=?, descriptif=?, date_modification = datetime('now') WHERE seance_id=?"));
             sub.addBindValue(entity.titre);
             sub.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
             sub.addBindValue(entity.descriptif.isEmpty() ? QVariant() : entity.descriptif);
@@ -247,11 +249,21 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
 
 Result<bool> SqliteSeanceRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    // Soft-delete des participations liées à cette séance
+    QSqlQuery qPart(db);
+    qPart.prepare(QStringLiteral(
+        "UPDATE participations SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE seance_id = ?"));
+    qPart.addBindValue(id);
+    if (!qPart.exec()) return Result<bool>::error(qPart.lastError().text());
+
+    // Soft-delete de la séance elle-même
     QSqlQuery query(db);
-    // CASCADE deletes the sub-table row automatically
-    query.prepare(QStringLiteral("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
+    query.prepare(QStringLiteral(
+        "UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
+
     return Result<bool>::success(true);
 }
 

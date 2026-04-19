@@ -40,7 +40,7 @@ public:
     // Matieres
     Result<QList<Matiere>> getAllMatieres();
     Result<QList<Matiere>> getMatieresByNiveau(int niveauId);
-    Result<int>  createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0);
+    Result<int>  createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0, int nombreSeances = 0, int dureeSeanceMinutes = 60);
     Result<bool> updateMatiere(int id, const QString& nom, int niveauId, int nombreSeances, int dureeSeanceMinutes, double coefficient = 1.0);
     Result<bool> setMatiereSemestre(int matiereId, int semestreNumero);
     Result<bool> deleteMatiere(int id);

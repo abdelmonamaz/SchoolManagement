@@ -202,10 +202,10 @@ void SchoolingController::deleteClasse(int id) {
 
 // ─── Matiere CRUD ───
 
-void SchoolingController::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient) {
+void SchoolingController::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes) {
     m_worker->submit("Schooling.createMatiere:" + QString::number(niveauId),
-        [svc = m_service, nom, niveauId, semestreNumero, coefficient]() -> QVariant {
-            auto result = svc->createMatiere(nom, niveauId, semestreNumero, coefficient);
+        [svc = m_service, nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes]() -> QVariant {
+            auto result = svc->createMatiere(nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes);
             if (!result.isOk())
                 return QVariantMap{{"error", result.errorMessage()}};
             return QVariantMap{{"success", true}};
@@ -243,6 +243,17 @@ void SchoolingController::deleteMatiere(int id) {
         auto result = svc->deleteMatiere(id);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void SchoolingController::deleteMatieres(const QVariantList& ids) {
+    m_worker->submit("Schooling.deleteMatieres", [svc = m_service, ids]() -> QVariant {
+        for (const auto& v : ids) {
+            auto result = svc->deleteMatiere(v.toInt());
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+        }
         return QVariantMap{{"success", true}};
     });
 }
@@ -543,6 +554,10 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
     else if (queryId == "Schooling.deleteMatiere") {
         if (isError) emit operationFailed(map["error"].toString());
         else emit operationSucceeded("Matière supprimée");
+    }
+    else if (queryId == "Schooling.deleteMatieres") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Matières supprimées");
     }
     else if (queryId == "Schooling.setMatiereSemestre") {
         if (isError) emit operationFailed(map["error"].toString());

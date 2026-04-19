@@ -115,7 +115,7 @@ Result<QList<Matiere>> SchoolingService::getMatieresByNiveau(int niveauId)
     return m_matiereRepo->getByNiveauId(niveauId);
 }
 
-Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient)
+Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom de la matiere ne peut pas etre vide.");
@@ -125,6 +125,8 @@ Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, in
     m.nom = nom.trimmed();
     m.niveauId = niveauId;
     m.coefficient = coefficient > 0 ? coefficient : 1.0;
+    m.nombreSeances = nombreSeances >= 0 ? nombreSeances : 0;
+    m.dureeSeanceMinutes = dureeSeanceMinutes > 0 ? dureeSeanceMinutes : 60;
     auto res = m_matiereRepo->create(m);
     if (res.isOk() && semestreNumero > 0)
         m_matiereRepo->setMatiereSemestre(res.value(), semestreNumero);

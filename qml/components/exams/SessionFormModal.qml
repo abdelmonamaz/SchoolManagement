@@ -32,12 +32,69 @@ ModalOverlay {
     // showAllEpreuves is bound through EpreuvePickerSection
     property bool showAllEpreuves: false
 
+    // ── Semester awareness ───────────────────────────────────────────
+    // 0 = non déterminé/tous, 1 = S1, 2 = S2
+    property int formSemestreNum: 0
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
+
     // ── Helpers ─────────────────────────────────────────────────────
     function selectedMatiere() {
         var list = schoolingController.matieres
         for (var i = 0; i < list.length; i++)
             if (list[i].id === formMatiereId) return list[i]
         return null
+    }
+
+    // Retourne le numéro de semestre correspondant à une date ISO (YYYY-MM-DD).
+    // Si dateStr vide → utilise la date du jour.
+    function detectSemestreFromDate(dateStr) {
+        if (!hasSemestres) return 0
+        var sems = setupController.activeSemestres
+        // Normalisation : DD/MM/YYYY → YYYY-MM-DD
+        var iso = dateStr
+        if (dateStr && dateStr.indexOf("/") >= 0) {
+            var p = dateStr.split("/")
+            if (p.length === 3) iso = p[2] + "-" + p[1] + "-" + p[0]
+        }
+        if (!iso) iso = new Date().toISOString().substring(0, 10)
+        for (var i = 0; i < sems.length; i++)
+            if (iso >= sems[i].dateDebut && iso <= sems[i].dateFin) return sems[i].numero
+        // Hors plage : retourner le premier semestre
+        return sems.length > 0 ? sems[0].numero : 1
+    }
+
+    // Liste des matières filtrées par semestre (semestreNumero 0 = toute l'année → toujours inclus)
+    readonly property var filteredMatieres: {
+        var m = schoolingController.matieres
+        if (!hasSemestres || formSemestreNum <= 0) return m
+        var out = []
+        for (var i = 0; i < m.length; i++)
+            if (m[i].semestreNumero === 0 || m[i].semestreNumero === formSemestreNum)
+                out.push(m[i])
+        return out
+    }
+
+    // Quand la date change → mettre à jour le semestre automatiquement
+    onFormDateChanged: {
+        if (hasSemestres)
+            formSemestreNum = detectSemestreFromDate(formDate)
+    }
+
+    // Quand la liste filtrée change → désélectionner la matière si elle n'y est plus
+    onFilteredMatieresChanged: {
+        if (formMatiereId >= 0) {
+            var found = false
+            for (var i = 0; i < filteredMatieres.length; i++)
+                if (filteredMatieres[i].id === formMatiereId) { found = true; break }
+            if (!found) {
+                formMatiereId = -1
+                if (modalMatiereCombo) modalMatiereCombo.currentIndex = -1
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        if (hasSemestres) formSemestreNum = detectSemestreFromDate("")
     }
 
     // ── Semester-awareness ───────────────────────────────────────────
@@ -70,6 +127,7 @@ ModalOverlay {
         formSalleId     = -1; formDate        = ""
         formTime        = "08:00"; formDuree  = 120
         formRecurrence  = "none"; showAllEpreuves = false
+        formSemestreNum = hasSemestres ? detectSemestreFromDate("") : 0
         if (titreField)           titreField.text = ""
         if (descriptifField)      descriptifField.text = ""
         if (heureFormField)       heureFormField.text = "08:00"
@@ -119,16 +177,23 @@ ModalOverlay {
         }
     }
 
-    // ─── Body ────────────────────────────────────────────────────────
-    Item {
+    // ─── Body (scrollable) ───────────────────────────────────────────
+    Flickable {
+        id: bodyFlickable
         width: parent.width
-        implicitHeight: bodyGrid.implicitHeight + 60
+        // Limite la hauteur à l'écran disponible moins l'en-tête (90) et les marges (80)
+        property real maxBodyHeight: (Overlay.overlay ? Overlay.overlay.height : 800) - 90 - 70
+        height: Math.min(bodyGrid.implicitHeight + 60, maxBodyHeight)
+        contentWidth: width
+        contentHeight: bodyGrid.implicitHeight + 60
+        clip: true
+        flickableDirection: Flickable.VerticalFlick
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
         GridLayout {
             id: bodyGrid
-            anchors.fill: parent
-            anchors.leftMargin: 32; anchors.rightMargin: 32
-            anchors.topMargin: 28; anchors.bottomMargin: 32
+            x: 32; y: 28
+            width: bodyFlickable.width - 64
             columns: 2; columnSpacing: 24; rowSpacing: 20
 
             // ── Titre (Événement) ──────────────────────────────────
@@ -145,7 +210,10 @@ ModalOverlay {
 
             // ── Niveau (Cours & Examen) ────────────────────────────
             Column {
-                Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
+                Layout.fillWidth: true
+                // En mode cours, Niveau prend toute la largeur pour laisser place au sélecteur de semestre
+                Layout.columnSpan: root.isExam ? 1 : 2
+                Layout.preferredWidth: 1; spacing: 6
                 visible: !root.isEvent
                 SectionLabel { text: qsTr("NIVEAU") }
                 Rectangle {
@@ -216,6 +284,61 @@ ModalOverlay {
                 }
             }
 
+            // ── Sélecteur de semestre (Cours & Examen) ─────────────
+            // Visible uniquement quand l'année scolaire comporte des semestres.
+            // Le semestre est pré-sélectionné via la date ; l'utilisateur peut l'ajuster.
+            Column {
+                Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 6
+                visible: !root.isEvent && root.hasSemestres
+
+                SectionLabel { text: qsTr("SEMESTRE") }
+
+                Row {
+                    spacing: 8
+                    Repeater {
+                        model: [
+                            { label: qsTr("Semestre 1"), abbr: "S1", value: 1 },
+                            { label: qsTr("Semestre 2"), abbr: "S2", value: 2 }
+                        ]
+                        Rectangle {
+                            id: semBtnForm
+                            property var d: modelData
+                            readonly property bool active: root.formSemestreNum === d.value
+                            width: 120; height: 36; radius: 10
+                            color: active ? (d.value === 1 ? Style.primaryBg : Qt.rgba(0.1, 0.5, 0.9, 0.08))
+                                          : Style.bgPage
+                            border.color: active ? (d.value === 1 ? Style.primary : Style.infoColor)
+                                                 : Style.borderLight
+                            border.width: active ? 1.5 : 1
+                            Behavior on color        { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                            Row {
+                                anchors.centerIn: parent; spacing: 6
+                                Text {
+                                    text: semBtnForm.d.abbr
+                                    font.pixelSize: 12; font.weight: Font.Black
+                                    color: semBtnForm.active
+                                           ? (semBtnForm.d.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
+                                }
+                                Text {
+                                    text: semBtnForm.d.label
+                                    font.pixelSize: 11; font.bold: semBtnForm.active
+                                    color: semBtnForm.active
+                                           ? (semBtnForm.d.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: root.formSemestreNum = semBtnForm.d.value
+                            }
+                        }
+                    }
+                }
+            }
+
             // ── Matière (Cours & Examen) ───────────────────────────
             Column {
                 Layout.fillWidth: true
@@ -232,7 +355,7 @@ ModalOverlay {
                         id: modalMatiereCombo
                         anchors.fill: parent; anchors.margins: 4
                         enabled: root.formNiveauId >= 0
-                        model: schoolingController.matieres
+                        model: root.filteredMatieres
                         textRole: "nom"; valueRole: "id"; currentIndex: -1
                         background: Rectangle { color: "transparent" }
                         contentItem: Text {

@@ -12,9 +12,11 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     required property bool show
-    required property int deletingMatiereId
 
-    signal deleteRequested(int id)
+    // Tableau d'identifiants à supprimer (1 ou 2 éléments pour les matières bi-semestre)
+    property var deletingMatiereIds: []
+
+    signal deleteRequested(var ids)
     signal closeRequested()
 
     visible: show
@@ -35,7 +37,9 @@ Popup {
         padding: 28
 
         Text {
-            text: qsTr("Supprimer la matière ?")
+            text: root.deletingMatiereIds.length >= 2
+                  ? qsTr("Supprimer la matière des deux semestres ?")
+                  : qsTr("Supprimer la matière ?")
             font.pixelSize: 18
             font.weight: Font.Black
             color: Style.textPrimary
@@ -43,7 +47,9 @@ Popup {
 
         Text {
             width: parent.width - 56
-            text: qsTr("Cette matière sera définitivement supprimée de ce niveau.")
+            text: root.deletingMatiereIds.length >= 2
+                  ? qsTr("Les deux enregistrements (S1 et S2) de cette matière seront définitivement supprimés de ce niveau, ainsi que leurs cours et évaluations associés.")
+                  : qsTr("Cette matière sera définitivement supprimée de ce niveau, ainsi que ses cours et évaluations associés.")
             font.pixelSize: 13
             color: Style.textSecondary
             wrapMode: Text.WordWrap
@@ -95,9 +101,8 @@ Popup {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (root.deletingMatiereId > 0) {
-                            root.deleteRequested(root.deletingMatiereId)
-                        }
+                        if (root.deletingMatiereIds.length > 0)
+                            root.deleteRequested(root.deletingMatiereIds)
                     }
                 }
             }

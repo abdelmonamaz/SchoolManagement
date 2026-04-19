@@ -11,12 +11,16 @@ ModalOverlay {
     required property bool show
     required property int  editingMatiereId
 
+    // Identifiants de tous les enregistrements du groupe (1 ou 2 semestres)
+    property var    initialMatiereIds:       []
+    // Semestres correspondants à chaque id dans initialMatiereIds
+    property var    initialSemestres:        [1]
+
     // Champs pré-remplis depuis l'extérieur
     property string initialNom:              ""
     property int    initialNombreSeances:    0
     property int    initialDureeMinutes:     60
     property int    editingNiveauId:         0
-    property int    initialSemestreNumero:   0
     property real   initialCoefficient:      1.0
 
     readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
@@ -32,15 +36,18 @@ ModalOverlay {
 
     onVisibleChanged: {
         if (visible) {
-            nomInput.text           = initialNom
-            nbSeancesInput.text     = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
-            dureeInput.text         = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
-            coeffInput.text         = initialCoefficient   > 0 ? String(initialCoefficient)   : "1"
-            semestreSection.selectedSemestre = initialSemestreNumero > 0 ? initialSemestreNumero : 1
+            nomInput.text        = initialNom
+            nbSeancesInput.text  = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
+            dureeInput.text      = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
+            coeffInput.text      = initialCoefficient   > 0 ? String(initialCoefficient)   : "1"
+            // Initialise la sélection de semestres à partir du tableau initialSemestres
+            semestreSection.selectedSemestres = initialSemestres.length > 0
+                ? initialSemestres.slice()
+                : [1]
             newExamenCombo.editText = ""
             newExamenCombo.currentIndex = -1
-            showConfirm             = false
-            pendingSaveData         = null
+            showConfirm          = false
+            pendingSaveData      = null
         }
     }
 
@@ -94,15 +101,17 @@ ModalOverlay {
                 }
             }
 
-            // Semestre (visible seulement si l'année a des semestres)
+            // Semestre(s) — visible seulement si l'année a des semestres
+            // Multi-sélection : S1, S2 ou les deux ; au moins un doit être actif.
             Column {
                 id: semestreSection
                 width: parent.width; spacing: 6
                 visible: root.hasSemestres
 
-                property int selectedSemestre: root.initialSemestreNumero > 0 ? root.initialSemestreNumero : 1
+                // Tableau des semestres sélectionnés, ex. [1], [2] ou [1, 2]
+                property var selectedSemestres: [1]
 
-                Text { text: qsTr("SEMESTRE"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                Text { text: qsTr("SEMESTRE(S)"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
 
                 Row {
                     spacing: 8
@@ -112,12 +121,18 @@ ModalOverlay {
                             { label: qsTr("Semestre 1"), value: 1, icon: "S1" },
                             { label: qsTr("Semestre 2"), value: 2, icon: "S2" }
                         ]
+
                         Rectangle {
-                            readonly property bool active: semestreSection.selectedSemestre === modelData.value
-                            width: 110; height: 40; radius: 10
-                            color: active ? (modelData.value === 1 ? Style.primaryBg : Qt.rgba(0.1, 0.5, 0.9, 0.08))
-                                         : Style.bgPage
-                            border.color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
+                            id: semBtn
+                            property var btnData: modelData
+                            readonly property bool active: semestreSection.selectedSemestres.indexOf(btnData.value) >= 0
+                            // Dernier semestre → on ne peut plus le décocher
+                            readonly property bool isLast: semestreSection.selectedSemestres.length === 1 && active
+
+                            width: 120; height: 40; radius: 10
+                            color: active ? (btnData.value === 1 ? Style.primaryBg : Qt.rgba(0.1, 0.5, 0.9, 0.08))
+                                          : Style.bgPage
+                            border.color: active ? (btnData.value === 1 ? Style.primary : Style.infoColor)
                                                  : Style.borderLight
                             border.width: active ? 2 : 1
                             Behavior on color        { ColorAnimation { duration: 120 } }
@@ -126,25 +141,48 @@ ModalOverlay {
                             Row {
                                 anchors.centerIn: parent; spacing: 6
                                 Text {
-                                    text: modelData.icon
+                                    text: semBtn.btnData.icon
                                     font.pixelSize: 13; font.weight: Font.Black
-                                    color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
-                                                  : Style.textTertiary
+                                    color: semBtn.active
+                                           ? (semBtn.btnData.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
                                 }
                                 Text {
-                                    text: modelData.label
-                                    font.pixelSize: 11; font.bold: active
-                                    color: active ? (modelData.value === 1 ? Style.primary : Style.infoColor)
-                                                  : Style.textTertiary
+                                    text: semBtn.btnData.label
+                                    font.pixelSize: 11; font.bold: semBtn.active
+                                    color: semBtn.active
+                                           ? (semBtn.btnData.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
                                 }
                             }
 
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: semestreSection.selectedSemestre = modelData.value
+                                anchors.fill: parent
+                                cursorShape: semBtn.isLast ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                                ToolTip.visible: containsMouse && semBtn.isLast
+                                ToolTip.text: qsTr("Au moins un semestre doit être sélectionné")
+                                ToolTip.delay: 400
+                                onClicked: {
+                                    var arr = semestreSection.selectedSemestres.slice()
+                                    var idx = arr.indexOf(semBtn.btnData.value)
+                                    if (idx >= 0) {
+                                        if (arr.length > 1) { arr.splice(idx, 1); semestreSection.selectedSemestres = arr }
+                                    } else {
+                                        arr.push(semBtn.btnData.value); arr.sort()
+                                        semestreSection.selectedSemestres = arr
+                                    }
+                                }
                             }
                         }
                     }
+                }
+
+                // Indicateur « les deux semestres »
+                Text {
+                    visible: semestreSection.selectedSemestres.length >= 2
+                    text: qsTr("Cette matière sera présente dans les deux semestres")
+                    font.pixelSize: 10; font.italic: true; color: Qt.rgba(0.15, 0.55, 0.25, 0.9)
+                    leftPadding: 2
                 }
             }
 
@@ -518,12 +556,22 @@ ModalOverlay {
                         var nom = nomInput.text.trim()
                         if (!nom) return
                         root.pendingSaveData = {
+                            // ID principal (utilisé pour les examens)
                             id:                  root.editingMatiereId,
+                            // Tous les IDs du groupe (1 ou 2 enregistrements)
+                            allIds:              root.initialMatiereIds.length > 0
+                                                     ? root.initialMatiereIds
+                                                     : [root.editingMatiereId],
+                            // Semestres initiaux correspondants
+                            initialSemestres:    root.initialSemestres.length > 0
+                                                     ? root.initialSemestres
+                                                     : [1],
+                            // Semestres désirés après modification
+                            selectedSemestres:   semestreSection.selectedSemestres.slice(),
                             nom:                 nom,
                             niveauId:            root.editingNiveauId,
                             nombreSeances:       parseInt(nbSeancesInput.text)  || 0,
                             dureeSeanceMinutes:  parseInt(dureeInput.text)      || 60,
-                            semestreNumero:      semestreSection.selectedSemestre,
                             coefficient:         parseFloat(coeffInput.text)    || 1.0
                         }
                         root.showConfirm = true

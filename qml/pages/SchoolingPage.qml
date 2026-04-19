@@ -26,10 +26,10 @@ Item {
     property bool showDeleteNiveauConfirm: false
     property int deletingNiveauId: 0
     property bool showDeleteMatiereConfirm: false
-    property int deletingMatiereId: 0
+    property var  deletingMatiereIds: []
     property bool showEditMatiereModal: false
-    property int editingMatiereId: 0
-    property var editingMatiere: ({id: 0, nom: "", niveauId: 0, nombreSeances: 0, dureeSeanceMinutes: 60, coefficient: 1.0})
+    // Groupe de matière en cours d'édition (1 ou 2 enregistrements pour bi-semestre)
+    property var  editingMatiereGroup: ({ nom: "", ids: [], semestres: [], niveauId: 0, coefficient: 1.0, nombreSeances: 0, dureeSeanceMinutes: 60 })
     property bool showEditRoomModal: false
     property var editingRoom: ({id: 0, nom: "", capaciteChaises: 20, equipement: ""})
     property bool showDeleteRoomConfirm: false
@@ -42,6 +42,13 @@ Item {
         schoolingController.loadSalles()
         schoolingController.loadEquipements()
         studentController.loadStudents()
+    }
+
+    // Rechargement des matières du niveau courant quand on revient sur cette page
+    // (un autre onglet, ex. SessionFormModal, peut avoir écrasé schoolingController.matieres)
+    onVisibleChanged: {
+        if (visible && selectedNiveauId > 0)
+            schoolingController.loadMatieresByNiveau(selectedNiveauId)
     }
 
     Connections {
@@ -233,22 +240,17 @@ Item {
                             matieres: schoolingController.matieres
                             selectedNiveauNom: schoolPage.selectedNiveauNom()
                             selectedNiveauId: schoolPage.selectedNiveauId
-                            onMatiereCreateRequested: (nom, semestreNumero, coefficient) => schoolingController.createMatiere(nom, selectedNiveauId, semestreNumero, coefficient)
-                            onMatiereDeleteRequested: (id) => {
-                                schoolPage.deletingMatiereId = id
+                            onMatiereCreateRequested: (nom, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes) =>
+                                schoolingController.createMatiere(nom, selectedNiveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes)
+                            onMatiereDeleteRequested: (ids) => {
+                                schoolPage.deletingMatiereIds = ids
                                 schoolPage.showDeleteMatiereConfirm = true
                             }
-                            onMatiereEditRequested: (id) => {
-                                // Trouver la matière dans la liste pour pré-remplir le modal
-                                var mats = schoolingController.matieres
-                                for (var i = 0; i < mats.length; i++) {
-                                    if (mats[i].id === id) {
-                                        schoolPage.editingMatiere = mats[i]
-                                        break
-                                    }
-                                }
-                                schoolPage.editingMatiereId = id
-                                schoolingController.loadMatiereExamens(id)
+                            onMatiereEditRequested: (group) => {
+                                schoolPage.editingMatiereGroup = group
+                                // Charge les examens du premier enregistrement du groupe
+                                if (group.ids && group.ids.length > 0)
+                                    schoolingController.loadMatiereExamens(group.ids[0])
                                 schoolPage.showEditMatiereModal = true
                             }
                         }
@@ -337,36 +339,71 @@ Item {
 
     MatiereDeleteModal {
         show: showDeleteMatiereConfirm
-        deletingMatiereId: schoolPage.deletingMatiereId
+        deletingMatiereIds: schoolPage.deletingMatiereIds
 
-        onDeleteRequested: (id) => {
-            schoolingController.deleteMatiere(id)
+        onDeleteRequested: (ids) => {
+            schoolingController.deleteMatieres(ids)
             showDeleteMatiereConfirm = false
         }
         onCloseRequested: showDeleteMatiereConfirm = false
     }
 
     MatiereEditModal {
-        show:             showEditMatiereModal
-        editingMatiereId: schoolPage.editingMatiereId
-        editingNiveauId:  schoolPage.editingMatiere.niveauId || schoolPage.selectedNiveauId
-        initialNom:              schoolPage.editingMatiere.nom             || ""
-        initialNombreSeances:    schoolPage.editingMatiere.nombreSeances   || 0
-        initialDureeMinutes:     schoolPage.editingMatiere.dureeSeanceMinutes > 0
-                                     ? schoolPage.editingMatiere.dureeSeanceMinutes : 60
-        initialSemestreNumero:   schoolPage.editingMatiere.semestreNumero  || 0
-        initialCoefficient:      schoolPage.editingMatiere.coefficient     > 0
-                                     ? schoolPage.editingMatiere.coefficient : 1.0
+        show:              showEditMatiereModal
+        // ID principal = premier id du groupe (utilisé pour le chargement des examens)
+        editingMatiereId:  schoolPage.editingMatiereGroup.ids && schoolPage.editingMatiereGroup.ids.length > 0
+                               ? schoolPage.editingMatiereGroup.ids[0] : 0
+        // Tous les IDs et semestres du groupe
+        initialMatiereIds: schoolPage.editingMatiereGroup.ids    || []
+        initialSemestres:  schoolPage.editingMatiereGroup.semestres || [1]
+        editingNiveauId:   schoolPage.editingMatiereGroup.niveauId || schoolPage.selectedNiveauId
+        initialNom:             schoolPage.editingMatiereGroup.nom             || ""
+        initialNombreSeances:   schoolPage.editingMatiereGroup.nombreSeances   || 0
+        initialDureeMinutes:    schoolPage.editingMatiereGroup.dureeSeanceMinutes > 0
+                                    ? schoolPage.editingMatiereGroup.dureeSeanceMinutes : 60
+        initialCoefficient:     schoolPage.editingMatiereGroup.coefficient > 0
+                                    ? schoolPage.editingMatiereGroup.coefficient : 1.0
 
         onSaveRequested: (data) => {
-            schoolingController.updateMatiere(data.id, {
+            // data.allIds          : IDs initiaux du groupe
+            // data.initialSemestres: semestres correspondants aux IDs initiaux
+            // data.selectedSemestres: semestres souhaités après modification
+            var allIds         = data.allIds         || []
+            var initSems       = data.initialSemestres || []
+            var selectedSems   = data.selectedSemestres || [1]
+
+            // Construire une map semestreNumero → id existant
+            var idBySem = {}
+            for (var i = 0; i < allIds.length; i++)
+                idBySem[initSems[i]] = allIds[i]
+
+            var updateData = {
                 nom:                data.nom,
                 niveauId:           data.niveauId,
                 nombreSeances:      data.nombreSeances,
                 dureeSeanceMinutes: data.dureeSeanceMinutes,
                 coefficient:        data.coefficient
-            })
-            schoolingController.setMatiereSemestre(data.id, data.semestreNumero)
+            }
+
+            // Semestres conservés → mettre à jour l'enregistrement existant
+            for (var j = 0; j < initSems.length; j++) {
+                var s = initSems[j]
+                if (selectedSems.indexOf(s) >= 0)
+                    schoolingController.updateMatiere(idBySem[s], updateData)
+                else
+                    // Semestre supprimé → supprimer l'enregistrement
+                    schoolingController.deleteMatiere(idBySem[s])
+            }
+
+            // Nouveaux semestres → créer un nouvel enregistrement
+            for (var k = 0; k < selectedSems.length; k++) {
+                var ns = selectedSems[k]
+                if (initSems.indexOf(ns) < 0)
+                    schoolingController.createMatiere(
+                        data.nom, data.niveauId, ns,
+                        data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+            }
+
             showEditMatiereModal = false
         }
         onCloseRequested: showEditMatiereModal = false
