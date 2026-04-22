@@ -1,10 +1,13 @@
 #include "controllers/grades_controller.h"
 #include "services/grades_service.h"
 #include "database/database_worker.h"
+#include "generators/docx_generator.h"
 
 #include <algorithm>
 #include <QDate>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QStringConverter>
 #include <QTextStream>
@@ -496,6 +499,127 @@ QString GradesController::exportBulletinCsv(const QVariantMap& bulletinData,
     return filePath;
 }
 
+void GradesController::loadBulletinDocxData(int eleveId, int classeId, int anneeId, int semestre) {
+    m_worker->submit("Grades.loadBulletinDocxData",
+        [svc = m_service, eleveId, classeId, anneeId, semestre]() -> QVariant {
+            auto result = svc->buildBulletinDocxData(eleveId, classeId, anneeId, semestre);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return result.value();
+        });
+}
+
+QString GradesController::exportBulletinDocx(
+    const QVariantMap& docxData,
+    const QString& studentName,
+    const QString& studentMatricule,
+    const QString& niveauNom,
+    const QString& classeNom,
+    const QString& anneeScolaire,
+    const QString& president,
+    bool estFeminin,
+    int semestre,
+    const QString& targetPath)
+{
+    // ── Build BulletinData ───────────────────────────────────────────────────
+    Docx::BulletinData bd;
+
+    // Split name: first word = prenom, rest = nom
+    QStringList nameParts = studentName.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    bd.prenom = nameParts.isEmpty() ? studentName : nameParts.first();
+    bd.nom    = nameParts.size() > 1 ? nameParts.mid(1).join(QLatin1Char(' ')) : QString();
+
+    bd.niveau     = niveauNom;
+    bd.annee      = anneeScolaire;   // "YYYY1-YYYY2"
+    bd.president  = president;
+    bd.estFeminin = estFeminin;
+    bd.date       = QDate::currentDate().toString("dd/MM/yyyy");
+
+    auto fmtAvg = [](const QVariantMap& m, const QString& key) -> QString {
+        auto v = m.value(key);
+        return (!v.isNull() && v.isValid()) ? QString::number(v.toDouble(), 'f', 2) : QString();
+    };
+    bd.moyenne = fmtAvg(docxData, "moyS1");
+    bd.moyS2   = fmtAvg(docxData, "moyS2");
+    bd.moyTot  = fmtAvg(docxData, "moyTot");
+    bd.notif   = docxData.value("notif").toString();
+
+    auto rangV = docxData.value("rang");
+    bd.ordre   = (!rangV.isNull() && rangV.isValid()) ? QString::number(rangV.toInt()) : QString();
+
+    // ── Populate matières ────────────────────────────────────────────────────
+    int rowNum = 1;
+    for (const auto& matV : docxData.value("matieres").toList()) {
+        auto mat = matV.toMap();
+        Docx::Matiere m;
+        m.mat    = mat.value("nom").toString();
+        double c = mat.value("coefficient").toDouble();
+        m.coef   = (c == static_cast<int>(c)) ? QString::number(static_cast<int>(c))
+                                               : QString::number(c, 'f', 1);
+        m.n      = QString::number(rowNum++);
+        m.isDual = mat.value("isDual").toBool();
+
+        if (m.isDual) {
+            m.exam1      = mat.value("exam1").toString();
+            m.exam2      = mat.value("exam2").toString();
+            m.note1      = mat.value("note1").toString();
+            m.note2      = mat.value("note2").toString();
+            m.noteMoy    = mat.value("noteMoy").toString();
+            m.note1S2    = mat.value("note1S2").toString();
+            m.note2S2    = mat.value("note2S2").toString();
+            m.noteMoyS2  = mat.value("noteMoyS2").toString();
+        } else {
+            m.note   = mat.value("note").toString();
+            m.noteS2 = mat.value("noteS2").toString();
+        }
+        bd.matieres.append(m);
+    }
+
+    // ── Extract template from Qt resources to temp file ──────────────────────
+    const QString resPath = (semestre == 1)
+        ? QStringLiteral(":/templates/template_bulletin.docx")
+        : QStringLiteral(":/templates/template_bulletin_s2.docx");
+
+    const QString tplName = (semestre == 1)
+        ? QStringLiteral("zaytouna_tpl_s1.docx")
+        : QStringLiteral("zaytouna_tpl_s2.docx");
+
+    QString tmpTpl = QDir::temp().filePath(tplName);
+    QFile::remove(tmpTpl);
+    if (!QFile::copy(resPath, tmpTpl)) {
+        emit operationFailed(QStringLiteral("Impossible d'extraire le template DOCX : ") + resPath);
+        return {};
+    }
+    QFile::setPermissions(tmpTpl,
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner |
+        QFileDevice::ReadUser  | QFileDevice::WriteUser);
+
+    // ── Determine output path ─────────────────────────────────────────────────
+    QString outPath = targetPath;
+    if (outPath.isEmpty()) {
+        QString docsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        QString safeYear = anneeScolaire;
+        safeYear.replace('/', '-').replace('\\', '-');
+        safeYear.remove(QRegularExpression(QStringLiteral("[^\\w.-]")));
+        safeYear = safeYear.simplified().replace(' ', '_');
+        QString safeName = studentName;
+        safeName.remove(QRegularExpression(QStringLiteral("[^\\w\\s-]")));
+        safeName = safeName.simplified().replace(' ', '_');
+        if (safeName.isEmpty()) safeName = studentMatricule.isEmpty() ? QStringLiteral("eleve") : studentMatricule;
+        outPath = QStringLiteral("%1/bulletin_%2_%3_S%4.docx")
+                      .arg(docsPath, safeYear, safeName).arg(semestre);
+    }
+
+    // ── Generate ──────────────────────────────────────────────────────────────
+    DocxGenerator gen;
+    QString errMsg;
+    if (!gen.generate(tmpTpl, outPath, bd, &errMsg)) {
+        emit operationFailed(errMsg);
+        return {};
+    }
+    return outPath;
+}
+
 void GradesController::onQueryCompleted(const QString& queryId, const QVariant& result) {
     if (!queryId.startsWith("Grades.")) return;
 
@@ -522,6 +646,10 @@ void GradesController::onQueryCompleted(const QString& queryId, const QVariant& 
     else if (queryId == "Grades.loadBulletinData") {
         if (isError) emit operationFailed(map["error"].toString());
         else emit bulletinDataLoaded(result.toMap());
+    }
+    else if (queryId == "Grades.loadBulletinDocxData") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit bulletinDocxDataLoaded(result.toMap());
     }
 }
 

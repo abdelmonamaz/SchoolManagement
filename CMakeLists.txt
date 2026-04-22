@@ -102,6 +102,10 @@ target_link_libraries(GS_Core PUBLIC Qt6::Core Qt6::Sql)
 # ═══════════════════════════════════════════════════════════════
 
 add_library(GS_Services STATIC
+    # Generators
+    src/generators/docx_generator.h
+    src/generators/docx_generator.cpp
+
     # Services
     src/services/schooling_service.h
     src/services/schooling_service.cpp
@@ -145,11 +149,15 @@ add_library(GS_Services STATIC
 
 target_link_libraries(GS_Services PUBLIC GS_Core Qt6::Core Qt6::Gui Qt6::Sql)
 
+# QtZlib/zlib.h lives under Qt's root include dir (not QtCore subdir)
+get_filename_component(_qt_prefix "${Qt6_DIR}/../../../" ABSOLUTE)
+target_include_directories(GS_Services PRIVATE "${_qt_prefix}/include")
+
 # ═══════════════════════════════════════════════════════════════
 # Exécutable principal
 # ═══════════════════════════════════════════════════════════════
 
-qt_add_executable(GestionScolaire
+qt_add_executable(GestionScolaire WIN32
     src/main.cpp
     src/app/app_controller.h
     src/app/app_controller.cpp
@@ -238,6 +246,15 @@ qt_add_qml_module(GestionScolaire
         qml/icons/users.svg
         qml/icons/wallet.svg
         qml/icons/warning.svg
+)
+
+# Templates DOCX (bulletin)
+qt_add_resources(GestionScolaire "docx_templates"
+    PREFIX "/templates"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources/templates"
+    FILES
+        resources/templates/template_bulletin.docx
+        resources/templates/template_bulletin_s2.docx
 )
 
 # Modules QML secondaires

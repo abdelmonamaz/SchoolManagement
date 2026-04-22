@@ -74,10 +74,33 @@ ModalOverlay {
         return out
     }
 
+    // Retourne {debut, fin} uniquement pour les matières "toute l'année" (semestreNumero === 0).
+    // Pour les matières propres à un semestre, l'ID de matière suffit à différencier S1 et S2 ;
+    // un filtre par date exclurait les examens physiquement tenus hors de la plage du semestre.
+    function currentSemestreDateRange() {
+        var mat = selectedMatiere()
+        if (!mat || mat.semestreNumero !== 0) return { debut: "", fin: "" }
+        if (!hasSemestres || formSemestreNum <= 0) return { debut: "", fin: "" }
+        var sems = setupController.activeSemestres
+        for (var i = 0; i < sems.length; i++)
+            if (sems[i].numero === formSemestreNum)
+                return { debut: sems[i].dateDebut, fin: sems[i].dateFin }
+        return { debut: "", fin: "" }
+    }
+
     // Quand la date change → mettre à jour le semestre automatiquement
     onFormDateChanged: {
         if (hasSemestres)
             formSemestreNum = detectSemestreFromDate(formDate)
+    }
+
+    // Quand le semestre change → recharger les épreuves déjà planifiées
+    onFormSemestreNumChanged: {
+        if (isExam && formMatiereId >= 0 && formClasseId >= 0) {
+            var range = currentSemestreDateRange()
+            examsController.loadScheduledExamTitles(formMatiereId, formClasseId,
+                                                    range.debut, range.fin)
+        }
     }
 
     // Quand la liste filtrée change → désélectionner la matière si elle n'y est plus
@@ -276,8 +299,11 @@ ModalOverlay {
                         onCurrentValueChanged: {
                             if (currentIndex >= 0) {
                                 root.formClasseId = currentValue
-                                if (root.formMatiereId >= 0)
-                                    examsController.loadScheduledExamTitles(root.formMatiereId, currentValue)
+                                if (root.formMatiereId >= 0) {
+                                    var r1 = root.currentSemestreDateRange()
+                                    examsController.loadScheduledExamTitles(root.formMatiereId, currentValue,
+                                                                            r1.debut, r1.fin)
+                                }
                             }
                         }
                     }
@@ -381,8 +407,11 @@ ModalOverlay {
                             }
                             if (root.isExam) {
                                 schoolingController.loadMatiereExamens(currentValue)
-                                if (root.formClasseId >= 0)
-                                    examsController.loadScheduledExamTitles(currentValue, root.formClasseId)
+                                if (root.formClasseId >= 0) {
+                                    var r2 = root.currentSemestreDateRange()
+                                    examsController.loadScheduledExamTitles(currentValue, root.formClasseId,
+                                                                            r2.debut, r2.fin)
+                                }
                             }
                             root.formTitre = ""
                             if (titreField) titreField.text = ""

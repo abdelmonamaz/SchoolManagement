@@ -32,7 +32,11 @@ ModalOverlay {
     signal saveRequested(var data)
     signal closeRequested()
 
-    visible: show
+    onShowChanged: {
+        if (show) open()
+        else      visible = false
+    }
+    onClosed: closeRequested()
 
     onVisibleChanged: {
         if (visible) {
@@ -389,7 +393,9 @@ ModalOverlay {
                                     id: delExMa; anchors.fill: parent
                                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        schoolingController.deleteMatiereExamen(modelData.id)
+                                        var grpIds = root.initialMatiereIds.length > 0
+                                            ? root.initialMatiereIds : [root.editingMatiereId]
+                                        schoolingController.deleteMatiereExamenForGroup(grpIds, modelData.typeExamenId)
                                         schoolingController.loadMatiereExamens(root.editingMatiereId)
                                     }
                                 }
@@ -488,7 +494,9 @@ ModalOverlay {
                             var t = newExamenCombo.editText.trim()
                             if (!t || root.editingMatiereId <= 0) return
                             if (addExamenRow.isDuplicate) return
-                            schoolingController.createTypeAndMatiereExamen(root.editingMatiereId, t)
+                            var ids = root.initialMatiereIds.length > 0
+                                ? root.initialMatiereIds : [root.editingMatiereId]
+                            schoolingController.createTypeAndMatiereExamenForGroup(ids, t)
                             newExamenCombo.editText = ""
                             newExamenCombo.currentIndex = -1
                         }

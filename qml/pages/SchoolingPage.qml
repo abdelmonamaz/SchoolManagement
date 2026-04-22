@@ -395,13 +395,20 @@ Item {
                     schoolingController.deleteMatiere(idBySem[s])
             }
 
-            // Nouveaux semestres → créer un nouvel enregistrement
+            // Nouveaux semestres → cloner depuis un enregistrement existant (copie les épreuves)
+            var sourceId = allIds.length > 0 ? allIds[0] : -1
             for (var k = 0; k < selectedSems.length; k++) {
                 var ns = selectedSems[k]
-                if (initSems.indexOf(ns) < 0)
-                    schoolingController.createMatiere(
-                        data.nom, data.niveauId, ns,
-                        data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+                if (initSems.indexOf(ns) < 0) {
+                    if (sourceId >= 0)
+                        schoolingController.cloneMatiereForSemestre(
+                            sourceId, data.nom, data.niveauId, ns,
+                            data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+                    else
+                        schoolingController.createMatiere(
+                            data.nom, data.niveauId, ns,
+                            data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+                }
             }
 
             showEditMatiereModal = false

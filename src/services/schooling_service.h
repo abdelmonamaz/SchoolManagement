@@ -41,6 +41,7 @@ public:
     Result<QList<Matiere>> getAllMatieres();
     Result<QList<Matiere>> getMatieresByNiveau(int niveauId);
     Result<int>  createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0, int nombreSeances = 0, int dureeSeanceMinutes = 60);
+    Result<int>  cloneMatiereForSemestre(int sourceMatiereId, const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes);
     Result<bool> updateMatiere(int id, const QString& nom, int niveauId, int nombreSeances, int dureeSeanceMinutes, double coefficient = 1.0);
     Result<bool> setMatiereSemestre(int matiereId, int semestreNumero);
     Result<bool> deleteMatiere(int id);
@@ -48,8 +49,10 @@ public:
     // MatiereExamens
     Result<QList<MatiereExamen>> getExamensByMatiere(int matiereId);
     Result<int>  createMatiereExamen(int matiereId, int typeExamenId);
+    Result<bool> createMatiereExamenForGroup(const QList<int>& matiereIds, int typeExamenId);
     Result<bool> updateMatiereExamen(int id, int typeExamenId);
     Result<bool> deleteMatiereExamen(int id);
+    Result<bool> deleteMatiereExamenByTypeForGroup(const QList<int>& matiereIds, int typeExamenId);
 
     // TypeExamens
     Result<QList<TypeExamen>> getAllTypeExamens();

@@ -47,7 +47,9 @@ public:
 
     // Helpers for planning intelligence
     Q_INVOKABLE void loadCourseCountForMatiereClasse(int matiereId, int classeId);
-    Q_INVOKABLE void loadScheduledExamTitles(int matiereId, int classeId);
+    Q_INVOKABLE void loadScheduledExamTitles(int matiereId, int classeId,
+                                              const QString& semestreDebut = {},
+                                              const QString& semestreFin   = {});
 
     // Grades page: all exam seances for a given classe+matière (current school year)
     Q_INVOKABLE void loadExamSeancesByClasseMatiere(int classeId, int matiereId);

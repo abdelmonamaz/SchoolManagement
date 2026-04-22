@@ -212,6 +212,22 @@ void SchoolingController::createMatiere(const QString& nom, int niveauId, int se
         });
 }
 
+void SchoolingController::cloneMatiereForSemestre(int sourceMatiereId, const QString& nom,
+                                                    int niveauId, int semestreNumero,
+                                                    double coefficient, int nombreSeances,
+                                                    int dureeSeanceMinutes) {
+    m_worker->submit("Schooling.createMatiere:" + QString::number(niveauId),
+        [svc = m_service, sourceMatiereId, nom, niveauId, semestreNumero,
+         coefficient, nombreSeances, dureeSeanceMinutes]() -> QVariant {
+            auto result = svc->cloneMatiereForSemestre(sourceMatiereId, nom, niveauId,
+                                                       semestreNumero, coefficient,
+                                                       nombreSeances, dureeSeanceMinutes);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
 void SchoolingController::updateMatiere(int id, const QVariantMap& data) {
     int niveauId = data.value("niveauId").toInt();
     m_worker->submit("Schooling.updateMatiere:" + QString::number(niveauId),
@@ -317,6 +333,33 @@ void SchoolingController::createTypeAndMatiereExamen(int matiereId, const QStrin
         });
 }
 
+void SchoolingController::createTypeAndMatiereExamenForGroup(const QVariantList& matiereIds, const QString& titre) {
+    int primaryId = matiereIds.isEmpty() ? -1 : matiereIds.first().toInt();
+    m_worker->submit("Schooling.createMatiereExamen:" + QString::number(primaryId),
+        [svc = m_service, matiereIds, titre]() -> QVariant {
+            // Trouver ou créer le TypeExamen
+            auto typesResult = svc->getAllTypeExamens();
+            int typeId = -1;
+            if (typesResult.isOk()) {
+                for (const auto& t : typesResult.value()) {
+                    if (t.titre.toLower() == titre.trimmed().toLower()) {
+                        typeId = t.id; break;
+                    }
+                }
+            }
+            if (typeId == -1) {
+                auto r = svc->createTypeExamen(titre.trimmed());
+                if (!r.isOk()) return QVariantMap{{"error", r.errorMessage()}};
+                typeId = r.value();
+            }
+            QList<int> ids;
+            for (const auto& v : matiereIds) ids.append(v.toInt());
+            auto result = svc->createMatiereExamenForGroup(ids, typeId);
+            if (!result.isOk()) return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
 void SchoolingController::updateMatiereExamen(int id, const QString& titre) {
     m_worker->submit("Schooling.updateMatiereExamen",
         [svc = m_service, id, titre]() -> QVariant {
@@ -346,6 +389,17 @@ void SchoolingController::updateMatiereExamen(int id, const QString& titre) {
 void SchoolingController::deleteMatiereExamen(int id) {
     m_worker->submit("Schooling.deleteMatiereExamen", [svc = m_service, id]() -> QVariant {
         auto result = svc->deleteMatiereExamen(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void SchoolingController::deleteMatiereExamenForGroup(const QVariantList& matiereIds, int typeExamenId) {
+    m_worker->submit("Schooling.deleteMatiereExamen", [svc = m_service, matiereIds, typeExamenId]() -> QVariant {
+        QList<int> ids;
+        for (const auto& v : matiereIds) ids.append(v.toInt());
+        auto result = svc->deleteMatiereExamenByTypeForGroup(ids, typeExamenId);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};

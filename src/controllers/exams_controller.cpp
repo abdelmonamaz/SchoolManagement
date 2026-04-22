@@ -370,15 +370,25 @@ void ExamsController::loadCourseCountForMatiereClasse(int matiereId, int classeI
     });
 }
 
-void ExamsController::loadScheduledExamTitles(int matiereId, int classeId) {
+void ExamsController::loadScheduledExamTitles(int matiereId, int classeId,
+                                               const QString& semestreDebut,
+                                               const QString& semestreFin) {
     m_worker->submit("Exams.loadScheduledExamTitles",
-        [svc = m_service, matiereId, classeId]() -> QVariant {
+        [svc = m_service, matiereId, classeId, semestreDebut, semestreFin]() -> QVariant {
         auto seances = svc->getSeancesByClasse(classeId);
         QVariantList titles;
+        QDate debut = semestreDebut.isEmpty() ? QDate() : QDate::fromString(semestreDebut, Qt::ISODate);
+        QDate fin   = semestreFin.isEmpty()   ? QDate() : QDate::fromString(semestreFin,   Qt::ISODate);
+        bool filterBySemestre = debut.isValid() && fin.isValid();
         if (seances.isOk()) {
             for (const auto& s : seances.value()) {
-                if (s.matiereId == matiereId && s.typeSeance == GS::CategorieSeance::Examen)
-                    titles.append(s.titre);
+                if (s.matiereId != matiereId || s.typeSeance != GS::CategorieSeance::Examen)
+                    continue;
+                if (filterBySemestre) {
+                    QDate d = s.dateHeureDebut.date();
+                    if (d < debut || d > fin) continue;
+                }
+                titles.append(s.titre);
             }
         }
         return titles;

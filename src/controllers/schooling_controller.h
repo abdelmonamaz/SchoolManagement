@@ -56,6 +56,7 @@ public:
     Q_INVOKABLE void deleteClasse(int id);
 
     Q_INVOKABLE void createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0, int nombreSeances = 0, int dureeSeanceMinutes = 60);
+    Q_INVOKABLE void cloneMatiereForSemestre(int sourceMatiereId, const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes);
     Q_INVOKABLE void updateMatiere(int id, const QVariantMap& data);
     Q_INVOKABLE void setMatiereSemestre(int matiereId, int semestreNumero);
     Q_INVOKABLE void deleteMatiere(int id);
@@ -64,8 +65,10 @@ public:
     Q_INVOKABLE void loadMatiereExamens(int matiereId);
     Q_INVOKABLE void createMatiereExamen(int matiereId, int typeExamenId);
     Q_INVOKABLE void createTypeAndMatiereExamen(int matiereId, const QString& titre);
+    Q_INVOKABLE void createTypeAndMatiereExamenForGroup(const QVariantList& matiereIds, const QString& titre);
     Q_INVOKABLE void updateMatiereExamen(int id, const QString& titre);
     Q_INVOKABLE void deleteMatiereExamen(int id);
+    Q_INVOKABLE void deleteMatiereExamenForGroup(const QVariantList& matiereIds, int typeExamenId);
 
     Q_INVOKABLE void loadTypeExamens();
     Q_INVOKABLE void createTypeExamen(const QString& titre);

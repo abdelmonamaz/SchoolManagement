@@ -133,6 +133,26 @@ Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, in
     return res;
 }
 
+Result<int> SchoolingService::cloneMatiereForSemestre(int sourceMatiereId, const QString& nom,
+                                                        int niveauId, int semestreNumero,
+                                                        double coefficient, int nombreSeances,
+                                                        int dureeSeanceMinutes)
+{
+    auto newId = createMatiere(nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes);
+    if (!newId.isOk()) return newId;
+
+    auto examens = m_matiereExamenRepo->getByMatiereId(sourceMatiereId);
+    if (examens.isOk()) {
+        for (const auto& e : examens.value()) {
+            MatiereExamen copy;
+            copy.matiereId    = newId.value();
+            copy.typeExamenId = e.typeExamenId;
+            m_matiereExamenRepo->create(copy);
+        }
+    }
+    return newId;
+}
+
 Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niveauId,
                                               int nombreSeances, int dureeSeanceMinutes,
                                               double coefficient)
@@ -175,6 +195,31 @@ Result<int> SchoolingService::createMatiereExamen(int matiereId, int typeExamenI
     me.matiereId = matiereId;
     me.typeExamenId = typeExamenId;
     return m_matiereExamenRepo->create(me);
+}
+
+Result<bool> SchoolingService::createMatiereExamenForGroup(const QList<int>& matiereIds, int typeExamenId)
+{
+    for (int matiereId : matiereIds) {
+        MatiereExamen me;
+        me.matiereId    = matiereId;
+        me.typeExamenId = typeExamenId;
+        auto r = m_matiereExamenRepo->create(me);
+        if (!r.isOk()) return Result<bool>::error(r.errorMessage());
+    }
+    return Result<bool>::success(true);
+}
+
+Result<bool> SchoolingService::deleteMatiereExamenByTypeForGroup(const QList<int>& matiereIds, int typeExamenId)
+{
+    for (int matiereId : matiereIds) {
+        auto examens = m_matiereExamenRepo->getByMatiereId(matiereId);
+        if (!examens.isOk()) continue;
+        for (const auto& e : examens.value()) {
+            if (e.typeExamenId == typeExamenId)
+                m_matiereExamenRepo->remove(e.id);
+        }
+    }
+    return Result<bool>::success(true);
 }
 
 Result<bool> SchoolingService::updateMatiereExamen(int id, int typeExamenId)

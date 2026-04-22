@@ -205,95 +205,63 @@ Item {
             gradesPage.pendingGrades  = ({})
             gradesPage.pendingVersion++
         }
-        function onBulletinDataLoaded(data) {
-            console.log("[Bulletin] onBulletinDataLoaded: matieres="
-                + (data.matieres ? data.matieres.length : "null"))
+        function onBulletinDocxDataLoaded(data) {
             var st = gradesPage._currentBulletinStudent
-            if (!st) {
-                console.log("[Bulletin] ERROR: _currentBulletinStudent is null, aborting")
-                return
-            }
-            console.log("[Bulletin] Processing student id=" + st.id + " nom=" + st.nom)
+            if (!st) { console.log("[Bulletin] ERROR: _currentBulletinStudent is null"); return }
 
-            // Retrouve le nom de la classe
+            // Classe nom
             var classeNomBul = gradesPage.selClasseNom
-            var classeIdBul  = gradesPage._bulletinClasseId
-            if (classeIdBul >= 0) {
-                var cls = schoolingController.classes
-                for (var i = 0; i < cls.length; i++) {
-                    if (cls[i].id === classeIdBul) { classeNomBul = cls[i].nom; break }
-                }
+            var cls = schoolingController.classes
+            for (var i = 0; i < cls.length; i++) {
+                if (cls[i].id === gradesPage._bulletinClasseId) { classeNomBul = cls[i].nom; break }
             }
 
-            // Retrouve le niveau
+            // Niveau nom
             var niveauNomBul = gradesPage.selNiveauNom
             var niveaux = schoolingController.niveauxGlobal.length > 0
                           ? schoolingController.niveauxGlobal : schoolingController.niveaux
-            if (st.niveauId !== undefined && st.niveauId >= 0) {
-                for (var j = 0; j < niveaux.length; j++) {
-                    if (niveaux[j].id === st.niveauId) { niveauNomBul = niveaux[j].nom; break }
-                }
+            for (var j = 0; j < niveaux.length; j++) {
+                if (niveaux[j].id === st.niveauId) { niveauNomBul = niveaux[j].nom; break }
             }
 
-            // Enrich matière names + inject association data for PDF header
-            var dataCopy = JSON.parse(JSON.stringify(data))
-            var allM = schoolingController.allMatieres
-            var mats = dataCopy.matieres || []
-            for (var k = 0; k < mats.length; k++) {
-                for (var m = 0; m < allM.length; m++) {
-                    if (allM[m].id === mats[k].matiereId) { mats[k].nom = allM[m].nom; break }
-                }
+            // Année scolaire libelle
+            var annee = gradesPage.selAnneeScolaire
+            var sYears = studentController.schoolYears
+            for (var yi = 0; yi < sYears.length; yi++) {
+                if (sYears[yi].id === gradesPage._bulletinAnneeId) { annee = sYears[yi].libelle; break }
             }
-            dataCopy.matieres = mats
-            var assoc = setupController.associationData
-            dataCopy.associationNom     = assoc.nomAssociation || "Ez-Zaytouna"
-            dataCopy.associationAdresse = assoc.adresse || ""
 
-            var stName  = (st.prenom || "") + " " + (st.nom || "")
-            var stMatr  = st.matricule || ("N°" + st.id)
-            // Use selected year's libelle from schoolYears; fallback to date-derived value
-            var annee   = gradesPage.selAnneeScolaire
-            var bAnneeId = gradesPage._bulletinAnneeId
-            if (bAnneeId >= 0) {
-                var sYears = studentController.schoolYears
-                for (var yi = 0; yi < sYears.length; yi++) {
-                    if (sYears[yi].id === bAnneeId) { annee = sYears[yi].libelle; break }
-                }
-            }
+            var stName = (st.prenom || "") + " " + (st.nom || "")
+            var stMatr = st.matricule || ("N°" + st.id)
+            var estFeminin = (st.sexe === "F" || st.sexe === "Féminin")
 
             if (gradesPage._bulletinAllStudents && gradesPage._bulletinQueue.length > 0) {
-                // Batch mode: compute unique filename per student then auto-export
-                var ext  = gradesPage._bulletinCsvMode ? ".csv" : ".pdf"
+                // Batch mode — auto file name
                 var safeYear = annee.replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_')
                 var safeName = stName.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '-').trim()
                 if (!safeName || safeName === "-") safeName = stMatr.replace(/[\/\\:*?"<>|]/g, '').trim() || "eleve"
-                var batchTargetPath = gradesPage._bulletinTargetFolder.length > 0
-                    ? gradesPage._bulletinTargetFolder + "/" + "bulletin_" + safeYear + "_" + safeName + ext
-                    : ""  // fallback: C++ picks Documents/bulletin_{year}_{name}.ext
+                var batchPath = gradesPage._bulletinTargetFolder.length > 0
+                    ? gradesPage._bulletinTargetFolder + "/bulletin_" + safeYear + "_" + safeName + "_S" + gradesPage._bulletinSemestre + ".docx"
+                    : ""
 
-                var exportedPath = ""
-                if (gradesPage._bulletinCsvMode) {
-                    exportedPath = gradesController.exportBulletinCsv(dataCopy, stName, niveauNomBul, classeNomBul, annee, batchTargetPath)
-                } else {
-                    exportedPath = gradesController.exportBulletinPdf(dataCopy, stName, stMatr, niveauNomBul, classeNomBul, annee, batchTargetPath)
-                }
+                var exported = gradesController.exportBulletinDocx(
+                    data, stName, stMatr, niveauNomBul, classeNomBul, annee,
+                    gradesPage._bulletinPresident, estFeminin, gradesPage._bulletinSemestre, batchPath)
+
                 console.log("[Bulletin] Exported [" + (gradesPage._bulletinQueueIdx + 1)
-                    + "/" + gradesPage._bulletinQueue.length + "]: " + exportedPath)
-                if (exportedPath.length > 0) gradesPage._lastExportedPath = exportedPath
+                    + "/" + gradesPage._bulletinQueue.length + "]: " + exported)
+                if (exported.length > 0) gradesPage._lastExportedPath = exported
 
-                // Advance queue
                 gradesPage._bulletinQueueIdx++
                 if (gradesPage._bulletinQueueIdx < gradesPage._bulletinQueue.length) {
                     var nextSt = gradesPage._bulletinQueue[gradesPage._bulletinQueueIdx]
                     gradesPage._currentBulletinStudent = nextSt
-                    gradesController.loadBulletinData(nextSt.id, gradesPage._bulletinClasseId, gradesPage._bulletinAnneeId)
+                    gradesController.loadBulletinDocxData(nextSt.id, gradesPage._bulletinClasseId,
+                        gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
                 } else {
-                    // All done — open the export folder so user can see the files
-                    console.log("[Bulletin] Batch DONE. Total: " + gradesPage._bulletinQueue.length
-                        + " bulletins. Last file: " + gradesPage._lastExportedPath)
                     var lastPath = gradesPage._lastExportedPath
                     if (lastPath.length > 0) {
-                        var folderPath = lastPath.substring(0, lastPath.lastIndexOf("/"))
+                        var folderPath = lastPath.substring(0, Math.max(lastPath.lastIndexOf("/"), lastPath.lastIndexOf("\\")))
                         Qt.openUrlExternally("file:///" + folderPath)
                     }
                     gradesPage._bulletinQueue    = []
@@ -301,15 +269,12 @@ Item {
                     gradesPage._lastExportedPath = ""
                 }
             } else {
-                // Single student — show preview
-                bulletinPreviewPopup.bulletinData     = dataCopy
-                bulletinPreviewPopup.studentName      = stName
-                bulletinPreviewPopup.studentMatricule = stMatr
-                bulletinPreviewPopup.niveauNom        = niveauNomBul
-                bulletinPreviewPopup.classeNom        = classeNomBul
-                bulletinPreviewPopup.anneeScolaire    = annee
-                bulletinPreviewPopup.eleveId          = st.id
-                bulletinPreviewPopup.open()
+                // Single student — export directly to chosen file
+                var singlePath = gradesPage._bulletinTargetFolder  // set to chosen file path
+                var result = gradesController.exportBulletinDocx(
+                    data, stName, stMatr, niveauNomBul, classeNomBul, annee,
+                    gradesPage._bulletinPresident, estFeminin, gradesPage._bulletinSemestre, singlePath)
+                if (result.length > 0) Qt.openUrlExternally("file:///" + result)
             }
         }
     }
@@ -1060,23 +1025,19 @@ Item {
     BulletinConfigPopup {
         id: bulletinConfigPopup
 
-        onBulletinRequested: function(eleveId, classeId, allStudents, csvMode, anneeId, targetFolder) {
+        onBulletinRequested: function(eleveId, classeId, allStudents, semestre, anneeId, targetPath, president) {
             console.log("[Bulletin] bulletinRequested: eleveId=" + eleveId
-                + " classeId=" + classeId + " allStudents=" + allStudents
-                + " csvMode=" + csvMode + " anneeId=" + anneeId
-                + " targetFolder=" + targetFolder)
+                + " allStudents=" + allStudents + " semestre=" + semestre
+                + " anneeId=" + anneeId + " targetPath=" + targetPath)
 
             gradesPage._bulletinAllStudents  = allStudents
             gradesPage._bulletinClasseId     = classeId
             gradesPage._bulletinAnneeId      = anneeId || -1
-            gradesPage._bulletinCsvMode      = csvMode || false
-            gradesPage._bulletinTargetFolder = targetFolder || ""
+            gradesPage._bulletinSemestre     = semestre || 1
+            gradesPage._bulletinTargetFolder = targetPath || ""
+            gradesPage._bulletinPresident    = president || ""
 
-            schoolingController.loadAllMatieres()
-
-            // Use studentsForBulletin (loaded by BulletinConfigPopup when classe was selected)
             var classStudents = studentController.studentsForBulletin
-            console.log("[Bulletin] classStudents.length=" + classStudents.length)
 
             if (allStudents) {
                 if (classStudents.length === 0) {
@@ -1088,47 +1049,37 @@ Item {
                 gradesPage._lastExportedPath = ""
                 var s = classStudents[0]
                 gradesPage._currentBulletinStudent = s
-                console.log("[Bulletin] Batch start, first student: id=" + s.id + " nom=" + s.nom)
-                gradesController.loadBulletinData(s.id, classeId, gradesPage._bulletinAnneeId)
+                gradesController.loadBulletinDocxData(s.id, classeId, gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
             } else {
-                // Find the specific student in studentsForBulletin (correct classeId for the year)
                 var found = null
                 for (var j = 0; j < classStudents.length; j++) {
                     if (classStudents[j].id === eleveId) { found = classStudents[j]; break }
                 }
-                // Fallback: search global students list
                 if (!found) {
                     var st = studentController.students
                     for (var k = 0; k < st.length; k++) {
                         if (st[k].id === eleveId) { found = st[k]; break }
                     }
                 }
-                if (!found) {
-                    console.log("[Bulletin] ERROR: student id=" + eleveId + " not found")
-                    return
-                }
+                if (!found) { console.log("[Bulletin] ERROR: student id=" + eleveId + " not found"); return }
                 gradesPage._currentBulletinStudent = found
                 gradesPage._bulletinQueue    = []
                 gradesPage._bulletinQueueIdx = 0
-                console.log("[Bulletin] Single student: id=" + found.id + " nom=" + found.nom)
-                gradesController.loadBulletinData(eleveId, classeId, gradesPage._bulletinAnneeId)
+                gradesController.loadBulletinDocxData(eleveId, classeId, gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
             }
             bulletinConfigPopup.close()
         }
-    }
-
-    BulletinPreviewPopup {
-        id: bulletinPreviewPopup
     }
 
     // Propriétés internes pour la gestion de file d'attente
     property var    _bulletinQueue:           []
     property int    _bulletinQueueIdx:        0
     property bool   _bulletinAllStudents:     false
-    property bool   _bulletinCsvMode:         false
+    property int    _bulletinSemestre:        1
     property int    _bulletinClasseId:        -1
     property int    _bulletinAnneeId:         -1
     property string _bulletinTargetFolder:    ""
+    property string _bulletinPresident:       ""
     property var    _currentBulletinStudent:  null
     property string _lastExportedPath:        ""
 
