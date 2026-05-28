@@ -3,6 +3,16 @@
 Application de gestion scolaire complète pour l'association d'éducation culturelle (Ezzaytouna), développée en **Qt6/QML et C++23**.  
 Gestion intégrée des élèves, cours, séances, personnel, examens, notes et finances avec base de données SQLite.
 
+## 📸 Aperçu
+
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/ac0f84fc-b7c8-4ae6-9e90-e38b8adb5711" />
+
+<img width="1910" height="1079" alt="image" src="https://github.com/user-attachments/assets/f2b1231a-3346-4ba2-a5dc-970c2adf60e1" />
+
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/1cb2b3ff-c258-496c-a0fe-fab6f839e982" />
+
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/43637cef-c251-45cf-93dc-473f2f0ad68d" />
+
 ## 🎯 Fonctionnalités
 
 - 👥 **Gestion des Élèves** : Annuaire, dossiers, fiche détaillée, inscriptions
@@ -62,7 +72,7 @@ qml_project/
 │   │   ├── isetup_repository.h
 │   │   └── iyear_closure_repository.h
 │   │
-│   ├── repositories/sqlite/            # Implémentations SQLite (15 paires h/cpp)
+│   ├── repositories/sqlite/            # Implémentations SQLite (12 paires h/cpp)
 │   │   ├── sqlite_salle_repository.*
 │   │   ├── sqlite_eleve_repository.*
 │   │   ├── sqlite_niveau_repository.*
@@ -85,7 +95,7 @@ qml_project/
 │   │   ├── finance_service.h/cpp       # Finances & Paiements
 │   │   └── dashboard_service.h/cpp     # Statistiques
 │   │
-│   ├── controllers/                    # Contrôleurs exposés à QML (10)
+│   ├── controllers/                    # Contrôleurs exposés à QML (11)
 │   │   ├── setup_controller.h/cpp      # Assistant configuration initiale
 │   │   ├── schooling_controller.h/cpp  # Scolarité
 │   │   ├── student_controller.h/cpp    # Élèves
@@ -108,7 +118,7 @@ qml_project/
 ├── qml/                                # INTERFACE UTILISATEUR (~90 fichiers QML)
 │   ├── main.qml                        # Fenêtre principale (app shell)
 │   │
-│   ├── components/                     # Composants réutilisables (67 QML)
+│   ├── components/                     # Composants réutilisables (71 QML)
 │   │   ├── CMakeLists.txt
 │   │   ├── Style.qml                   # Design system (palette, typos, rayons)
 │   │   │
@@ -202,7 +212,7 @@ qml_project/
 │   │       ├── StudentDeleteModal.qml
 │   │       └── EnrollmentEditModal.qml
 │   │
-│   └── pages/                          # Pages application (22 QML)
+│   └── pages/                          # Pages application (21 QML)
 │       ├── CMakeLists.txt
 │       ├── DashboardPage.qml           # Tableau de bord principal
 │       ├── SchoolingPage.qml           # Gestion scolarité
@@ -226,7 +236,7 @@ qml_project/
 │       ├── FinanceProjectModal.qml     # Projets/budgets
 │       └── FinanceExportsTab.qml       # Exports rapports
 │
-├── qml/icons/                          # Icônes SVG (69 fichiers)
+├── qml/icons/                          # Icônes SVG (68 fichiers)
 │   ├── alert.svg, bell.svg, book.svg, building.svg, calculator.svg
 │   ├── calendar.svg, check.svg, chevron-down/left/right/up.svg
 │   ├── clipboard.svg, clipboard-check.svg, clock.svg, close.svg
@@ -285,19 +295,19 @@ qml_project/
 
 | Catégorie | Nombre |
 |-----------|--------|
-| Fichiers C++ (.cpp) | 29 |
-| Headers C++ (.h) | 48 |
-| Composants QML | 67 |
-| Pages QML | 22 |
+| Fichiers C++ (.cpp) | 35 |
+| Headers C++ (.h) | 56 |
+| Composants QML | 71 |
+| Pages QML | 21 |
 | Modèles de données | 8 |
 | Interfaces Repositories | 12 |
-| Implémentations SQLite | 15 |
+| Implémentations SQLite | 12 |
 | Services métier | 7 |
-| Contrôleurs exposés | 10 |
-| Icônes SVG | 69 |
+| Contrôleurs exposés | 11 |
+| Icônes SVG | 68 |
 | Polices TTF | 5 |
 | Templates DOCX | 2 |
-| **Total fichiers source** | **~150+** |
+| **Total fichiers source** | **~170+** |
 | **Total projet (incl. dépendances)** | **~400+** |
 
 ### Architecture en couches
@@ -305,9 +315,9 @@ qml_project/
 ```
 ┌──────────────────────────────────────────────────┐
 │         QML UI (Pages & Components)              │ Interface
-│  • 1 App shell + 22 Pages + 67 Composants        │ Utilisateur
+│  • 1 App shell + 21 Pages + 71 Composants        │ Utilisateur
 ├──────────────────────────────────────────────────┤
-│       Controllers (10 exposés à QML)             │ Logique
+│       Controllers (11 exposés à QML)             │ Logique
 │  • Setup, Schooling, Student, Staff, Attendance │ Métier
 │  • Exams, Grades, Finance, Dashboard, Backup    │ Exposée
 ├──────────────────────────────────────────────────┤
@@ -315,7 +325,7 @@ qml_project/
 │  • Schooling, Student, Staff, Attendance, etc   │ Métier
 │  • DocxGenerator pour bulletins                  │ (Traitements)
 ├──────────────────────────────────────────────────┤
-│   Repositories (12 interfaces + 15 impls)        │ Abstraction
+│   Repositories (12 interfaces + 12 impls)        │ Abstraction
 │  • SQLite Pattern DAO                            │ Données
 ├──────────────────────────────────────────────────┤
 │      Database Manager & Worker (SQLite)          │ Couche BD
@@ -330,15 +340,15 @@ qml_project/
 | **GS_Core** | Lib statique | Modèles, repositories, gestion BD |
 | **GS_Services** | Lib statique | Services, contrôleurs, générateurs |
 | **GestionScolaire** | Exécutable | Fenêtre principale + app shell |
-| **GestionScolaire_Components** | QML Module DLL | 67 composants UI |
-| **GestionScolaire_Pages** | QML Module DLL | 22 pages application |
+| **GestionScolaire_Components** | QML Module DLL | 71 composants UI |
+| **GestionScolaire_Pages** | QML Module DLL | 21 pages application |
 | **DatabaseManager** | Service C++ | Initialisation & lifecycle SQLite |
 | **DatabaseWorker** | Worker thread | Exécution asynchrone requêtes |
 | **DocxGenerator** | Utilitaire C++ | Génération bulletins DOCX |
 
 ### Patterns de Conception
 
-- **Repository Pattern** : 12 interfaces + 15 impl. SQLite
+- **Repository Pattern** : 12 interfaces + 12 impl. SQLite
 - **Service Layer** : 7 services métier
 - **MVC** : Controllers → QML
 - **Observer** : QML property bindings
