@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 AppCard {
@@ -29,6 +29,7 @@ AppCard {
     EnrollmentEditModal {
         id: editEnrollmentModal
         niveaux: schoolingController.niveaux
+        classes: schoolingController.allClasses
     }
 
     Connections {
@@ -60,7 +61,7 @@ AppCard {
 
     // ── Computed — tarif helper ──────────────────────────────────────────────
     function tarifForCategorie(categorie) {
-        if (!setupController.activeTarifs) return categorie === "Adulte" ? 250.0 : 150.0
+        if (!setupController.activeTarifs) return categorie === "Adulte" ? 20.0 : 10.0
         return categorie === "Adulte"
                ? setupController.activeTarifs.tarifAdulte
                : setupController.activeTarifs.tarifJeune
@@ -84,7 +85,7 @@ AppCard {
             }
             for (var j = 0; j < _students.length; j++) {
                 var s = _students[j]
-                if (!s.classeId || s.classeId <= 0) continue
+                if (!s.inscritAnneeActive) continue
                 var montantDu    = tarifForCategorie(s.categorie)
                 var montantPaye  = payMap[s.id] || 0
                 var montantReste = Math.max(0, montantDu - montantPaye)
@@ -172,7 +173,7 @@ AppCard {
                 color: tab.viewMode === "mensuel" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "mensuel" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "MENSUALITÉS"
+                    anchors.centerIn: parent; text: qsTr("MENSUALITÉS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "mensuel" ? "white" : Style.textSecondary
                 }
@@ -186,7 +187,7 @@ AppCard {
                 color: tab.viewMode === "inscription" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "inscription" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "INSCRIPTIONS"
+                    anchors.centerIn: parent; text: qsTr("INSCRIPTIONS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "inscription" ? "white" : Style.textSecondary
                 }
@@ -209,24 +210,24 @@ AppCard {
             RowLayout {
                 anchors.fill: parent; anchors.margins: 16; spacing: 0
                 Column { Layout.fillWidth: true; spacing: 3
-                    Text { text: "EN ATTENTE"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.errorColor }
+                    Text { text: qsTr("EN ATTENTE"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.errorColor }
                     Text { text: tab.allStats.pending; font.pixelSize: 22; font.weight: Font.Black; color: Style.errorColor }
                 }
                 Rectangle { width: 1; height: 36; color: Style.borderLight; visible: tab.viewMode === "mensuel" }
                 Column { Layout.fillWidth: true; spacing: 3; leftPadding: 16; visible: tab.viewMode === "mensuel"
-                    Text { text: "PARTIEL"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.warningColor }
+                    Text { text: qsTr("PARTIEL"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.warningColor }
                     Text { text: tab.allStats.partial; font.pixelSize: 22; font.weight: Font.Black; color: Style.warningColor }
                 }
                 Rectangle { width: 1; height: 36; color: Style.borderLight }
                 Column { Layout.fillWidth: true; spacing: 3; leftPadding: 16
-                    Text { text: "PAYÉS"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.successColor }
+                    Text { text: qsTr("PAYÉS"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.successColor }
                     Text { text: tab.allStats.paid; font.pixelSize: 22; font.weight: Font.Black; color: Style.successColor }
                 }
                 Rectangle { width: 1; height: 36; color: Style.borderLight }
                 Column { Layout.preferredWidth: 220; spacing: 6; leftPadding: 16
                     RowLayout {
                         width: parent.width - 16; spacing: 4
-                        Text { Layout.fillWidth: true; text: "COLLECTÉ"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
+                        Text { Layout.fillWidth: true; text: qsTr("COLLECTÉ"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
                         Text {
                             text: tab.allStats.totalPaye.toFixed(0) + " / " + tab.allStats.totalDu.toFixed(0) + " DT"
                             font.pixelSize: 9; font.weight: Font.Black; color: Style.textSecondary
@@ -253,14 +254,14 @@ AppCard {
             spacing: 8; visible: tab.isInActiveYear
             Repeater {
                 model: tab.viewMode === "mensuel" ? [
-                    { key: "all",     label: "Tous (" + tab.allRows.length + ")" },
-                    { key: "pending", label: "En attente (" + tab.allStats.pending + ")" },
-                    { key: "partial", label: "Partiel (" + tab.allStats.partial + ")"    },
-                    { key: "paid",    label: "Payés (" + tab.allStats.paid + ")"         }
+                    { key: "all",     label: qsTr("Tous (") + tab.allRows.length + ")" },
+                    { key: "pending", label: qsTr("En attente (") + tab.allStats.pending + ")" },
+                    { key: "partial", label: qsTr("Partiel (") + tab.allStats.partial + ")"    },
+                    { key: "paid",    label: qsTr("Payés (") + tab.allStats.paid + ")"         }
                 ] : [
-                    { key: "all",     label: "Tous (" + tab.allRows.length + ")" },
-                    { key: "pending", label: "En attente (" + tab.allStats.pending + ")" },
-                    { key: "paid",    label: "Payés (" + tab.allStats.paid + ")"         }
+                    { key: "all",     label: qsTr("Tous (") + tab.allRows.length + ")" },
+                    { key: "pending", label: qsTr("En attente (") + tab.allStats.pending + ")" },
+                    { key: "paid",    label: qsTr("Payés (") + tab.allStats.paid + ")"         }
                 ]
                 delegate: Rectangle {
                     property bool active: tab.statusFilter === modelData.key
@@ -278,7 +279,7 @@ AppCard {
 
         // ── Loading / empty / out-of-range states ────────────────────────────
         Item { width: parent.width; height: 48; visible: financeController.loading || studentController.loading
-            Text { anchors.centerIn: parent; text: "Chargement…"; font.pixelSize: 13; color: Style.textTertiary } }
+            Text { anchors.centerIn: parent; text: qsTr("Chargement…"); font.pixelSize: 13; color: Style.textTertiary } }
 
         // Hors de l'année scolaire active
         Column { width: parent.width; spacing: 8
@@ -289,7 +290,7 @@ AppCard {
                 IconLabel { anchors.centerIn: parent; iconName: "calendar"; iconSize: 24; iconColor: Style.textTertiary } }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Hors de l'année scolaire active"
+                text: qsTr("Hors de l'année scolaire active")
                 font.pixelSize: 13; font.weight: Font.Medium; color: Style.textTertiary
             }
             Text {
@@ -321,12 +322,12 @@ AppCard {
 
         // ── Table header ─────────────────────────────────────────────────────
         RowLayout { width: parent.width; height: 36; visible: tab.isInActiveYear && tab.filteredRows.length > 0; spacing: 0
-            SectionLabel { Layout.fillWidth: true; Layout.rightMargin: 16; text: "ÉLÈVE" }
+            SectionLabel { Layout.fillWidth: true; Layout.rightMargin: 16; text: qsTr("ÉLÈVE") }
             SectionLabel { Layout.preferredWidth: 100; text: tab.viewMode === "mensuel" ? "MENSUALITÉ" : "FRAIS INSCR.";  horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 88;  text: "PAYÉ";        horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 88;  text: "RESTE";       horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 100; text: "STATUT";      horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: 80;  text: "ACTION";      horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 88;  text: qsTr("PAYÉ");        horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 88;  text: qsTr("RESTE");       horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 100; text: qsTr("STATUT");      horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: 80;  text: qsTr("ACTION");      horizontalAlignment: Text.AlignHCenter }
         }
         Separator { width: parent.width; visible: tab.isInActiveYear && tab.filteredRows.length > 0 }
 
@@ -430,17 +431,17 @@ AppCard {
             Rectangle { width: 32; height: 32; radius: 8
                 color: pagePrevMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight; opacity: tab.currentPage === 0 ? 0.4 : 1.0
-                Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                 MouseArea { id: pagePrevMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: if (tab.currentPage > 0) tab.currentPage-- }
             }
-            Text { text: "Page " + (tab.currentPage + 1) + " / " + tab.currentPageCount
+            Text { text: qsTr("Page ") + (tab.currentPage + 1) + " / " + tab.currentPageCount
                         + "  ·  " + tab.filteredRows.length + " élève(s)"
                    font.pixelSize: 11; font.weight: Font.Bold; color: Style.textSecondary }
             Rectangle { width: 32; height: 32; radius: 8
                 color: pageNextMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight; opacity: tab.currentPage >= tab.currentPageCount - 1 ? 0.4 : 1.0
-                Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                 MouseArea { id: pageNextMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: if (tab.currentPage < tab.currentPageCount - 1) tab.currentPage++ }
             }

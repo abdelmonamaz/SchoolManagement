@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 RowLayout {
@@ -77,7 +77,7 @@ RowLayout {
     function sessionTypeColor(type) {
         if (type === "Examen") return Style.errorColor
         if (type === "Événement") return Style.warningColor
-        return "#374151"
+        return Style.foreground
     }
 
     function navigateMonth(delta) {
@@ -125,7 +125,7 @@ RowLayout {
                 spacing: 12
 
                 Text {
-                    text: "Calendrier Mensuel"
+                    text: qsTr("Calendrier Mensuel")
                     font.pixelSize: 18
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -137,7 +137,7 @@ RowLayout {
                     color: calPrevMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("‹"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                     MouseArea {
                         id: calPrevMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(-1)
@@ -147,7 +147,7 @@ RowLayout {
                 // Pill mois + année (cliquable → MonthYearSelector)
                 Rectangle {
                     id: calPillRect
-                    implicitWidth: calPillRow.implicitWidth + 20
+                    implicitWidth: 155
                     height: 32; radius: 10
                     color: calMonthPicker.show ? Style.bgPage : Style.bgWhite
                     border.color: calMonthPicker.show ? Style.primary : Style.borderLight
@@ -159,8 +159,8 @@ RowLayout {
                         IconLabel { iconName: "calendar"; iconSize: 12; iconColor: Style.primary }
                         Text {
                             text: {
-                                var months = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                                              "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+                                var months = [qsTr("Janvier"),qsTr("Février"),qsTr("Mars"),qsTr("Avril"),qsTr("Mai"),qsTr("Juin"),
+                                              qsTr("Juillet"),qsTr("Août"),qsTr("Septembre"),qsTr("Octobre"),qsTr("Novembre"),qsTr("Décembre")]
                                 return months[root.selectedMonth] + " " + root.selectedYear
                             }
                             font.pixelSize: 9; font.weight: Font.Black
@@ -188,7 +188,7 @@ RowLayout {
                     color: calNextMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
+                    Text { anchors.centerIn: parent; text: qsTr("›"); font.pixelSize: 16; font.bold: true; color: Style.textSecondary }
                     MouseArea {
                         id: calNextMa; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: navigateMonth(1)
@@ -201,9 +201,9 @@ RowLayout {
                     spacing: 16
                     Repeater {
                         model: [
-                            { label: "COURS", clr: "#374151" },
-                            { label: "EXAMEN", clr: Style.errorColor },
-                            { label: "ÉVÈNEMENT", clr: Style.warningColor }
+                            { label: qsTr("COURS"), clr: Style.foreground },
+                            { label: qsTr("EXAMEN"), clr: Style.errorColor },
+                            { label: qsTr("ÉVÈNEMENT"), clr: Style.warningColor }
                         ]
                         Row {
                             spacing: 6
@@ -242,7 +242,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Tous les Niveaux", "id": -1}]
+                                var items = [{"nom": qsTr("Tous les Niveaux"), "id": -1}]
                                 var n = schoolingController.niveaux
                                 for (var i = 0; i < n.length; i++) items.push(n[i])
                                 return items
@@ -274,7 +274,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Toutes les Salles", "id": -1}]
+                                var items = [{"nom": qsTr("Toutes les Salles"), "id": -1}]
                                 var s = schoolingController.salles
                                 for (var i = 0; i < s.length; i++) items.push(s[i])
                                 return items
@@ -306,7 +306,7 @@ RowLayout {
                         ComboBox {
                             Layout.fillWidth: true; Layout.fillHeight: true
                             model: {
-                                var items = [{"nom": "Tous les Professeurs", "id": -1}]
+                                var items = [{"nom": qsTr("Tous les Professeurs"), "id": -1}]
                                 var p = staffController.enseignants
                                 for (var i = 0; i < p.length; i++) items.push(p[i])
                                 return items
@@ -332,7 +332,7 @@ RowLayout {
                 columnSpacing: 8
 
                 Repeater {
-                    model: ["LUN","MAR","MER","JEU","VEN","SAM","DIM"]
+                    model: [qsTr("LUN"),qsTr("MAR"),qsTr("MER"),qsTr("JEU"),qsTr("VEN"),qsTr("SAM"),qsTr("DIM")]
                     SectionLabel {
                         Layout.fillWidth: true
                         text: modelData
@@ -420,8 +420,8 @@ RowLayout {
 
                                 Row {
                                     spacing: 3; visible: coursCount > 0
-                                    Rectangle { width: 8; height: 8; radius: 4; color: "#374151"; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { text: coursCount.toString(); font.pixelSize: 9; font.weight: Font.Bold; color: "#374151"; anchors.verticalCenter: parent.verticalCenter }
+                                    Rectangle { width: 8; height: 8; radius: 4; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { text: coursCount.toString(); font.pixelSize: 9; font.weight: Font.Bold; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
                                 }
                                 Row {
                                     spacing: 3; visible: examCount > 0
@@ -490,7 +490,7 @@ RowLayout {
                 spacing: 4
 
                 Text {
-                    text: "Détails du Jour"
+                    text: qsTr("Détails du Jour")
                     font.pixelSize: 16; font.weight: Font.Black
                     color: Style.textPrimary
                 }
@@ -498,8 +498,8 @@ RowLayout {
                 Text {
                     text: {
                         if (root.selectedDay < 0) return "Cliquez sur un jour"
-                        var months = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                                      "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+                        var months = [qsTr("Janvier"),qsTr("Février"),qsTr("Mars"),qsTr("Avril"),qsTr("Mai"),qsTr("Juin"),
+                                      qsTr("Juillet"),qsTr("Août"),qsTr("Septembre"),qsTr("Octobre"),qsTr("Novembre"),qsTr("Décembre")]
                         return root.selectedDay + " " + months[root.selectedMonth] + " " + root.selectedYear
                     }
                     font.pixelSize: 13; font.weight: Font.Medium
@@ -526,7 +526,7 @@ RowLayout {
 
                 Text {
                     width: parent.width
-                    text: "Sélectionnez un jour dans\nle calendrier pour voir les détails"
+                    text: qsTr("Sélectionnez un jour dans\nle calendrier pour voir les détails")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter
@@ -564,7 +564,7 @@ RowLayout {
                 Item { width: 1; height: 20 }
                 Text {
                     width: parent.width
-                    text: "Aucune session ce jour"
+                    text: qsTr("Aucune session ce jour")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter

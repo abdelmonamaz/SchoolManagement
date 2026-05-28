@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Item {
@@ -14,7 +14,7 @@ Item {
     required property int deletingNiveauId
 
     signal createRequested(string nom)
-    signal editRequested(int id, string nom)
+    signal editRequested(int id, string nom, int parentLevelId, bool isFreestyle)
     signal deleteRequested(int id)
     signal closeRequested()
 
@@ -30,7 +30,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Nouveau Niveau"
+                text: qsTr("Nouveau Niveau")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -41,15 +41,15 @@ Item {
             FormField {
                 id: niveauNameField
                 width: parent.width - 64
-                label: "NOM DU NIVEAU"
-                placeholder: "ex: Niveau 1, Niveau 2, etc."
+                label: qsTr("NOM DU NIVEAU")
+                placeholder: qsTr("ex: Niveau 1, Niveau 2, etc.")
             }
 
             Item { width: 1; height: 24 }
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "CRÉER"
+                confirmText: qsTr("CRÉER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (niveauNameField.text.trim() !== "") {
@@ -78,7 +78,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Modifier le Niveau"
+                text: qsTr("Modifier le Niveau")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -89,19 +89,23 @@ Item {
             FormField {
                 id: editNiveauNameField
                 width: parent.width - 64
-                label: "NOM DU NIVEAU"
-                placeholder: "ex: Niveau 1, Niveau 2, etc."
+                label: qsTr("NOM DU NIVEAU")
+                placeholder: qsTr("ex: Niveau 1, Niveau 2, etc.")
             }
 
             Item { width: 1; height: 24 }
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "MODIFIER"
+                confirmText: qsTr("MODIFIER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (editNiveauNameField.text.trim() !== "" && root.editingNiveau.id > 0) {
-                        root.editRequested(root.editingNiveau.id, editNiveauNameField.text.trim())
+                        root.editRequested(
+                            root.editingNiveau.id,
+                            editNiveauNameField.text.trim(),
+                            root.editingNiveau.parentLevelId || 0,
+                            root.editingNiveau.isFreestyle || false)
                         editNiveauNameField.text = ""
                     }
                 }
@@ -135,7 +139,7 @@ Item {
             padding: 28
 
             Text {
-                text: "Supprimer le niveau ?"
+                text: qsTr("Supprimer le niveau ?")
                 font.pixelSize: 18
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -143,7 +147,7 @@ Item {
 
             Text {
                 width: parent.width - 56
-                text: "⚠️ Attention : Supprimer ce niveau supprimera également toutes les classes et matières associées."
+                text: qsTr("⚠️ Attention : Supprimer ce niveau supprimera également toutes les classes et matières associées.")
                 font.pixelSize: 13
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -162,7 +166,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -184,10 +188,10 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "SUPPRIMER"
+                        text: qsTr("SUPPRIMER")
                         font.pixelSize: 11
                         font.weight: Font.Black
-                        color: "#FFFFFF"
+                        color: Style.background
                         font.letterSpacing: 0.5
                     }
 

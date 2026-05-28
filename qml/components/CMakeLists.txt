@@ -24,6 +24,7 @@ qt_add_qml_module(GestionScolaire_Components
         ModalOverlay.qml
         FormField.qml
         DateField.qml
+        SemesterBoundRow.qml
         Separator.qml
         Avatar.qml
         SectionLabel.qml
@@ -57,10 +58,22 @@ qt_add_qml_module(GestionScolaire_Components
         students/EnrollmentEditModal.qml
         exams/PlanningView.qml
         exams/CalendarView.qml
+        exams/FormComboWithReset.qml
+        exams/EpreuvePickerSection.qml
+        exams/SessionSubmitSection.qml
         exams/SessionFormModal.qml
         exams/SessionDetailModal.qml
         BulletinConfigPopup.qml
         BulletinPreviewPopup.qml
         SetupWizardModal.qml
         YearClosureModal.qml
+        ExportDocCard.qml
+        setup/SetupStep1Association.qml
+        setup/SetupStep2Niveaux.qml
+        setup/SetupStep3AnneeScolaire.qml
+        closure/ClosureStep1Stats.qml
+        closure/ClosureStep2Progressions.qml
+        closure/ClosureStep3Archivage.qml
+        closure/ClosureStep4Rapports.qml
+        closure/ClosureStep5Confirmation.qml
 )

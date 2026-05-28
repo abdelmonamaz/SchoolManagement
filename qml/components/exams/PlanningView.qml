@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 RowLayout {
@@ -24,6 +24,9 @@ RowLayout {
         return result
     }
 
+    readonly property var shortMonths: [qsTr("Jan"), qsTr("Fév"), qsTr("Mar"), qsTr("Avr"), qsTr("Mai"),
+                                        qsTr("Jun"), qsTr("Jul"), qsTr("Aoû"), qsTr("Sep"), qsTr("Oct"), qsTr("Nov"), qsTr("Déc")]
+
     // Calcule le lundi et dimanche de la semaine ISO sélectionnée
     readonly property string weekDateRange: {
         var jan4    = new Date(root.selectedWeekYear, 0, 4)
@@ -32,7 +35,7 @@ RowLayout {
         var mon     = new Date(week1Mon.getTime() + (root.selectedWeek - 1) * 7 * 86400000)
         var sun     = new Date(mon.getTime() + 6 * 86400000)
 
-        var months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"]
+        var months = root.shortMonths
         function fmt(d) {
             return (d.getDate() < 10 ? "0" : "") + d.getDate() + " " + months[d.getMonth()]
         }
@@ -44,8 +47,8 @@ RowLayout {
     AppCard {
         Layout.fillWidth: true
         Layout.preferredWidth: 3
-        title: "Planning Hebdomadaire"
-        subtitle: "Visualisation des assignations actives  ·  " + root.weekDateRange
+        title: qsTr("Planning Hebdomadaire")
+        subtitle: qsTr("Visualisation des assignations actives  ·  ") + root.weekDateRange
 
         headerAction: Component {
             Row {
@@ -59,7 +62,7 @@ RowLayout {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "‹"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("‹"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -83,7 +86,7 @@ RowLayout {
                         anchors.centerIn: parent; spacing: 6
                         IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
                         Text {
-                            text: "S" + root.selectedWeek + " / " + root.selectedWeekYear
+                            text: qsTr("S") + root.selectedWeek + " / " + root.selectedWeekYear
                             font.pixelSize: 10; font.weight: Font.Black
                             color: Style.textPrimary; font.letterSpacing: 0.5
                         }
@@ -105,7 +108,7 @@ RowLayout {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "›"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("›"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -136,12 +139,12 @@ RowLayout {
 
                     Rectangle {
                         width: 10; height: 10; radius: 5
-                        color: "#374151"
+                        color: Style.foreground
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     Text {
-                        text: "COURS"
+                        text: qsTr("COURS")
                         font.pixelSize: 11; font.weight: Font.Black
                         color: Style.textPrimary; font.letterSpacing: 1
                     }
@@ -167,11 +170,11 @@ RowLayout {
                     height: 40
                     spacing: 0
 
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "JOUR / HEURE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "MATIÈRE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "PROFESSEUR"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "CLASSE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "SALLE"; horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("JOUR / HEURE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("MATIÈRE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("PROFESSEUR"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("CLASSE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("SALLE"); horizontalAlignment: Text.AlignHCenter }
                     SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.4; text: ""; horizontalAlignment: Text.AlignHCenter }
                 }
 
@@ -180,7 +183,7 @@ RowLayout {
                 Text {
                     visible: coursRepeater.count === 0 && !examsController.loading
                     width: parent.width; height: 50
-                    text: "Aucun cours cette semaine"
+                    text: qsTr("Aucun cours cette semaine")
                     font.pixelSize: 12; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
@@ -293,7 +296,7 @@ RowLayout {
                     }
 
                     Text {
-                        text: "EXAMENS"
+                        text: qsTr("EXAMENS")
                         font.pixelSize: 11; font.weight: Font.Black
                         color: Style.textPrimary; font.letterSpacing: 1
                     }
@@ -319,11 +322,11 @@ RowLayout {
                     height: 40
                     spacing: 0
 
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "JOUR / HEURE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1.2; text: "TITRE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "MATIÈRE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.8; text: "CLASSE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.8; text: "SALLE"; horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("JOUR / HEURE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1.2; text: qsTr("TITRE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("MATIÈRE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.8; text: qsTr("CLASSE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.8; text: qsTr("SALLE"); horizontalAlignment: Text.AlignHCenter }
                     SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.4; text: ""; horizontalAlignment: Text.AlignHCenter }
                 }
 
@@ -332,7 +335,7 @@ RowLayout {
                 Text {
                     visible: examRepeater.count === 0 && !examsController.loading
                     width: parent.width; height: 50
-                    text: "Aucun examen cette semaine"
+                    text: qsTr("Aucun examen cette semaine")
                     font.pixelSize: 12; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
@@ -440,7 +443,7 @@ RowLayout {
                     }
 
                     Text {
-                        text: "ÉVÉNEMENTS"
+                        text: qsTr("ÉVÉNEMENTS")
                         font.pixelSize: 11; font.weight: Font.Black
                         color: Style.textPrimary; font.letterSpacing: 1
                     }
@@ -466,9 +469,9 @@ RowLayout {
                     height: 40
                     spacing: 0
 
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "JOUR / HEURE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1.5; text: "TITRE"; horizontalAlignment: Text.AlignHCenter }
-                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "SALLE"; horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("JOUR / HEURE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1.5; text: qsTr("TITRE"); horizontalAlignment: Text.AlignHCenter }
+                    SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 1; text: qsTr("SALLE"); horizontalAlignment: Text.AlignHCenter }
                     SectionLabel { Layout.fillWidth: true; Layout.preferredWidth: 0.4; text: ""; horizontalAlignment: Text.AlignHCenter }
                 }
 
@@ -477,7 +480,7 @@ RowLayout {
                 Text {
                     visible: eventRepeater.count === 0 && !examsController.loading
                     width: parent.width; height: 50
-                    text: "Aucun événement cette semaine"
+                    text: qsTr("Aucun événement cette semaine")
                     font.pixelSize: 12; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
@@ -588,7 +591,7 @@ RowLayout {
 
         AppCard {
             Layout.fillWidth: true
-            title: "Guide d'Organisation"
+            title: qsTr("Guide d'Organisation")
 
             Column {
                 width: parent.width
@@ -596,9 +599,9 @@ RowLayout {
 
                 Repeater {
                     model: [
-                        { num: "1", title: "CHOISIR LA MATIÈRE", desc: "Définissez le contenu pédagogique de la session." },
-                        { num: "2", title: "ASSIGNER LE PROFESSEUR", desc: "Sélectionnez l'expert qualifié pour cette matière." },
-                        { num: "3", title: "CIBLER LA CLASSE", desc: "Identifiez le groupe d'élèves bénéficiaire." }
+                        { num: "1", title: qsTr("CHOISIR LA MATIÈRE"), desc: "Définissez le contenu pédagogique de la session." },
+                        { num: "2", title: qsTr("ASSIGNER LE PROFESSEUR"), desc: "Sélectionnez l'expert qualifié pour cette matière." },
+                        { num: "3", title: qsTr("CIBLER LA CLASSE"), desc: "Identifiez le groupe d'élèves bénéficiaire." }
                     ]
 
                     delegate: RowLayout {
@@ -614,7 +617,7 @@ RowLayout {
                                 text: modelData.num
                                 font.pixelSize: 11
                                 font.weight: Font.Black
-                                color: "#FFFFFF"
+                                color: Style.background
                             }
                         }
 
@@ -669,7 +672,7 @@ RowLayout {
                     }
 
                     Text {
-                        text: "RAPPEL DE CONFLIT"
+                        text: qsTr("RAPPEL DE CONFLIT")
                         font.pixelSize: 10
                         font.weight: Font.Black
                         color: Style.warningColor
@@ -679,7 +682,7 @@ RowLayout {
 
                 Text {
                     width: parent.width
-                    text: "Le système vérifie automatiquement la disponibilité du professeur et de la salle lors de l'assignation."
+                    text: qsTr("Le système vérifie automatiquement la disponibilité du professeur et de la salle lors de l'assignation.")
                     font.pixelSize: 11
                     font.weight: Font.Medium
                     color: Style.warningColor

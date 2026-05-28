@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Popup {
@@ -35,6 +35,7 @@ Popup {
         editParentPhoneField.text = root.student.telParent || ""
         editCinEleveField.text = root.student.cinEleve || ""
         editCinParentField.text = root.student.cinParent || ""
+        editNiveauScolaireField.text = root.student.niveauScolaireEducatif || ""
         editCommentField.text = root.student.commentaire || ""
         editDateField.setDate(root.student.dateNaissance || "")
 
@@ -50,7 +51,7 @@ Popup {
     }
 
     background: Rectangle { radius: 32; color: Style.bgWhite }
-    Overlay.modal: Rectangle { color: "#0F172A99" }
+    Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
 
     contentItem: Column {
         width: root.width; spacing: 0
@@ -64,8 +65,8 @@ Popup {
                 anchors.fill: parent; anchors.margins: 24
                 Column {
                     Layout.fillWidth: true; spacing: 4
-                    Text { text: "Modifier le Profil"; font.pixelSize: 20; font.weight: Font.Black; color: Style.primary }
-                    Text { text: "IDENTITÉ ET INFORMATIONS PERMANENTES"; font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 1 }
+                    Text { text: qsTr("Modifier le Profil"); font.pixelSize: 20; font.weight: Font.Black; color: Style.primary }
+                    Text { text: qsTr("IDENTITÉ ET INFORMATIONS PERMANENTES"); font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 1 }
                 }
                 IconButton { iconName: "close"; iconSize: 18; onClicked: root.closeRequested() }
             }
@@ -86,8 +87,8 @@ Popup {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
-                    FormField { id: editNameField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "NOM"; nextTabItem: editPrenomField.inputItem }
-                    FormField { id: editPrenomField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "PRÉNOM"; nextTabItem: editDateField.inputItem; prevTabItem: editNameField.inputItem }
+                    FormField { id: editNameField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("NOM"); nextTabItem: editPrenomField.inputItem }
+                    FormField { id: editPrenomField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("PRÉNOM"); nextTabItem: editDateField.inputItem; prevTabItem: editNameField.inputItem }
                 }
 
                 RowLayout {
@@ -96,7 +97,7 @@ Popup {
                     Column {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
-                        spacing: 8; SectionLabel { text: "SEXE" }
+                        spacing: 8; SectionLabel { text: qsTr("SEXE") }
                         Row {
                             spacing: 16
                             Row {
@@ -107,7 +108,7 @@ Popup {
                                     border.width: root.selectedEditSexe === "M" ? 6 : 2
                                     MouseArea { anchors.fill: parent; onClicked: root.selectedEditSexe = "M" }
                                 }
-                                Text { text: "Masculin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                Text { text: qsTr("Masculin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                             }
                             Row {
                                 spacing: 8
@@ -117,7 +118,7 @@ Popup {
                                     border.width: root.selectedEditSexe === "F" ? 6 : 2
                                     MouseArea { anchors.fill: parent; onClicked: root.selectedEditSexe = "F" }
                                 }
-                                Text { text: "Féminin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                Text { text: qsTr("Féminin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                             }
                         }
                     }
@@ -128,7 +129,7 @@ Popup {
                         DateField {
                             id: editDateField
                             width: 240
-                            label: "DATE DE NAISSANCE"
+                            label: qsTr("DATE DE NAISSANCE")
                             nextTabItem: editPhoneField.inputItem
                             prevTabItem: editPrenomField.inputItem
                         }
@@ -138,28 +139,36 @@ Popup {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
-                    FormField { id: editPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "TÉLÉPHONE"; nextTabItem: editAddressField.inputItem; prevTabItem: editDateField.inputItem }
-                    FormField { id: editAddressField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "ADRESSE"; nextTabItem: editParentNameField.inputItem; prevTabItem: editPhoneField.inputItem }
+                    FormField { id: editPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("TÉLÉPHONE"); nextTabItem: editAddressField.inputItem; prevTabItem: editDateField.inputItem }
+                    FormField { id: editAddressField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("ADRESSE"); nextTabItem: editParentNameField.inputItem; prevTabItem: editPhoneField.inputItem }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
-                    FormField { id: editParentNameField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "NOM DU PARENT"; nextTabItem: editParentPhoneField.inputItem; prevTabItem: editAddressField.inputItem }
-                    FormField { id: editParentPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "TÉLÉPHONE PARENT"; nextTabItem: editCinEleveField.inputItem; prevTabItem: editParentNameField.inputItem }
+                    FormField { id: editParentNameField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("NOM DU PARENT"); nextTabItem: editParentPhoneField.inputItem; prevTabItem: editAddressField.inputItem }
+                    FormField { id: editParentPhoneField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("TÉLÉPHONE PARENT"); nextTabItem: editCinEleveField.inputItem; prevTabItem: editParentNameField.inputItem }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
-                    FormField { id: editCinEleveField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "CIN ÉLÈVE (optionnel)"; placeholder: "ex: 12345678"; nextTabItem: editCinParentField.inputItem; prevTabItem: editParentPhoneField.inputItem }
-                    FormField { id: editCinParentField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: "CIN PARENT (optionnel)"; placeholder: "ex: 12345678"; prevTabItem: editCinEleveField.inputItem }
+                    FormField { id: editCinEleveField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("CIN ÉLÈVE (optionnel)"); placeholder: qsTr("ex: 12345678"); nextTabItem: editCinParentField.inputItem; prevTabItem: editParentPhoneField.inputItem }
+                    FormField { id: editCinParentField; Layout.fillWidth: true; Layout.preferredWidth: 1; label: qsTr("CIN PARENT (optionnel)"); placeholder: qsTr("ex: 12345678"); prevTabItem: editCinEleveField.inputItem; nextTabItem: editNiveauScolaireField.inputItem }
+                }
+
+                FormField {
+                    id: editNiveauScolaireField
+                    Layout.fillWidth: true
+                    label: qsTr("NIVEAU SCOLAIRE ÉDUCATIF (optionnel)")
+                    placeholder: qsTr("ex: CE2, 6ème, 2ème lycée...")
+                    prevTabItem: editCinParentField.inputItem
                 }
 
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
-                    SectionLabel { text: "COMMENTAIRE / NOTES" }
+                    SectionLabel { text: qsTr("OBSERVATIONS / NOTES") }
                     Rectangle {
                         Layout.fillWidth: true
                         height: 80
@@ -180,9 +189,9 @@ Popup {
             Separator { anchors.top: parent.top; width: parent.width }
             RowLayout {
                 anchors.fill: parent; anchors.margins: 24; spacing: 12
-                OutlineButton { Layout.fillWidth: true; text: "ANNULER"; onClicked: root.closeRequested() }
+                OutlineButton { Layout.fillWidth: true; text: qsTr("ANNULER"); onClicked: root.closeRequested() }
                 PrimaryButton {
-                    Layout.fillWidth: true; text: "MODIFIER LES INFORMATIONS"
+                    Layout.fillWidth: true; text: qsTr("MODIFIER LES INFORMATIONS")
                     onClicked: root.updateRequested(root.student.id, {
                         nom: editNameField.text,
                         prenom: editPrenomField.text,
@@ -196,7 +205,8 @@ Popup {
                         categorie: editDateField.categorie,
                         classeId: root.selectedEditClasseId,
                         cinEleve: editCinEleveField.text,
-                        cinParent: editCinParentField.text
+                        cinParent: editCinParentField.text,
+                        niveauScolaireEducatif: editNiveauScolaireField.text
                     })
                 }
             }

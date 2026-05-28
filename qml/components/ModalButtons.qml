@@ -1,12 +1,12 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 // Paire de boutons pour les modaux (Annuler + Action).
 // Usage:
 //   ModalButtons {
 //       width: parent.width
-//       cancelText: "ANNULER"
-//       confirmText: "CRÉER"
+//       cancelText: qsTr("ANNULER")
+//       confirmText: qsTr("CRÉER")
 //       confirmColor: Style.primary
 //       onCancel: showMyModal = false
 //       onConfirm: { /* logique */ }
@@ -14,8 +14,8 @@ import QtQuick.Layouts 1.15
 RowLayout {
     id: root
 
-    property string cancelText: "ANNULER"
-    property string confirmText: "CONFIRMER"
+    property string cancelText: qsTr("ANNULER")
+    property string confirmText: qsTr("CONFIRMER")
     property color confirmColor: Style.primary
 
     signal cancel()
@@ -56,7 +56,7 @@ RowLayout {
             text: root.confirmText
             font.pixelSize: 10
             font.weight: Font.Black
-            color: "#FFFFFF"
+            color: Style.background
         }
 
         MouseArea {

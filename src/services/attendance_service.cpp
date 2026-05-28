@@ -2,20 +2,16 @@
 
 #include <algorithm>
 #include <QDebug>
-#include <QSqlDatabase>
-#include <QSqlQuery>
 
 #include "repositories/iseance_repository.h"
 #include "repositories/ieleve_repository.h"
 
 AttendanceService::AttendanceService(ISeanceRepository* seanceRepo,
                                      IParticipationRepository* participationRepo,
-                                     IEleveRepository* eleveRepo,
-                                     const QString& connectionName)
+                                     IEleveRepository* eleveRepo)
     : m_seanceRepo(seanceRepo)
     , m_participationRepo(participationRepo)
     , m_eleveRepo(eleveRepo)
-    , m_connectionName(connectionName)
 {
 }
 
@@ -31,66 +27,33 @@ Result<QList<Seance>> AttendanceService::getSeancesByClasse(int classeId)
 
 Result<int> AttendanceService::createSeance(const Seance& seance)
 {
-    if (seance.dureeMinutes <= 0) {
+    if (seance.dureeMinutes <= 0)
         return Result<int>::error("La duree de la seance doit etre superieure a zero.");
-    }
-    if (!seance.dateHeureDebut.isValid()) {
+    if (!seance.dateHeureDebut.isValid())
         return Result<int>::error("La date de la seance n'est pas valide.");
-    }
 
     // Check for conflicts
-    qDebug() << "createSeance: checking conflicts for profId=" << seance.profId
-             << "salleId=" << seance.salleId << "classeId=" << seance.classeId
-             << "date=" << seance.dateHeureDebut.toString(Qt::ISODate)
-             << "duree=" << seance.dureeMinutes;
     auto conflictsResult = m_seanceRepo->checkConflicts(seance);
-    if (!conflictsResult.isOk()) {
-        qWarning() << "createSeance: checkConflicts error:" << conflictsResult.errorMessage();
+    if (!conflictsResult.isOk())
         return Result<int>::error(conflictsResult.errorMessage());
-    }
-    if (!conflictsResult.value().isEmpty()) {
-        qWarning() << "createSeance: conflicts found:" << conflictsResult.value();
+    if (!conflictsResult.value().isEmpty())
         return Result<int>::error(conflictsResult.value().join("\n"));
-    }
-    qDebug() << "createSeance: no conflicts, creating session";
 
-    // Auto-remplir annee_scolaire_id pour cours et examens (NULL pour les événements)
+    // Auto-résoudre l'année scolaire via le repository (cours et examens uniquement)
     Seance toCreate = seance;
-    if (toCreate.typeSeance != GS::CategorieSeance::Evenement
-        && toCreate.anneeScolaireId == 0
-        && !m_connectionName.isEmpty()) {
-        QSqlDatabase db = QSqlDatabase::database(m_connectionName);
-        QSqlQuery q(db);
-        // Cherche l'année scolaire dont la plage englobe la date de la séance
-        q.prepare(QStringLiteral(
-            "SELECT id FROM annees_scolaires "
-            "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+    if (toCreate.typeSeance != GS::CategorieSeance::Evenement && toCreate.anneeScolaireId == 0) {
         const QString dateStr = toCreate.dateHeureDebut.date().toString(Qt::ISODate);
-        q.addBindValue(dateStr);
-        q.addBindValue(dateStr);
-        if (q.exec() && q.next()) {
-            toCreate.anneeScolaireId = q.value(0).toInt();
-        } else {
-            // Fallback : année scolaire active
-            QSqlQuery q2(db);
-            q2.prepare(QStringLiteral(
-                "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
-            if (q2.exec() && q2.next())
-                toCreate.anneeScolaireId = q2.value(0).toInt();
-        }
+        toCreate.anneeScolaireId = m_seanceRepo->findAnneeScolaireIdForDate(dateStr);
     }
-
     return m_seanceRepo->create(toCreate);
 }
 
 Result<bool> AttendanceService::updateSeance(const Seance& seance)
 {
-    if (seance.dureeMinutes <= 0) {
+    if (seance.dureeMinutes <= 0)
         return Result<bool>::error("La duree de la seance doit etre superieure a zero.");
-    }
-    if (!seance.dateHeureDebut.isValid()) {
+    if (!seance.dateHeureDebut.isValid())
         return Result<bool>::error("La date de la seance n'est pas valide.");
-    }
 
     // Check for conflicts (excluding the session being updated)
     auto conflictsResult = m_seanceRepo->checkConflicts(seance, seance.id);
@@ -99,30 +62,12 @@ Result<bool> AttendanceService::updateSeance(const Seance& seance)
     if (!conflictsResult.value().isEmpty())
         return Result<bool>::error(conflictsResult.value().join("\n"));
 
-    // Auto-remplir annee_scolaire_id pour cours et examens (NULL pour les événements)
+    // Auto-résoudre l'année scolaire via le repository (cours et examens uniquement)
     Seance toUpdate = seance;
-    if (toUpdate.typeSeance != GS::CategorieSeance::Evenement
-        && toUpdate.anneeScolaireId == 0
-        && !m_connectionName.isEmpty()) {
-        QSqlDatabase db = QSqlDatabase::database(m_connectionName);
-        QSqlQuery q(db);
-        q.prepare(QStringLiteral(
-            "SELECT id FROM annees_scolaires "
-            "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+    if (toUpdate.typeSeance != GS::CategorieSeance::Evenement && toUpdate.anneeScolaireId == 0) {
         const QString dateStr = toUpdate.dateHeureDebut.date().toString(Qt::ISODate);
-        q.addBindValue(dateStr);
-        q.addBindValue(dateStr);
-        if (q.exec() && q.next()) {
-            toUpdate.anneeScolaireId = q.value(0).toInt();
-        } else {
-            QSqlQuery q2(db);
-            q2.prepare(QStringLiteral(
-                "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
-            if (q2.exec() && q2.next())
-                toUpdate.anneeScolaireId = q2.value(0).toInt();
-        }
+        toUpdate.anneeScolaireId = m_seanceRepo->findAnneeScolaireIdForDate(dateStr);
     }
-
     return m_seanceRepo->update(toUpdate);
 }
 

@@ -1,12 +1,12 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 // Champ de formulaire réutilisable : label + champ texte stylisé.
 // Usage:
 //   FormField {
 //       width: parent.width
-//       label: "NOM COMPLET"
-//       placeholder: "ex: Ahmed Ben Moussa"
+//       label: qsTr("NOM COMPLET")
+//       placeholder: qsTr("ex: Ahmed Ben Moussa")
 //       nextTabItem: autreChamp.inputItem
 //   }
 Column {
@@ -26,10 +26,12 @@ Column {
     Text {
         visible: label !== ""
         text: root.label
+        width: parent.width
         font.pixelSize: 9
         font.weight: Font.Black
         color: Style.textTertiary
         font.letterSpacing: 1
+        horizontalAlignment: Text.AlignLeft
     }
 
     Rectangle {
@@ -52,6 +54,7 @@ Column {
             color: Style.textPrimary
             clip: true
             selectByMouse: true
+            horizontalAlignment: TextInput.AlignLeft
 
             Keys.onTabPressed: function(event) {
                 event.accepted = true
@@ -68,6 +71,8 @@ Column {
                 text: root.placeholder
                 font: input.font
                 color: Style.textTertiary
+                width: parent.width
+                horizontalAlignment: Text.AlignLeft
             }
         }
     }

@@ -1,14 +1,15 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 Rectangle {
     id: control
-    property string placeholder: "Rechercher..."
+    property string placeholder: qsTr("Rechercher...")
     property alias text: input.text
+    property alias inputFocused: input.activeFocus
 
     implicitHeight: 48
     radius: 16
-    color: "#FFFFFF"
+    color: Style.inputBackground
     border.color: input.activeFocus ? Style.primary : Style.borderLight
     border.width: 1
 

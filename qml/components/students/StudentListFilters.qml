@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 ColumnLayout {
@@ -19,7 +19,7 @@ ColumnLayout {
     property string selectedPaiement:  "all"
 
     readonly property var filteredClasses: {
-        if (selectedNiveauId === 0) return classes
+        if (selectedNiveauId === 0) return []
         var r = []
         for (var i = 0; i < classes.length; i++)
             if (classes[i].niveauId === selectedNiveauId) r.push(classes[i])
@@ -42,7 +42,7 @@ ColumnLayout {
 
         SearchField {
             Layout.fillWidth: true
-            placeholder: "Rechercher par nom, matricule..."
+            placeholder: qsTr("Rechercher par nom, matricule...")
             onTextChanged: text.length > 0 ? root.searchChanged(text) : root.searchCleared()
         }
 
@@ -53,11 +53,12 @@ ColumnLayout {
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 12; spacing: 6
-                Text { text: "📚"; font.pixelSize: 13 }
+                Text { text: qsTr("📚"); font.pixelSize: 13 }
                 Text {
                     Layout.fillWidth: true
                     text: {
-                        if (root.selectedNiveauId === 0) return "Niveaux"
+                        if (root.selectedNiveauId === 0)  return "Niveaux"
+                        if (root.selectedNiveauId === -1) return "Hall Ezzaytouna"
                         for (var i = 0; i < root.niveaux.length; i++)
                             if (root.niveaux[i].id === root.selectedNiveauId) return root.niveaux[i].nom
                         return "Niveaux"
@@ -65,7 +66,7 @@ ColumnLayout {
                     font.pixelSize: 11; font.bold: true
                     color: Style.textPrimary; elide: Text.ElideRight
                 }
-                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+                Text { text: qsTr("▼"); font.pixelSize: 8; color: Style.textTertiary }
             }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -74,7 +75,7 @@ ColumnLayout {
             Menu {
                 id: niveauMenu; y: parent.height
                 MenuItem {
-                    text: "Tous niveaux"
+                    text: qsTr("Tous niveaux")
                     onTriggered: {
                         root.selectedNiveauId = 0
                         root.selectedClass    = "all"
@@ -83,7 +84,7 @@ ColumnLayout {
                     }
                 }
                 Repeater {
-                    model: root.niveaux
+                    model: root.niveaux.filter(function(n) { return !n.isFreestyle })
                     MenuItem {
                         text: modelData.nom
                         onTriggered: {
@@ -92,6 +93,15 @@ ColumnLayout {
                             root.niveauFilterChanged(modelData.id)
                             root.searchCleared()
                         }
+                    }
+                }
+                MenuItem {
+                    text: qsTr("Hall Ezzaytouna")
+                    onTriggered: {
+                        root.selectedNiveauId = -1
+                        root.selectedClass    = "all"
+                        root.niveauFilterChanged(-1)
+                        root.searchCleared()
                     }
                 }
             }
@@ -105,7 +115,7 @@ ColumnLayout {
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 12; spacing: 6
-                Text { text: "📋"; font.pixelSize: 12 }
+                Text { text: qsTr("📋"); font.pixelSize: 12 }
                 Text {
                     Layout.fillWidth: true
                     text: root.selectedStatut === "inscrit" ? "Inscrit"
@@ -115,14 +125,14 @@ ColumnLayout {
                     color: root.selectedStatut !== "all" ? Style.primary : Style.textPrimary
                     elide: Text.ElideRight
                 }
-                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+                Text { text: qsTr("▼"); font.pixelSize: 8; color: Style.textTertiary }
             }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: statutMenu.open() }
             Menu {
                 id: statutMenu; y: parent.height
-                MenuItem { text: "Tous statuts";  onTriggered: { root.selectedStatut = "all";         root.statutChanged("all") } }
-                MenuItem { text: "Inscrit";        onTriggered: { root.selectedStatut = "inscrit";     root.statutChanged("inscrit") } }
-                MenuItem { text: "Non inscrit";    onTriggered: { root.selectedStatut = "non-inscrit"; root.statutChanged("non-inscrit") } }
+                MenuItem { text: qsTr("Tous statuts");  onTriggered: { root.selectedStatut = "all";         root.statutChanged("all") } }
+                MenuItem { text: qsTr("Inscrit");        onTriggered: { root.selectedStatut = "inscrit";     root.statutChanged("inscrit") } }
+                MenuItem { text: qsTr("Non inscrit");    onTriggered: { root.selectedStatut = "non-inscrit"; root.statutChanged("non-inscrit") } }
             }
         }
 
@@ -134,7 +144,7 @@ ColumnLayout {
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 12; spacing: 6
-                Text { text: "💳"; font.pixelSize: 12 }
+                Text { text: qsTr("💳"); font.pixelSize: 12 }
                 Text {
                     Layout.fillWidth: true
                     text: root.selectedPaiement === "paye" ? "Payé"
@@ -144,14 +154,14 @@ ColumnLayout {
                     color: root.selectedPaiement !== "all" ? Style.primary : Style.textPrimary
                     elide: Text.ElideRight
                 }
-                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+                Text { text: qsTr("▼"); font.pixelSize: 8; color: Style.textTertiary }
             }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: paiementMenu.open() }
             Menu {
                 id: paiementMenu; y: parent.height
-                MenuItem { text: "Tous";    onTriggered: { root.selectedPaiement = "all";    root.paiementChanged("all") } }
-                MenuItem { text: "Payé";    onTriggered: { root.selectedPaiement = "paye";   root.paiementChanged("paye") } }
-                MenuItem { text: "Impayé";  onTriggered: { root.selectedPaiement = "impaye"; root.paiementChanged("impaye") } }
+                MenuItem { text: qsTr("Tous");    onTriggered: { root.selectedPaiement = "all";    root.paiementChanged("all") } }
+                MenuItem { text: qsTr("Payé");    onTriggered: { root.selectedPaiement = "paye";   root.paiementChanged("paye") } }
+                MenuItem { text: qsTr("Impayé");  onTriggered: { root.selectedPaiement = "impaye"; root.paiementChanged("impaye") } }
             }
         }
 
@@ -166,14 +176,14 @@ ColumnLayout {
                 anchors.leftMargin: 4; spacing: 4
 
                 Repeater {
-                    model: [ {key: "all", label: "Tous"}, {key: "M", label: "♂ M"}, {key: "F", label: "♀ F"} ]
+                    model: [ {key: "all", label: qsTr("Tous")}, {key: "M", label: qsTr("♂ M")}, {key: "F", label: qsTr("♀ F")} ]
                     delegate: Rectangle {
                         width: sxLbl.implicitWidth + 18; height: 36; radius: 12
                         color: root.selectedSexe === modelData.key ? Style.primary : "transparent"
                         Text {
                             id: sxLbl; anchors.centerIn: parent
                             text: modelData.label; font.pixelSize: 10; font.weight: Font.Black
-                            color: root.selectedSexe === modelData.key ? "#FFFFFF" : Style.textTertiary
+                            color: root.selectedSexe === modelData.key ? Style.background : Style.textTertiary
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -193,7 +203,7 @@ ColumnLayout {
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 12; spacing: 6
-                Text { text: "🏷"; font.pixelSize: 12 }
+                Text { text: qsTr("🏷"); font.pixelSize: 12 }
                 Text {
                     Layout.fillWidth: true
                     text: root.selectedCategorie === "all" ? "Catégorie" : root.selectedCategorie
@@ -201,7 +211,7 @@ ColumnLayout {
                     color: root.selectedCategorie !== "all" ? Style.primary : Style.textPrimary
                     elide: Text.ElideRight
                 }
-                Text { text: "▼"; font.pixelSize: 8; color: Style.textTertiary }
+                Text { text: qsTr("▼"); font.pixelSize: 8; color: Style.textTertiary }
             }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -210,7 +220,7 @@ ColumnLayout {
             Menu {
                 id: catMenu; y: parent.height
                 MenuItem {
-                    text: "Toutes catégories"
+                    text: qsTr("Toutes catégories")
                     onTriggered: { root.selectedCategorie = "all"; root.categorieChanged("all") }
                 }
                 Repeater {
@@ -228,15 +238,15 @@ ColumnLayout {
     Row {
         Layout.fillWidth: true
         spacing: 4
-        visible: root.filteredClasses.length > 0
+        visible: root.selectedNiveauId !== 0
 
         Rectangle {
             width: allClsTxt.implicitWidth + 24; height: 34; radius: 12
             color: root.selectedClass === "all" ? Style.primary : "transparent"
             Text {
-                id: allClsTxt; anchors.centerIn: parent; text: "Toutes"
+                id: allClsTxt; anchors.centerIn: parent; text: qsTr("Toutes")
                 font.pixelSize: 10; font.weight: Font.Black
-                color: root.selectedClass === "all" ? "#FFFFFF" : Style.textTertiary
+                color: root.selectedClass === "all" ? Style.background : Style.textTertiary
             }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -252,7 +262,7 @@ ColumnLayout {
                 Text {
                     id: clsTxt; anchors.centerIn: parent; text: modelData.nom
                     font.pixelSize: 10; font.weight: Font.Black
-                    color: root.selectedClass === modelData.nom ? "#FFFFFF" : Style.textTertiary
+                    color: root.selectedClass === modelData.nom ? Style.background : Style.textTertiary
                 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor

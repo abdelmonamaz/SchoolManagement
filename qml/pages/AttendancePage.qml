@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 Item {
@@ -34,7 +34,8 @@ Item {
     readonly property var classStudents: {
         var result = [], all = studentController.students
         for (var i = 0; i < all.length; i++)
-            if (all[i].classeId === selectedClasseId) result.push(all[i])
+            if (all[i].classeId === selectedClasseId || all[i].hallClasseId === selectedClasseId)
+                result.push(all[i])
         return result
     }
 
@@ -58,23 +59,16 @@ Item {
         return result
     }
 
-    // Students eligible as guests: same niveau, different class
+    // Students eligible as guests: all enrolled students except those already in the call modal
     readonly property var guestCandidates: {
         if (selectedClasseId <= 0) return []
-        var classes = schoolingController.allClasses
-        var currentNiveauId = -1
-        for (var i = 0; i < classes.length; i++) {
-            if (classes[i].id === selectedClasseId) { currentNiveauId = classes[i].niveauId; break }
-        }
-        if (currentNiveauId === -1) return []
-        var sameNiveauClassIds = []
-        for (var j = 0; j < classes.length; j++) {
-            if (classes[j].niveauId === currentNiveauId && classes[j].id !== selectedClasseId)
-                sameNiveauClassIds.push(classes[j].id)
-        }
+        var inModal = {}
+        var modal = callModalStudents
+        for (var i = 0; i < modal.length; i++) inModal[modal[i].id] = true
         var all = studentController.students, result = []
-        for (var k = 0; k < all.length; k++) {
-            if (sameNiveauClassIds.indexOf(all[k].classeId) !== -1) result.push(all[k])
+        for (var j = 0; j < all.length; j++) {
+            if (!inModal[all[j].id] && all[j].inscritAnneeActive)
+                result.push(all[j])
         }
         return result
     }
@@ -100,10 +94,14 @@ Item {
         return { start: start, end: end }
     }
 
+    readonly property var shortMonths: [qsTr("Jan"), qsTr("Fév"), qsTr("Mar"), qsTr("Avr"), qsTr("Mai"),
+                                        qsTr("Juin"), qsTr("Juil"), qsTr("Août"), qsTr("Sep"), qsTr("Oct"), qsTr("Nov"), qsTr("Déc")]
+    readonly property var dayNames: [qsTr("DIM"), qsTr("LUN"), qsTr("MAR"), qsTr("MER"), qsTr("JEU"), qsTr("VEN"), qsTr("SAM")]
+
     function pad2(n) { return n < 10 ? "0" + n : "" + n }
 
     function weekRangeLabel(week, year) {
-        var months = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"]
+        var months = attendancePage.shortMonths
         var r = weekDateRange(week, year)
         var s = r.start, e = r.end
         var sStr = s.getDate() + " " + months[s.getMonth()]
@@ -135,7 +133,7 @@ Item {
     }
 
     function dayName(isoDate) {
-        return ["DIM","LUN","MAR","MER","JEU","VEN","SAM"][new Date(isoDate).getDay()]
+        return attendancePage.dayNames[new Date(isoDate).getDay()]
     }
     function formatTime(isoDate, durationMin) {
         var d = new Date(isoDate), e = new Date(d.getTime() + durationMin * 60000)
@@ -193,8 +191,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Gestion des Présences"
-                subtitle: "Pilotage hebdomadaire de l'appel et suivi des séances."
+                title: qsTr("Gestion des Présences")
+                subtitle: qsTr("Pilotage hebdomadaire de l'appel et suivi des séances.")
             }
 
             // Navigation semaine : ◀ [Sem. X · Année] ▶ + date range
@@ -212,7 +210,7 @@ Item {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "‹"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("‹"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -236,7 +234,7 @@ Item {
                         anchors.centerIn: parent; spacing: 6
                         IconLabel { iconName: "calendar"; iconSize: 14; iconColor: Style.primary }
                         Text {
-                            text: "Sem. " + selectedWeek + "  ·  " + selectedWeekYear
+                            text: qsTr("Sem. ") + selectedWeek + "  ·  " + selectedWeekYear
                             font.pixelSize: 9; font.weight: Font.Black
                             color: Style.textPrimary; font.letterSpacing: 0.5
                         }
@@ -258,7 +256,7 @@ Item {
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Text {
                         anchors.centerIn: parent
-                        text: "›"; font.pixelSize: 18; font.bold: true
+                        text: qsTr("›"); font.pixelSize: 18; font.bold: true
                         color: Style.textSecondary
                     }
                     MouseArea {
@@ -296,19 +294,19 @@ Item {
                     Item {
                         width: parent.width - attendancePage.colClasse - attendancePage.colType - attendancePage.colAction
                         height: parent.height
-                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "DATE / SÉANCE"; font.pixelSize: 10 }
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: qsTr("DATE / SÉANCE"); font.pixelSize: 10 }
                     }
                     Item {
                         width: attendancePage.colClasse; height: parent.height
-                        SectionLabel { anchors.centerIn: parent; text: "CLASSE"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
+                        SectionLabel { anchors.centerIn: parent; text: qsTr("CLASSE"); font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
                     }
                     Item {
                         width: attendancePage.colType; height: parent.height
-                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: "TYPE"; font.pixelSize: 10 }
+                        SectionLabel { anchors.verticalCenter: parent.verticalCenter; text: qsTr("TYPE"); font.pixelSize: 10 }
                     }
                     Item {
                         width: attendancePage.colAction; height: parent.height
-                        SectionLabel { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "ACTION"; font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
+                        SectionLabel { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: qsTr("ACTION"); font.pixelSize: 10; horizontalAlignment: Text.AlignRight }
                     }
                 }
 
@@ -335,7 +333,7 @@ Item {
 
                         Rectangle {
                             width: parent.width; height: 60
-                            color: validated ? "#F0FDF4" : "transparent"
+                            color: validated ? Style.successBg : "transparent"
 
                             Row {
                                 anchors.fill: parent
@@ -391,12 +389,12 @@ Item {
                                         implicitWidth: valLbl.implicitWidth + 24
                                         height: 32; radius: 10
                                         color: validated
-                                               ? (valMa.containsMouse ? "#059669" : Style.successColor)
+                                               ? (valMa.containsMouse ? Style.successColor : Style.successColor)
                                                : (valMa.containsMouse ? Style.primaryDark : Style.primary)
                                         Text {
                                             id: valLbl; anchors.centerIn: parent
-                                            text: validated ? "Modifier Présence" : "Valider Présence"
-                                            font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF"
+                                            text: validated ? qsTr("Modifier Présence") : qsTr("Valider Présence")
+                                            font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                                         }
                                         MouseArea {
                                             id: valMa; anchors.fill: parent

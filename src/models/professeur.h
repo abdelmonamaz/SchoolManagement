@@ -24,4 +24,5 @@ struct Contrat {
     int joursTravail = 31;              // bitmask Lun-Dim : bit0=Lun..bit6=Dim, défaut 31=Lun-Ven
     QDate dateDebut;                    // Début de validité
     QDate dateFin;                      // Fin de validité (null/invalid = en cours)
+    QString niveauScolaire;             // Niveau d'éducation obtenu (ex: Master Fiqh)
 };

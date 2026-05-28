@@ -9,6 +9,7 @@ class SchoolingService;
 class StaffService;
 class StudentService;
 class DatabaseWorker;
+class QTimer;
 
 class DashboardController : public QObject {
     Q_OBJECT
@@ -19,6 +20,8 @@ class DashboardController : public QObject {
     Q_PROPERTY(QVariantList liveSessions READ liveSessions NOTIFY dataChanged)
     Q_PROPERTY(QVariantList recentGrades READ recentGrades NOTIFY dataChanged)
     Q_PROPERTY(QVariantList upcomingExams READ upcomingExams NOTIFY dataChanged)
+    Q_PROPERTY(QVariantList levelPerformanceData READ levelPerformanceData NOTIFY dataChanged)
+    Q_PROPERTY(QVariantList absencesByMonth READ absencesByMonth NOTIFY dataChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
 
@@ -37,6 +40,8 @@ public:
     QVariantList liveSessions() const { return m_liveSessions; }
     QVariantList recentGrades() const { return m_recentGrades; }
     QVariantList upcomingExams() const { return m_upcomingExams; }
+    QVariantList levelPerformanceData() const { return m_levelPerformanceData; }
+    QVariantList absencesByMonth() const { return m_absencesByMonth; }
     bool loading() const { return m_loading; }
     QString errorMessage() const { return m_errorMessage; }
 
@@ -59,6 +64,8 @@ private:
     StaffService* m_staffService = nullptr;
     StudentService* m_studentService = nullptr;
     DatabaseWorker* m_worker = nullptr;
+    QTimer* m_refreshTimer = nullptr;
+
     int m_totalStudents = 0;
     int m_activeCourses = 0;
     double m_averageAttendance = 0.0;
@@ -66,6 +73,8 @@ private:
     QVariantList m_liveSessions;
     QVariantList m_recentGrades;
     QVariantList m_upcomingExams;
+    QVariantList m_levelPerformanceData;
+    QVariantList m_absencesByMonth;
     bool m_loading = false;
     QString m_errorMessage;
 };

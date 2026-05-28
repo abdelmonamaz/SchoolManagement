@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 Rectangle {
@@ -166,7 +166,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "Modifier l'identité"
+                            text: qsTr("Modifier l'identité")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Style.textPrimary
@@ -201,14 +201,14 @@ Rectangle {
                         IconLabel {
                             iconName: "edit"
                             iconSize: 12
-                            iconColor: "#F59E0B"
+                            iconColor: Style.warningColor
                         }
 
                         Text {
-                            text: "Modifier le contrat"
+                            text: qsTr("Modifier le contrat")
                             font.pixelSize: 12
                             font.weight: Font.Medium
-                            color: "#F59E0B"
+                            color: Style.warningColor
                             Layout.fillWidth: true
                         }
                     }
@@ -243,7 +243,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "Nouveau contrat"
+                            text: qsTr("Nouveau contrat")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Style.primary
@@ -276,7 +276,7 @@ Rectangle {
                 width: (parent.width - 16) / 2
                 spacing: 6
 
-                SectionLabel { text: "TÉLÉPHONE" }
+                SectionLabel { text: qsTr("TÉLÉPHONE") }
 
                 Text {
                     text: staffData.telephone || "—"
@@ -290,7 +290,7 @@ Rectangle {
                 width: (parent.width - 16) / 2
                 spacing: 6
 
-                SectionLabel { text: "CIN" }
+                SectionLabel { text: qsTr("CIN") }
 
                 Text {
                     text: staffData.cin || "—"
@@ -299,6 +299,52 @@ Rectangle {
                     color: Style.textSecondary
                     elide: Text.ElideRight
                     width: parent.width
+                }
+            }
+        }
+
+        // Spécialité et niveau d'éducation (Enseignant uniquement)
+        Column {
+            width: parent.width
+            spacing: 10
+            visible: staffData.poste === "Enseignant" && (staffData.specialite || staffData.niveauScolaire)
+
+            Row {
+                width: parent.width
+                spacing: 16
+
+                Column {
+                    width: staffData.niveauScolaire ? (parent.width - 16) / 2 : parent.width
+                    spacing: 6
+                    visible: staffData.specialite && staffData.specialite !== ""
+
+                    SectionLabel { text: qsTr("SPÉCIALITÉ") }
+
+                    Text {
+                        text: staffData.specialite || "—"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: Style.textSecondary
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                }
+
+                Column {
+                    width: staffData.specialite ? (parent.width - 16) / 2 : parent.width
+                    spacing: 6
+                    visible: staffData.niveauScolaire && staffData.niveauScolaire !== ""
+
+                    SectionLabel { text: qsTr("NIVEAU D'ÉDUCATION") }
+
+                    Text {
+                        text: staffData.niveauScolaire || "—"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: Style.textSecondary
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
                 }
             }
         }
@@ -320,7 +366,7 @@ Rectangle {
                 spacing: 2
 
                 Text {
-                    text: "Base Rémunération"
+                    text: qsTr("Base Rémunération")
                     font.pixelSize: 10
                     font.bold: true
                     color: Style.textTertiary
@@ -334,7 +380,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: "/" + (staffData.modePaie === "Heure" ? "h"
+                    text: qsTr("/") + (staffData.modePaie === "Heure" ? "h"
                                : staffData.modePaie === "Jour"  ? "jour"
                                : "mois")
                     font.pixelSize: 10
@@ -375,7 +421,7 @@ Rectangle {
             visible: !isShowAllMode
 
             Text {
-                text: "Contrat depuis:"
+                text: qsTr("Contrat depuis:")
                 font.pixelSize: 10
                 font.weight: Font.Medium
                 color: Style.textTertiary
@@ -406,7 +452,7 @@ Rectangle {
                 spacing: 6
 
                 SectionLabel {
-                    text: "SOMME DUE"
+                    text: qsTr("SOMME DUE")
                 }
 
                 Text {
@@ -423,7 +469,7 @@ Rectangle {
                 spacing: 6
 
                 SectionLabel {
-                    text: "SOMME PAYÉE"
+                    text: qsTr("SOMME PAYÉE")
                 }
 
                 Text {
@@ -436,7 +482,7 @@ Rectangle {
                 }
 
                 PrimaryButton {
-                    text: "Payer"
+                    text: qsTr("Payer")
                     iconName: "dollar-sign"
                     onClicked: root.payClicked()
                 }
@@ -455,9 +501,9 @@ Rectangle {
     function getPostColor(post) {
         switch(post) {
             case "Enseignant": return Style.primary
-            case "Administration": return "#0EA5E9"
-            case "Sécurité": return "#F97316"
-            case "Entretien": return "#8B5CF6"
+            case "Administration": return Style.chart2
+            case "Sécurité": return Style.chart1
+            case "Entretien": return Style.chart3
             default: return Style.primary
         }
     }
@@ -465,9 +511,9 @@ Rectangle {
     function getPostBgColor(post) {
         switch(post) {
             case "Enseignant": return Style.primary + "20"
-            case "Administration": return "#0EA5E920"
-            case "Sécurité": return "#F9731620"
-            case "Entretien": return "#8B5CF620"
+            case "Administration": return Qt.alpha(Style.chart2, 0.13)
+            case "Sécurité": return Qt.alpha(Style.chart1, 0.13)
+            case "Entretien": return Qt.alpha(Style.chart3, 0.13)
             default: return Style.primary + "20"
         }
     }

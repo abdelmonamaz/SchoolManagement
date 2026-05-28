@@ -1,6 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform
 import UI.Components
 
 ColumnLayout {
@@ -15,6 +16,96 @@ ColumnLayout {
     signal editRequested()
     signal deleteRequested()
 
+    // ── Internal state ───────────────────────────────────────────────────────
+    property bool _bulletinPending: false
+    property bool _csvPending:      false
+
+    // Temp storage for async CSV file dialog
+    property var    _csvData:         ({})
+    property string _csvStudentName:  ""
+    property string _csvNiveauNom:    ""
+    property string _csvClasseNom:    ""
+    property string _csvAnnee:        ""
+
+    function urlToPath(fileUrl) {
+        var s = fileUrl.toString()
+        if (s.startsWith("file:///")) return s.substring(8)
+        if (s.startsWith("file://"))  return s.substring(7)
+        return s
+    }
+
+    FileDialog {
+        id: csvSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Enregistrer le bulletin CSV")
+        nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
+        defaultSuffix: "csv"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinCsv(
+                root._csvData, root._csvStudentName,
+                root._csvNiveauNom, root._csvClasseNom, root._csvAnnee, path
+            )
+            if (result.length > 0) Qt.openUrlExternally("file:///" + result)
+        }
+    }
+
+    FileDialog {
+        id: newEnrollJustifDialog
+        fileMode: FileDialog.OpenFile
+        title: qsTr("Sélectionner un justificatif")
+        nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
+        onAccepted: {
+            newJustifField.text = root.urlToPath(file)
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Look up niveau name from all niveaux (including historical years)
+    function niveauNomById(niveauId) {
+        var all = schoolingController.niveauxGlobal
+        for (var i = 0; i < all.length; i++)
+            if (all[i].id === niveauId) return all[i].nom
+        // Fallback to active-year niveaux
+        for (var j = 0; j < root.niveaux.length; j++)
+            if (root.niveaux[j].id === niveauId) return root.niveaux[j].nom
+        return niveauId > 0 ? "Niveau " + niveauId : "—"
+    }
+
+    // Most recent enrollment (by annee_scolaire_id)
+    readonly property var currentEnrollment: {
+        var enr = studentController.selectedStudentEnrollments
+        if (!enr || enr.length === 0) return null
+        var best = null
+        for (var i = 0; i < enr.length; i++) {
+            if (!best || enr[i].annee_scolaire_id > best.annee_scolaire_id)
+                best = enr[i]
+        }
+        return best
+    }
+
+    readonly property string statusLabel: {
+        if (!root.currentEnrollment) return "Jamais inscrit"
+        var res = root.currentEnrollment.resultat || "En cours"
+        if (res === "En cours")   return "Inscrit — En cours"
+        if (res === "Réussi")     return "Réussi"
+        if (res === "Redoublant") return "Redoublant"
+        return res
+    }
+
+    readonly property string statusNiveauNom: {
+        if (!root.currentEnrollment) return ""
+        return root.niveauNomById(root.currentEnrollment.niveauId)
+    }
+
+    readonly property string statusAnneeScolaire: {
+        if (!root.currentEnrollment) return ""
+        return root.currentEnrollment.anneeScolaire || ""
+    }
+
+    // ── Connections ──────────────────────────────────────────────────────────
+
     Connections {
         target: studentController
         function onOperationFailed(err) {
@@ -26,15 +117,91 @@ ColumnLayout {
         }
     }
 
+    Connections {
+        target: gradesController
+
+        function onBulletinDataLoaded(data) {
+            if (root._bulletinPending) {
+                root._bulletinPending = false
+
+                var e = root.currentEnrollment
+                var classeNomBul = ""
+                if (e && e.classeId > 0) {
+                    var cls = schoolingController.allClasses
+                    for (var i = 0; i < cls.length; i++) {
+                        if (cls[i].id === e.classeId) { classeNomBul = cls[i].nom; break }
+                    }
+                }
+
+                // Enrich matière names
+                var dataCopy = JSON.parse(JSON.stringify(data))
+                var allM = schoolingController.allMatieres
+                var mats = dataCopy.matieres || []
+                for (var k = 0; k < mats.length; k++) {
+                    for (var m = 0; m < allM.length; m++) {
+                        if (allM[m].id === mats[k].matiereId) { mats[k].nom = allM[m].nom; break }
+                    }
+                }
+                dataCopy.matieres = mats
+
+                bulletinPreview.bulletinData     = dataCopy
+                bulletinPreview.studentName      = (root.student.prenom || "") + " " + (root.student.nom || "")
+                bulletinPreview.studentMatricule = root.student.matricule || ("N°" + root.student.id)
+                bulletinPreview.niveauNom        = root.statusNiveauNom
+                bulletinPreview.classeNom        = classeNomBul
+                bulletinPreview.anneeScolaire    = root.statusAnneeScolaire
+                bulletinPreview.eleveId          = root.student.id
+                bulletinPreview.open()
+
+            } else if (root._csvPending) {
+                root._csvPending = false
+
+                var data2 = JSON.parse(JSON.stringify(data))
+                var allM2 = schoolingController.allMatieres
+                var mats2 = data2.matieres || []
+                for (var p = 0; p < mats2.length; p++) {
+                    for (var q = 0; q < allM2.length; q++) {
+                        if (allM2[q].id === mats2[p].matiereId) { mats2[p].nom = allM2[q].nom; break }
+                    }
+                }
+                data2.matieres = mats2
+
+                var classeNomCsv = ""
+                var e2 = root.currentEnrollment
+                if (e2 && e2.classeId > 0) {
+                    var cls2 = schoolingController.allClasses
+                    for (var r = 0; r < cls2.length; r++) {
+                        if (cls2[r].id === e2.classeId) { classeNomCsv = cls2[r].nom; break }
+                    }
+                }
+
+                // Store data and open file dialog
+                root._csvData        = data2
+                root._csvStudentName = (root.student.prenom || "") + " " + (root.student.nom || "")
+                root._csvNiveauNom   = root.statusNiveauNom
+                root._csvClasseNom   = classeNomCsv
+                root._csvAnnee       = root.statusAnneeScolaire
+                csvSaveDialog.open()
+            }
+        }
+    }
+
+    // ── Modals ───────────────────────────────────────────────────────────────
+
     EnrollmentEditModal {
         id: editEnrollmentModal
         student: root.student
         niveaux: root.niveaux
+        classes: schoolingController.allClasses
     }
 
-    // Back button
+    BulletinPreviewPopup {
+        id: bulletinPreview
+    }
+
+    // ── Back button ──────────────────────────────────────────────────────────
     Text {
-        text: "← Retour à l'annuaire"
+        text: qsTr("← Retour à l'annuaire")
         font.pixelSize: 14; font.bold: true
         color: backMa.containsMouse ? Style.primary : Style.textSecondary
 
@@ -50,40 +217,56 @@ ColumnLayout {
     // ─── Student Header Card ───
     Rectangle {
         Layout.fillWidth: true
-        height: 180; radius: 32
-        color: Style.bgWhite; border.color: Style.borderLight
+        height: 220;
+        topRightRadius: 32
+        bottomRightRadius: 32
+        color: Style.bgWhite;
+        border.color: Style.borderLight
 
         Rectangle {
-            anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom
-            width: 10; radius: 32; color: Style.primary
-            Rectangle { anchors.left: parent.horizontalCenter; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 5; color: Style.primary }
+            anchors.left: parent.left;
+            anchors.top: parent.top;
+            anchors.bottom: parent.bottom
+            width: 10;
+            radius: 32;
+            color: Style.primary
+            Rectangle {
+                anchors.left: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: 5;
+                color: Style.primary
+            }
         }
 
         RowLayout {
-            anchors.fill: parent; anchors.margins: 28; spacing: 28
+            anchors.fill: parent;
+            anchors.margins: 28;
+            spacing: 28
 
             Avatar {
                 size: 110
                 initials: root.student.nom ? root.student.nom.charAt(0) : ""
                 bgColor: Style.sandBg
                 textColor: Style.primary
-                border.color: "#FFFFFF"; border.width: 4
+                border.color: Style.background; border.width: 4
             }
 
             ColumnLayout {
-                Layout.fillWidth: true; spacing: 4
+                Layout.fillWidth: true
+                spacing: 4
                 RowLayout {
                     spacing: 12
                     Text { text: (root.student.prenom || "") + " " + (root.student.nom || ""); font.pixelSize: 28; font.weight: Font.Black; color: Style.textPrimary }
-                    Badge { 
+                    Badge {
                         text: root.student.sexe === "F" ? "FÉMININ" : "MASCULIN"
-                        customTextColor: "#FFFFFF"
-                        customBgColor: root.student.sexe === "F" ? "#DB2777" : Style.primary
-                        customBorderColor: root.student.sexe === "F" ? "#BE185D" : Style.primaryDark
+                        customTextColor: Style.background
+                        customBgColor: root.student.sexe === "F" ? Style.errorColor : Style.primary
+                        customBorderColor: root.student.sexe === "F" ? Style.errorColor : Style.primaryDark
                     }
                 }
-                Text { text: "ID: " + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
-                
+                Text { text: qsTr("ID: ") + (root.student.id || ""); font.pixelSize: 12; font.weight: Font.Bold; color: Style.textTertiary; font.letterSpacing: 2 }
+
                 RowLayout {
                     Layout.topMargin: 10; spacing: 24
                     Row {
@@ -101,16 +284,41 @@ ColumnLayout {
 
             Column {
                 spacing: 10
+                anchors.verticalCenter: parent.verticalCenter;
                 PrimaryButton {
-                    text: "Bulletin Annuel"
+                    text: qsTr("Bulletin Annuel")
                     iconName: "print"
+                    enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
+                    onClicked: {
+                        var e = root.currentEnrollment
+                        if (!e || e.classeId <= 0) return
+                        schoolingController.loadAllMatieres()
+                        root._bulletinPending = true
+                        root._csvPending = false
+                        gradesController.loadBulletinData(root.student.id, e.classeId,
+                            e.annee_scolaire_id || -1)
+                    }
+                }
+                PrimaryButton {
+                    text: qsTr("Exporter CSV")
+                    iconName: "download"
+                    enabled: root.currentEnrollment !== null && root.currentEnrollment.classeId > 0
+                    onClicked: {
+                        var e = root.currentEnrollment
+                        if (!e || e.classeId <= 0) return
+                        schoolingController.loadAllMatieres()
+                        root._csvPending = true
+                        root._bulletinPending = false
+                        gradesController.loadBulletinData(root.student.id, e.classeId,
+                            e.annee_scolaire_id || -1)
+                    }
                 }
                 OutlineButton {
-                    text: "Supprimer"
+                    text: qsTr("Supprimer")
                     baseColor: Style.errorColor
-                    hoverColor: "#BE185D" // or a darker red
-                    textColor: "#FFFFFF"
-                    onClicked: root.deleteRequested()
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
+                    onClicked: deleteConfirmPopup.open()
                 }
             }
         }
@@ -119,28 +327,28 @@ ColumnLayout {
     // ─── Profile Content ───
     RowLayout {
         Layout.fillWidth: true; spacing: 24
-        
+
         // Left: Identity & Info
         ColumnLayout {
             Layout.fillWidth: true; Layout.preferredWidth: 3; spacing: 24
 
             AppCard {
                 Layout.fillWidth: true
-                title: "Identité de l'Étudiant"
-                
+                title: qsTr("Identité de l'Étudiant")
+
                 ColumnLayout {
                     width: parent.width; spacing: 20
-                    
+
                     RowLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "DATE DE NAISSANCE" }
+                            SectionLabel { text: qsTr("DATE DE NAISSANCE") }
                             Text { text: root.student.dateNaissance || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CATÉGORIE" }
+                            SectionLabel { text: qsTr("CATÉGORIE") }
                             Text { text: root.student.categorie || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -151,12 +359,12 @@ ColumnLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "PARENT / TUTEUR" }
+                            SectionLabel { text: qsTr("PARENT / TUTEUR") }
                             Text { text: root.student.nomParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CONTACT PARENT" }
+                            SectionLabel { text: qsTr("CONTACT PARENT") }
                             Text { text: root.student.telParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -167,12 +375,12 @@ ColumnLayout {
                         Layout.fillWidth: true; spacing: 16
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CIN ÉLÈVE" }
+                            SectionLabel { text: qsTr("CIN ÉLÈVE") }
                             Text { text: root.student.cinEleve || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CIN PARENT" }
+                            SectionLabel { text: qsTr("CIN PARENT") }
                             Text { text: root.student.cinParent || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
                         }
                     }
@@ -181,16 +389,28 @@ ColumnLayout {
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
-                        SectionLabel { text: "COMMENTAIRES ET NOTES" }
-                        Text { 
-                            Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire."; 
+                        visible: (root.student.niveauScolaireEducatif || "") !== ""
+                        SectionLabel { text: qsTr("NIVEAU SCOLAIRE ÉDUCATIF") }
+                        Text { text: root.student.niveauScolaireEducatif || "—"; font.pixelSize: 14; font.bold: true; color: Style.textPrimary }
+                    }
+
+                    Separator {
+                        Layout.fillWidth: true
+                        visible: (root.student.niveauScolaireEducatif || "") !== ""
+                    }
+
+                    Column {
+                        Layout.fillWidth: true; spacing: 4
+                        SectionLabel { text: qsTr("OBSERVATIONS ET NOTES") }
+                        Text {
+                            Layout.fillWidth: true; text: root.student.commentaire || "Aucun commentaire.";
                             font.pixelSize: 13; color: Style.textSecondary; wrapMode: Text.Wrap
                         }
                     }
 
                     PrimaryButton {
                         Layout.topMargin: 10
-                        text: "Modifier les informations"
+                        text: qsTr("Modifier les informations")
                         onClicked: root.editRequested()
                     }
                 }
@@ -199,19 +419,19 @@ ColumnLayout {
             // Enrollment History
             AppCard {
                 Layout.fillWidth: true
-                title: "Historique des Inscriptions"
+                title: qsTr("Historique des Inscriptions")
 
                 ColumnLayout {
                     width: parent.width; spacing: 16
-                    
+
                     // Table Header
                     RowLayout {
                         Layout.fillWidth: true; spacing: 24
-                        Text { Layout.preferredWidth: 120; text: "ANNÉE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.fillWidth: true; text: "NIVEAU"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 120; text: "RÉSULTAT"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 80; text: "STATUT"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
-                        Text { Layout.preferredWidth: 80; text: "ACTIONS"; font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1; horizontalAlignment: Text.AlignRight }
+                        Text { Layout.preferredWidth: 120; text: qsTr("ANNÉE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.fillWidth: true; text: qsTr("NIVEAU"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 120; text: qsTr("RÉSULTAT"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 80; text: qsTr("STATUT"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1 }
+                        Text { Layout.preferredWidth: 80; text: qsTr("ACTIONS"); font.pixelSize: 10; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 1; horizontalAlignment: Text.AlignRight }
                     }
 
                     Separator { Layout.fillWidth: true }
@@ -228,19 +448,14 @@ ColumnLayout {
                                 RowLayout {
                                     anchors.fill: parent; spacing: 24
                                     Text { Layout.preferredWidth: 120; text: modelData.anneeScolaire; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { 
-                                        Layout.fillWidth: true; 
-                                        text: {
-                                            for (var i = 0; i < root.niveaux.length; i++) {
-                                                if (root.niveaux[i].id === modelData.niveauId) return root.niveaux[i].nom
-                                            }
-                                            return "Niveau " + modelData.niveauId
-                                        }
-                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary 
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: root.niveauNomById(modelData.niveauId)
+                                        font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                     }
                                     Text { text: modelData.resultat; Layout.preferredWidth: 120; font.pixelSize: 13; font.weight: Font.Medium; color: Style.textSecondary }
-                                    Badge { 
-                                        Layout.preferredWidth: 80; 
+                                    Badge {
+                                        Layout.preferredWidth: 80;
                                         text: modelData.fraisInscriptionPaye ? "PAYÉ" : "IMPAYÉ"
                                         variant: modelData.fraisInscriptionPaye ? "success" : "error"
                                     }
@@ -257,7 +472,10 @@ ColumnLayout {
                                         }
                                         IconButton {
                                             iconName: "delete"; iconSize: 16; hoverColor: Style.errorColor
-                                            onClicked: studentController.deleteEnrollment(modelData.id)
+                                            onClicked: {
+                                                deleteEnrollmentConfirmPopup.enrollmentId = modelData.id
+                                                deleteEnrollmentConfirmPopup.open()
+                                            }
                                         }
                                     }
                                 }
@@ -267,8 +485,18 @@ ColumnLayout {
 
                     PrimaryButton {
                         Layout.topMargin: 10
-                        text: "Inscrire pour une nouvelle année"
+                        text: qsTr("Inscrire pour une nouvelle année")
                         iconName: "plus"
+                        visible: {
+                            if (!setupController.activeTarifs) return true
+                            var activeId = setupController.activeTarifs.id || 0
+                            if (activeId <= 0) return true
+                            var enr = studentController.selectedStudentEnrollments
+                            for (var i = 0; i < enr.length; i++) {
+                                if ((enr[i].annee_scolaire_id || 0) === activeId) return false
+                            }
+                            return true
+                        }
                         onClicked: newEnrollmentPopup.open()
                     }
                 }
@@ -278,17 +506,69 @@ ColumnLayout {
         // Right: Stats / Quick Info
         ColumnLayout {
             Layout.fillWidth: true; Layout.preferredWidth: 1; Layout.alignment: Qt.AlignTop; spacing: 24
-            
+
             AppCard {
                 Layout.fillWidth: true
-                title: "Statut Actuel"
+                title: qsTr("Statut Actuel")
                 Column {
                     spacing: 16
-                    StatCard { 
-                        width: parent.width; label: "MOYENNE GÉNÉRALE"; value: "15.4"; accentColor: Style.primary 
+                    width: parent.width
+
+                    // Status badge
+                    Rectangle {
+                        width: parent.width; height: 64; radius: 12
+                        color: {
+                            var s = root.statusLabel
+                            if (s === "Jamais inscrit")      return Style.bgTertiary
+                            if (s.indexOf("En cours") >= 0)  return Style.primaryBg
+                            if (s === "Réussi")              return Style.successBg
+                            if (s === "Redoublant")           return Style.warningBg
+                            return Style.bgPage
+                        }
+
+                        Column {
+                            anchors.centerIn: parent; spacing: 4
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.statusLabel
+                                font.pixelSize: 13; font.weight: Font.Black
+                                color: {
+                                    var s = root.statusLabel
+                                    if (s === "Jamais inscrit")      return Style.textTertiary
+                                    if (s.indexOf("En cours") >= 0)  return Style.primary
+                                    if (s === "Réussi")              return Style.zitouna
+                                    if (s === "Redoublant")           return Style.warningColor
+                                    return Style.textPrimary
+                                }
+                            }
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.statusNiveauNom
+                                visible: root.statusNiveauNom.length > 0
+                                font.pixelSize: 11; color: Style.textTertiary; font.weight: Font.Medium
+                            }
+                        }
                     }
-                    StatCard { 
-                        width: parent.width; label: "ABSENCES"; value: "2"; accentColor: "#D97706" 
+
+                    // Current year
+                    Column {
+                        width: parent.width; spacing: 4
+                        visible: root.currentEnrollment !== null
+                        SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
+                        Text {
+                            text: root.statusAnneeScolaire || "—"
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                        }
+                    }
+
+                    // Total inscriptions
+                    Column {
+                        width: parent.width; spacing: 4
+                        SectionLabel { text: qsTr("INSCRIPTIONS TOTALES") }
+                        Text {
+                            text: studentController.selectedStudentEnrollments.length + " année(s)"
+                            font.pixelSize: 14; font.bold: true; color: Style.textPrimary
+                        }
                     }
                 }
             }
@@ -299,31 +579,25 @@ ColumnLayout {
     Popup {
         id: newEnrollmentPopup
         parent: Overlay.overlay; anchors.centerIn: parent
-        width: 500; height: 480; modal: true; padding: 0
+        width: 520; height: 680; modal: true; padding: 0
         background: Rectangle { radius: 24; color: Style.bgWhite }
 
-        property var anneeScolaireOptions: []
-        property bool isPaid: false
+        property bool isPaid:    false
+        property bool hallOnly:  false
 
         onOpened: {
             newErrorMsg.text = ""
-            var date = new Date()
-            var year = date.getFullYear()
-            var baseYear = date.getMonth() < 8 ? year - 1 : year
-            anneeScolaireOptions = [
-                (baseYear - 2) + "-" + (baseYear - 1),
-                (baseYear - 1) + "-" + baseYear,
-                baseYear + "-" + (baseYear + 1),
-                (baseYear + 1) + "-" + (baseYear + 2),
-                (baseYear + 2) + "-" + (baseYear + 3)
-            ]
-            newYearCombo.currentIndex = 2
-            isPaid = false
+            newNumeroRecuField.text = ""
+            newJustifField.text = ""
+            isPaid   = false
+            hallOnly = false
+            newDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
         }
-        
+
         contentItem: ColumnLayout {
-            anchors.fill: parent; anchors.margins: 24; spacing: 20
-            Text { text: "Nouvelle Inscription"; font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
+            anchors.fill: parent; anchors.margins: 24; spacing: 14
+
+            Text { text: qsTr("Nouvelle Inscription"); font.pixelSize: 18; font.weight: Font.Black; color: Style.primary }
 
             Text {
                 id: newErrorMsg
@@ -333,28 +607,72 @@ ColumnLayout {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
             }
-            
-            Column {
-                Layout.fillWidth: true; spacing: 6
-                SectionLabel { text: "ANNÉE SCOLAIRE" }
-                Rectangle {
-                    Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
-                    color: Style.bgPage; border.color: Style.borderLight
-                    ComboBox {
-                        id: newYearCombo; anchors.fill: parent; anchors.margins: 2
-                        model: newEnrollmentPopup.anneeScolaireOptions
-                        background: Rectangle { color: "transparent" }
-                        contentItem: Text {
-                            text: newYearCombo.displayText; font.pixelSize: 13; font.bold: true
-                            color: Style.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+
+            // ── Checkbox Seulement Hall Ezzaytouna ──────────────────────────
+            Rectangle {
+                Layout.fillWidth: true; height: 44; radius: 12
+                color: newEnrollmentPopup.hallOnly ? Style.primaryBg : Style.bgPage
+                border.color: newEnrollmentPopup.hallOnly ? Style.primary : Style.borderLight
+                Behavior on color { ColorAnimation { duration: 150 } }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14; anchors.rightMargin: 14
+                    spacing: 10
+                    Rectangle {
+                        width: 18; height: 18; radius: 4
+                        color: newEnrollmentPopup.hallOnly ? Style.primary : "transparent"
+                        border.color: newEnrollmentPopup.hallOnly ? Style.primary : Style.borderMedium
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; font.bold: true; color: Style.background; visible: newEnrollmentPopup.hallOnly }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Seulement Hall Ezzaytouna")
+                        font.pixelSize: 13; font.bold: true
+                        color: newEnrollmentPopup.hallOnly ? Style.primary : Style.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+                    Text {
+                        visible: newEnrollmentPopup.hallOnly
+                        text: qsTr("Frais = 0 · Gratuit")
+                        font.pixelSize: 11; font.bold: true; color: Style.primary; opacity: 0.8
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        newEnrollmentPopup.hallOnly = !newEnrollmentPopup.hallOnly
+                        if (newEnrollmentPopup.hallOnly) {
+                            feeField.text = "0"
+                            newEnrollmentPopup.isPaid = true
                         }
                     }
                 }
             }
-            
+
+            // Année scolaire — readonly (année courante)
             Column {
                 Layout.fillWidth: true; spacing: 6
-                SectionLabel { text: "NIVEAU" }
+                SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
+                Rectangle {
+                    Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
+                    color: Style.bgSecondary; border.color: Style.borderLight
+                    Text {
+                        anchors.fill: parent; anchors.leftMargin: 12
+                        text: setupController.activeTarifs ? setupController.activeTarifs.libelle : "—"
+                        font.pixelSize: 13; font.bold: true
+                        color: Style.textSecondary; verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+
+            // Niveau
+            Column {
+                Layout.fillWidth: true; spacing: 6
+                visible: !newEnrollmentPopup.hallOnly
+                SectionLabel { text: qsTr("NIVEAU") }
                 Rectangle {
                     Layout.fillWidth: true; width: parent.width; height: 44; radius: 12
                     color: Style.bgPage; border.color: Style.borderLight
@@ -369,13 +687,20 @@ ColumnLayout {
                     }
                 }
             }
-            
+
+            FormField {
+                id: newNumeroRecuField
+                Layout.fillWidth: true
+                label: qsTr("N° REÇU (INSCRIPTION)")
+                placeholder: qsTr("ex: REC-2024-001")
+            }
+
             RowLayout {
-                spacing: 16
-                FormField { id: feeField; Layout.fillWidth: true; label: "FRAIS (DT)"; text: "50.0" }
+                Layout.fillWidth: true; spacing: 16
+                FormField { id: feeField; Layout.fillWidth: true; label: qsTr("FRAIS (DT)"); text: "50.0" }
                 Column {
                     spacing: 6
-                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                    SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
                     Row {
                         spacing: 12
                         Rectangle {
@@ -383,12 +708,12 @@ ColumnLayout {
                             color: newEnrollmentPopup.isPaid ? Style.successColor : Style.bgTertiary
                             Rectangle {
                                 x: newEnrollmentPopup.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                color: "#FFFFFF"
+                                color: Style.background
                                 Behavior on x { NumberAnimation { duration: 150 } }
                             }
                             MouseArea { anchors.fill: parent; onClicked: newEnrollmentPopup.isPaid = !newEnrollmentPopup.isPaid }
                         }
-                        Text { 
+                        Text {
                             text: newEnrollmentPopup.isPaid ? "PAYÉ" : "NON PAYÉ"
                             font.pixelSize: 12; font.weight: Font.Black
                             color: newEnrollmentPopup.isPaid ? Style.successColor : Style.textTertiary
@@ -396,26 +721,163 @@ ColumnLayout {
                     }
                 }
             }
-            
+
+            DateField {
+                id: newDateField
+                Layout.fillWidth: true
+                label: qsTr("DATE D'INSCRIPTION / PAIEMENT")
+            }
+
+            Column {
+                Layout.fillWidth: true; spacing: 6
+                SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
+                RowLayout {
+                    width: parent.width; spacing: 8
+                    Rectangle {
+                        Layout.fillWidth: true; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+                        TextInput {
+                            id: newJustifField
+                            anchors.fill: parent; anchors.margins: 12
+                            font.pixelSize: 12; font.bold: true; color: Style.textPrimary
+                            clip: true; selectByMouse: true; readOnly: true
+                            Text {
+                                visible: !newJustifField.text
+                                text: qsTr("Aucun fichier sélectionné")
+                                font: newJustifField.font; color: Style.textTertiary
+                            }
+                        }
+                    }
+                    Rectangle {
+                        Layout.preferredWidth: 44; height: 44; radius: 12
+                        color: newBrowseHover.containsMouse ? Style.primary : Style.bgPage
+                        border.color: newBrowseHover.containsMouse ? Style.primary : Style.borderLight
+                        Text {
+                            anchors.centerIn: parent; text: "…"
+                            font.pixelSize: 16; font.bold: true
+                            color: newBrowseHover.containsMouse ? "white" : Style.textTertiary
+                        }
+                        MouseArea {
+                            id: newBrowseHover; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: newEnrollJustifDialog.open()
+                        }
+                    }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
+
             RowLayout {
                 Layout.fillWidth: true; spacing: 16
                 OutlineButton {
-                    Layout.fillWidth: true; text: "Annuler"
+                    Layout.fillWidth: true; text: qsTr("Annuler")
                     onClicked: newEnrollmentPopup.close()
                 }
                 PrimaryButton {
-                    Layout.fillWidth: true; text: "Valider l'inscription"
+                    Layout.fillWidth: true; text: qsTr("Valider l'inscription")
                     onClicked: {
                         studentController.enrollStudent({
                             eleveId: root.student.id,
-                            anneeScolaire: newYearCombo.currentText,
-                            niveauId: root.niveaux[levelCombo.currentIndex].id,
+                            anneeScolaire: setupController.activeTarifs ? setupController.activeTarifs.libelle : "",
+                            annee_scolaire_id: setupController.activeTarifs ? setupController.activeTarifs.id : 0,
+                            niveauId: (!newEnrollmentPopup.hallOnly && root.niveaux.length > 0) ? root.niveaux[levelCombo.currentIndex].id : 0,
                             resultat: "En cours",
                             fraisInscriptionPaye: newEnrollmentPopup.isPaid,
-                            montantInscription: parseFloat(feeField.text),
-                            dateInscription: Qt.formatDate(new Date(), "yyyy-MM-dd"),
-                            justificatifPath: ""
+                            montantInscription: parseFloat(feeField.text.replace(",", ".")) || 0,
+                            dateInscription: newDateField.dateString !== "" ? newDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
+                            justificatifPath: newJustifField.text.trim(),
+                            numeroRecu: newNumeroRecuField.text.trim(),
+                            hallOnly: newEnrollmentPopup.hallOnly
                         })
+                    }
+                }
+            }
+        }
+    }
+
+    // Enrollment Delete Confirmation Popup
+    Popup {
+        id: deleteEnrollmentConfirmPopup
+        parent: Overlay.overlay; anchors.centerIn: parent
+        width: 460; height: 260; modal: true; padding: 0
+        background: Rectangle { radius: 20; color: Style.bgWhite }
+
+        property int enrollmentId: 0
+
+        contentItem: ColumnLayout {
+            anchors.fill: parent; anchors.margins: 28; spacing: 16
+
+            Text {
+                text: qsTr("Supprimer cette inscription ?")
+                font.pixelSize: 18; font.weight: Font.Black; color: Style.errorColor
+            }
+
+            Text {
+                text: qsTr("Cette action est irréversible.\n\nPensez à sauvegarder la base de données avant de continuer afin de pouvoir revenir en arrière si nécessaire.")
+                font.pixelSize: 13; color: Style.textSecondary
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Annuler")
+                    onClicked: deleteEnrollmentConfirmPopup.close()
+                }
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Supprimer")
+                    baseColor: Style.errorColor
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
+                    onClicked: {
+                        studentController.deleteEnrollment(deleteEnrollmentConfirmPopup.enrollmentId)
+                        deleteEnrollmentConfirmPopup.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete Confirmation Popup
+    Popup {
+        id: deleteConfirmPopup
+        parent: Overlay.overlay; anchors.centerIn: parent
+        width: 460; height: 290; modal: true; padding: 0
+        background: Rectangle { radius: 20; color: Style.bgWhite }
+
+        contentItem: ColumnLayout {
+            anchors.fill: parent; anchors.margins: 28; spacing: 16
+
+            Text {
+                text: qsTr("Confirmer la suppression")
+                font.pixelSize: 18; font.weight: Font.Black; color: Style.errorColor
+            }
+
+            Text {
+                text: qsTr("Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.\n\nPensez à sauvegarder la base de données avant de continuer afin de pouvoir revenir en arrière si nécessaire.")
+                font.pixelSize: 13; color: Style.textSecondary
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Annuler")
+                    onClicked: deleteConfirmPopup.close()
+                }
+                OutlineButton {
+                    Layout.fillWidth: true; text: qsTr("Supprimer définitivement")
+                    baseColor: Style.errorColor
+                    hoverColor: Style.errorColor
+                    textColor: Style.background
+                    onClicked: {
+                        deleteConfirmPopup.close()
+                        root.deleteRequested()
                     }
                 }
             }

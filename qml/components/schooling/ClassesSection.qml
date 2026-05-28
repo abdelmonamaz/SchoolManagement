@@ -1,11 +1,11 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 AppCard {
     id: root
-    title: "Groupes & Classes"
-    subtitle: "Structure actuelle du " + selectedNiveauNom
+    title: qsTr("Groupes & Classes")
+    subtitle: qsTr("Structure actuelle du ") + selectedNiveauNom
 
     required property var classes
     required property var students
@@ -65,7 +65,7 @@ AppCard {
                                 text: modelData.nom
                                 font.pixelSize: 18
                                 font.weight: Font.Black
-                                color: classCardHover.hovered ? "#FFFFFF" : Style.primary
+                                color: classCardHover.hovered ? Style.background : Style.primary
                             }
                         }
 
@@ -94,7 +94,7 @@ AppCard {
                         spacing: 4
 
                         Text {
-                            text: "Classe " + modelData.nom
+                            text: qsTr("Classe ") + modelData.nom
                             font.pixelSize: 14
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -104,7 +104,8 @@ AppCard {
                             property int cnt: {
                                 var c = 0
                                 for (var i = 0; i < root.students.length; i++) {
-                                    if (root.students[i].classeId === modelData.id) c++
+                                    var st = root.students[i]
+                                    if (st.classeId === modelData.id || st.hallClasseId === modelData.id) c++
                                 }
                                 return c
                             }
@@ -137,7 +138,7 @@ AppCard {
                 }
 
                 SectionLabel {
-                    text: "NOUVEAU GROUPE"
+                    text: qsTr("NOUVEAU GROUPE")
                     font.pixelSize: 10
                     color: addClassMa.containsMouse ? Style.primary : Style.textTertiary
                     anchors.horizontalCenter: parent.horizontalCenter

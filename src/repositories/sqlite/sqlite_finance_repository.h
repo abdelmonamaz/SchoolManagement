@@ -75,3 +75,15 @@ public:
 private:
     QString m_connectionName;
 };
+
+class SqliteFinanceBalanceRepository : public IFinanceBalanceRepository {
+public:
+    explicit SqliteFinanceBalanceRepository(const QString& connectionName);
+
+    QVariantMap computeBalance(const QString& yearFilter) override;
+    QVariantMap computeBalanceForRange(const QString& dateFrom, const QString& dateTo) override;
+    QVariantMap getExerciceConfig() override;
+
+private:
+    QString m_connectionName;
+};

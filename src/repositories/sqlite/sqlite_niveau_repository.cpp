@@ -17,10 +17,9 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
     QSqlQuery query(db);
 
     if (!query.exec(
-            "SELECT n.id, n.nom, COALESCE(n.parent_level_id,0), COALESCE(n.annee_scolaire_id,0) "
+            "SELECT n.id, n.nom, COALESCE(n.parent_level_id,0), n.annee_scolaire_id, COALESCE(n.is_freestyle,0) "
             "FROM niveaux n "
-            "JOIN niveaux_actifs_par_annee napa ON napa.niveau_id = n.id "
-            "JOIN annees_scolaires a ON a.id = napa.annee_scolaire_id "
+            "JOIN annees_scolaires a ON n.annee_scolaire_id = a.id "
             "WHERE n.valide = 1 AND a.statut = 'Active' AND a.valide = 1 "
             "ORDER BY n.id")) {
         return Result<QList<Niveau>>::error(query.lastError().text());
@@ -32,9 +31,12 @@ Result<QList<Niveau>> SqliteNiveauRepository::getAll()
             .id = query.value(0).toInt(),
             .nom = query.value(1).toString(),
             .parentLevelId = query.value(2).toInt(),
-            .anneeScolaireId = query.value(3).toInt()
+            .anneeScolaireId = query.value(3).toInt(),
+            .isFreestyle = query.value(4).toBool()
         });
     }
+    qDebug() << "[NiveauRepo::getAll] =>" << list.size() << "niveaux. IDs:"
+             << [&]{ QStringList s; for (const auto& n : list) s << QString("%1(%2,annee=%3)").arg(n.id).arg(n.nom).arg(n.anneeScolaireId); return s.join(","); }();
     return Result<QList<Niveau>>::success(std::move(list));
 }
 
@@ -42,7 +44,7 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, COALESCE(parent_level_id, 0), COALESCE(annee_scolaire_id, 0) FROM niveaux WHERE id = ? AND valide = 1");
+    query.prepare("SELECT id, nom, COALESCE(parent_level_id, 0), COALESCE(annee_scolaire_id, 0), COALESCE(is_freestyle, 0) FROM niveaux WHERE id = ? AND valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -55,7 +57,8 @@ Result<std::optional<Niveau>> SqliteNiveauRepository::getById(int id)
         .id = query.value(0).toInt(),
         .nom = query.value(1).toString(),
         .parentLevelId = query.value(2).toInt(),
-        .anneeScolaireId = query.value(3).toInt()
+        .anneeScolaireId = query.value(3).toInt(),
+        .isFreestyle = query.value(4).toBool()
     });
 }
 
@@ -69,25 +72,16 @@ Result<int> SqliteNiveauRepository::create(const Niveau& entity)
     const int activeYearId = qYear.next() ? qYear.value(0).toInt() : 0;
 
     QSqlQuery query(db);
-    query.prepare("INSERT INTO niveaux (nom, parent_level_id, annee_scolaire_id) VALUES (?, NULLIF(?, 0), NULLIF(?, 0))");
+    query.prepare("INSERT INTO niveaux (nom, parent_level_id, annee_scolaire_id, is_freestyle) VALUES (?, NULLIF(?, 0), NULLIF(?, 0), ?)");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.parentLevelId);
     query.addBindValue(activeYearId > 0 ? activeYearId : entity.anneeScolaireId);
+    query.addBindValue(entity.isFreestyle ? 1 : 0);
 
     if (!query.exec()) {
         return Result<int>::error(query.lastError().text());
     }
     const int newId = query.lastInsertId().toInt();
-
-    // Link to active year in junction table
-    if (activeYearId > 0) {
-        QSqlQuery qNapa(db);
-        qNapa.prepare("INSERT OR IGNORE INTO niveaux_actifs_par_annee (annee_scolaire_id, niveau_id) VALUES (?, ?)");
-        qNapa.addBindValue(activeYearId);
-        qNapa.addBindValue(newId);
-        qNapa.exec();
-    }
-
     return Result<int>::success(newId);
 }
 
@@ -95,11 +89,14 @@ Result<bool> SqliteNiveauRepository::update(const Niveau& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE niveaux SET nom = ?, parent_level_id = NULLIF(?, 0), annee_scolaire_id = NULLIF(?, 0), "
-                  "date_modification = datetime('now') WHERE id = ?");
+    // annee_scolaire_id : si 0, on preserve l'existant (COALESCE) pour ne pas casser le lien avec l'année
+    query.prepare("UPDATE niveaux SET nom = ?, parent_level_id = NULLIF(?, 0), "
+                  "annee_scolaire_id = COALESCE(NULLIF(?, 0), annee_scolaire_id), "
+                  "is_freestyle = ?, date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.parentLevelId);
     query.addBindValue(entity.anneeScolaireId);
+    query.addBindValue(entity.isFreestyle ? 1 : 0);
     query.addBindValue(entity.id);
 
     if (!query.exec()) {
@@ -118,6 +115,46 @@ Result<bool> SqliteNiveauRepository::remove(int id)
     if (!query.exec()) {
         return Result<bool>::error(query.lastError().text());
     }
+    return Result<bool>::success(true);
+}
+
+Result<QList<Niveau>> SqliteNiveauRepository::getAllGlobal()
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    if (!query.exec(
+            "SELECT id, nom, COALESCE(parent_level_id,0), COALESCE(annee_scolaire_id,0), COALESCE(is_freestyle,0) "
+            "FROM niveaux WHERE valide = 1 ORDER BY id")) {
+        return Result<QList<Niveau>>::error(query.lastError().text());
+    }
+    QList<Niveau> list;
+    while (query.next()) {
+        list.append({
+            .id = query.value(0).toInt(),
+            .nom = query.value(1).toString(),
+            .parentLevelId = query.value(2).toInt(),
+            .anneeScolaireId = query.value(3).toInt(),
+            .isFreestyle = query.value(4).toBool()
+        });
+    }
+    return Result<QList<Niveau>>::success(std::move(list));
+}
+
+Result<bool> SqliteNiveauRepository::removeAndDetachChildren(int id)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare("UPDATE niveaux SET valide = 0, date_invalidation = datetime('now'), "
+              "date_modification = datetime('now') WHERE id = ?");
+    q.addBindValue(id);
+    if (!q.exec())
+        return Result<bool>::error(q.lastError().text());
+
+    QSqlQuery fix(db);
+    fix.prepare("UPDATE niveaux SET parent_level_id = NULL WHERE parent_level_id = ?");
+    fix.addBindValue(id);
+    fix.exec(); // non-fatal if this fails
+
     return Result<bool>::success(true);
 }
 
@@ -198,13 +235,56 @@ Result<bool> SqliteClasseRepository::update(const Classe& entity)
 Result<bool> SqliteClasseRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    if (!db.transaction())
+        return Result<bool>::error("Transaction impossible: " + db.lastError().text());
+
     QSqlQuery query(db);
+
+    // 1. Supprimer les séances liées aux cours et examens de cette classe.
+    //    ON DELETE CASCADE sur seances → supprime en cascade participations, cours et examens.
+    query.prepare(
+        "DELETE FROM seances WHERE id IN ("
+        "  SELECT seance_id FROM cours    WHERE classe_id = ? "
+        "  UNION "
+        "  SELECT seance_id FROM examens  WHERE classe_id = ?"
+        ")");
+    query.addBindValue(id);
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur suppression séances: " + query.lastError().text());
+    }
+
+    // 2. Libérer l'affectation de classe dans les inscriptions (classe normale)
+    query.prepare("UPDATE inscriptions_eleves SET classe_id = NULL WHERE classe_id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur nullification classe_id: " + query.lastError().text());
+    }
+
+    // 3. Libérer l'affectation de salle dans les inscriptions (niveau de type hall/freestyle)
+    query.prepare("UPDATE inscriptions_eleves SET hall_classe_id = NULL WHERE hall_classe_id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        db.rollback();
+        return Result<bool>::error("Erreur nullification hall_classe_id: " + query.lastError().text());
+    }
+
+    // 4. Suppression douce de la classe
     query.prepare("UPDATE classes SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
-
     if (!query.exec()) {
+        db.rollback();
         return Result<bool>::error(query.lastError().text());
     }
+
+    if (!db.commit()) {
+        db.rollback();
+        return Result<bool>::error("Erreur commit: " + db.lastError().text());
+    }
+
     return Result<bool>::success(true);
 }
 
@@ -227,6 +307,8 @@ Result<QList<Classe>> SqliteClasseRepository::getByNiveauId(int niveauId)
             .niveauId = query.value(2).toInt()
         });
     }
+    qDebug() << "[ClasseRepo::getByNiveauId] niveauId=" << niveauId << "=>" << list.size() << "classes:"
+             << [&]{ QStringList s; for (const auto& c : list) s << QString("%1(%2)").arg(c.id).arg(c.nom); return s.join(","); }();
     return Result<QList<Classe>>::success(std::move(list));
 }
 
@@ -240,7 +322,12 @@ Result<QList<Matiere>> SqliteMatiereRepository::getAll()
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
 
-    if (!query.exec("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE valide = 1")) {
+    if (!query.exec(
+            "SELECT m.id, m.nom, m.niveau_id, m.nombre_seances, m.duree_seance_minutes, "
+            "       COALESCE(s.numero, 0), COALESCE(m.coefficient, 1.0) "
+            "FROM matieres m "
+            "LEFT JOIN semestres s ON m.semestre_id = s.id "
+            "WHERE m.valide = 1")) {
         return Result<QList<Matiere>>::error(query.lastError().text());
     }
 
@@ -251,7 +338,9 @@ Result<QList<Matiere>> SqliteMatiereRepository::getAll()
             .nom = query.value(1).toString(),
             .niveauId = query.value(2).toInt(),
             .nombreSeances = query.value(3).toInt(),
-            .dureeSeanceMinutes = query.value(4).toInt()
+            .dureeSeanceMinutes = query.value(4).toInt(),
+            .semestreNumero = query.value(5).toInt(),
+            .coefficient = query.value(6).toDouble()
         });
     }
     return Result<QList<Matiere>>::success(std::move(list));
@@ -261,7 +350,12 @@ Result<std::optional<Matiere>> SqliteMatiereRepository::getById(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE id = ? AND valide = 1");
+    query.prepare(
+        "SELECT m.id, m.nom, m.niveau_id, m.nombre_seances, m.duree_seance_minutes, "
+        "       COALESCE(s.numero, 0), COALESCE(m.coefficient, 1.0) "
+        "FROM matieres m "
+        "LEFT JOIN semestres s ON m.semestre_id = s.id "
+        "WHERE m.id = ? AND m.valide = 1");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -275,7 +369,9 @@ Result<std::optional<Matiere>> SqliteMatiereRepository::getById(int id)
         .nom = query.value(1).toString(),
         .niveauId = query.value(2).toInt(),
         .nombreSeances = query.value(3).toInt(),
-        .dureeSeanceMinutes = query.value(4).toInt()
+        .dureeSeanceMinutes = query.value(4).toInt(),
+        .semestreNumero = query.value(5).toInt(),
+        .coefficient = query.value(6).toDouble()
     });
 }
 
@@ -283,11 +379,12 @@ Result<int> SqliteMatiereRepository::create(const Matiere& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("INSERT INTO matieres (nom, niveau_id, nombre_seances, duree_seance_minutes) VALUES (?, ?, ?, ?)");
+    query.prepare("INSERT INTO matieres (nom, niveau_id, nombre_seances, duree_seance_minutes, coefficient) VALUES (?, ?, ?, ?, ?)");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.nombreSeances);
     query.addBindValue(entity.dureeSeanceMinutes);
+    query.addBindValue(entity.coefficient > 0 ? entity.coefficient : 1.0);
 
     if (!query.exec()) {
         return Result<int>::error(query.lastError().text());
@@ -299,11 +396,12 @@ Result<bool> SqliteMatiereRepository::update(const Matiere& entity)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("UPDATE matieres SET nom = ?, niveau_id = ?, nombre_seances = ?, duree_seance_minutes = ? , date_modification = datetime('now') WHERE id = ?");
+    query.prepare("UPDATE matieres SET nom = ?, niveau_id = ?, nombre_seances = ?, duree_seance_minutes = ?, coefficient = ?, date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(entity.nom);
     query.addBindValue(entity.niveauId);
     query.addBindValue(entity.nombreSeances);
     query.addBindValue(entity.dureeSeanceMinutes);
+    query.addBindValue(entity.coefficient > 0 ? entity.coefficient : 1.0);
     query.addBindValue(entity.id);
 
     if (!query.exec()) {
@@ -315,6 +413,26 @@ Result<bool> SqliteMatiereRepository::update(const Matiere& entity)
 Result<bool> SqliteMatiereRepository::remove(int id)
 {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    // Soft-delete matiere_examens liés à cette matière
+    QSqlQuery q1(db);
+    q1.prepare("UPDATE matiere_examens SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE matiere_id = ?");
+    q1.addBindValue(id);
+    q1.exec();
+
+    // Soft-delete séances liées via la table cours
+    QSqlQuery q2(db);
+    q2.prepare("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id IN (SELECT seance_id FROM cours WHERE matiere_id = ?)");
+    q2.addBindValue(id);
+    q2.exec();
+
+    // Soft-delete séances liées via la table examens
+    QSqlQuery q3(db);
+    q3.prepare("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id IN (SELECT seance_id FROM examens WHERE matiere_id = ?)");
+    q3.addBindValue(id);
+    q3.exec();
+
+    // Soft-delete la matière elle-même
     QSqlQuery query(db);
     query.prepare("UPDATE matieres SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?");
     query.addBindValue(id);
@@ -329,7 +447,12 @@ Result<QList<Matiere>> SqliteMatiereRepository::getByNiveauId(int niveauId)
 {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare("SELECT id, nom, niveau_id, nombre_seances, duree_seance_minutes FROM matieres WHERE niveau_id = ? AND valide = 1");
+    query.prepare(
+        "SELECT m.id, m.nom, m.niveau_id, m.nombre_seances, m.duree_seance_minutes, "
+        "       COALESCE(s.numero, 0), COALESCE(m.coefficient, 1.0) "
+        "FROM matieres m "
+        "LEFT JOIN semestres s ON m.semestre_id = s.id "
+        "WHERE m.niveau_id = ? AND m.valide = 1");
     query.addBindValue(niveauId);
 
     if (!query.exec()) {
@@ -343,10 +466,40 @@ Result<QList<Matiere>> SqliteMatiereRepository::getByNiveauId(int niveauId)
             .nom = query.value(1).toString(),
             .niveauId = query.value(2).toInt(),
             .nombreSeances = query.value(3).toInt(),
-            .dureeSeanceMinutes = query.value(4).toInt()
+            .dureeSeanceMinutes = query.value(4).toInt(),
+            .semestreNumero = query.value(5).toInt(),
+            .coefficient = query.value(6).toDouble()
         });
     }
     return Result<QList<Matiere>>::success(std::move(list));
+}
+
+Result<bool> SqliteMatiereRepository::setMatiereSemestre(int matiereId, int semestreNumero)
+{
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+
+    if (semestreNumero <= 0) {
+        q.prepare(QStringLiteral(
+            "UPDATE matieres SET semestre_id = NULL, date_modification = datetime('now') "
+            "WHERE id = ? AND valide = 1"));
+        q.addBindValue(matiereId);
+    } else {
+        q.prepare(QStringLiteral(
+            "UPDATE matieres SET "
+            "  semestre_id = (SELECT s.id FROM semestres s "
+            "                 JOIN annees_scolaires a ON s.annee_scolaire_id = a.id "
+            "                 WHERE s.numero = ? AND a.statut = 'Active' AND a.valide = 1 "
+            "                 AND s.valide = 1 LIMIT 1), "
+            "  date_modification = datetime('now') "
+            "WHERE id = ? AND valide = 1"));
+        q.addBindValue(semestreNumero);
+        q.addBindValue(matiereId);
+    }
+
+    if (!q.exec())
+        return Result<bool>::error(q.lastError().text());
+    return Result<bool>::success(true);
 }
 
 // --- SqliteMatiereExamenRepository ---

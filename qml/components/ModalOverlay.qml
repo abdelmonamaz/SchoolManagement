@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 
 // Composant modal réutilisable avec overlay, animation et conteneur centré.
 // Usage:
@@ -59,6 +59,6 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 }

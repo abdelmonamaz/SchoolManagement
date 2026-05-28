@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 ModalOverlay {
@@ -62,7 +62,7 @@ ModalOverlay {
                 spacing: 4
 
                 Text {
-                    text: "Historique des contrats"
+                    text: qsTr("Historique des contrats")
                     font.pixelSize: 22
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -109,10 +109,10 @@ ModalOverlay {
                         implicitHeight: contratItemCol.implicitHeight + 32
                         radius: 16
                         color: contratStatus === "encours" ? Style.primary + "08"
-                             : contratStatus === "avenir" ? "#3B82F608"
+                             : contratStatus === "avenir" ? Qt.alpha(Style.chart3, 0.03)
                              : Style.bgPage
                         border.color: contratStatus === "encours" ? Style.primary + "30"
-                                    : contratStatus === "avenir" ? "#3B82F630"
+                                    : contratStatus === "avenir" ? Qt.alpha(Style.chart3, 0.19)
                                     : Style.borderLight
 
                         Column {
@@ -133,7 +133,7 @@ ModalOverlay {
                                     height: 20
                                     radius: 8
                                     color: contratStatus === "encours" ? Style.primary
-                                         : contratStatus === "avenir" ? "#3B82F6"
+                                         : contratStatus === "avenir" ? Style.chart3
                                          : Style.textTertiary + "20"
 
                                     Text {
@@ -191,7 +191,7 @@ ModalOverlay {
                                     spacing: 2
 
                                     Text {
-                                        text: "RÉMUNÉRATION"
+                                        text: qsTr("RÉMUNÉRATION")
                                         font.pixelSize: 8
                                         font.weight: Font.Black
                                         color: Style.textTertiary
@@ -211,7 +211,7 @@ ModalOverlay {
                                     spacing: 2
 
                                     Text {
-                                        text: "PÉRIODE"
+                                        text: qsTr("PÉRIODE")
                                         font.pixelSize: 8
                                         font.weight: Font.Black
                                         color: Style.textTertiary
@@ -230,7 +230,7 @@ ModalOverlay {
                             // Specialité si présente
                             Text {
                                 visible: modelData.specialite && modelData.specialite !== ""
-                                text: "Spécialité: " + (modelData.specialite || "")
+                                text: qsTr("Spécialité: ") + (modelData.specialite || "")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Style.textTertiary
@@ -242,7 +242,7 @@ ModalOverlay {
                 // Empty state
                 Text {
                     visible: root.contrats.length === 0
-                    text: "Aucun contrat trouvé."
+                    text: qsTr("Aucun contrat trouvé.")
                     font.pixelSize: 13
                     color: Style.textTertiary
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -260,7 +260,7 @@ ModalOverlay {
 
             Text {
                 anchors.centerIn: parent
-                text: "FERMER"
+                text: qsTr("FERMER")
                 font.pixelSize: 10
                 font.weight: Font.Black
                 color: Style.textTertiary

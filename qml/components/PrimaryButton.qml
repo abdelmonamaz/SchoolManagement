@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
 Rectangle {
     id: control
@@ -26,14 +26,14 @@ Rectangle {
             visible: control.iconName !== ""
             iconName: control.iconName
             iconSize: 18
-            iconColor: "#FFFFFF"
+            iconColor: Style.primaryForeground
         }
 
         Text {
             text: control.text
             font.pixelSize: 14
             font.bold: true
-            color: "#FFFFFF"
+            color: Style.primaryForeground
         }
     }
 

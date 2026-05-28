@@ -13,6 +13,7 @@ struct PaiementMensualite {
     int anneeConcernee = 0;
     int anneeScolaireId = 0; // FK → annees_scolaires.id
     QString justificatifPath;
+    QString numeroRecu;
 };
 
 struct PaiementMensuelPersonnel {

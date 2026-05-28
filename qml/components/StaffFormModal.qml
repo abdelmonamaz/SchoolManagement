@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 ModalOverlay {
@@ -26,6 +26,7 @@ ModalOverlay {
     property string dateDebutText: ""
     property string dateFinText: ""
     property int joursTravailValue: 31   // bitmask Lun-Dim, bit0=Lun..bit6=Dim
+    property string niveauScolaireText: ""  // Niveau d'éducation obtenu (ex: Master Fiqh)
 
     onSelectedPostChanged: {
         if (selectedPost === "Enseignant" && selectedPaymentMode === "Jour")
@@ -54,6 +55,7 @@ ModalOverlay {
         selectedPost = "Enseignant"
         selectedPaymentMode = "Heure"
         joursTravailValue = 31
+        niveauScolaireText = ""
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
         personnelId = -1
@@ -67,6 +69,9 @@ ModalOverlay {
         cinText = data.cin || ""
         selectedSexe = data.sexe || "M"
         personnelId = data.id || -1
+        selectedPost = data.poste || "Enseignant"
+        specialtyText = data.specialite || ""
+        niveauScolaireText = data.niveauScolaire || ""
         editMode = "identity"
     }
 
@@ -76,6 +81,7 @@ ModalOverlay {
         specialtyText = ""
         selectedPaymentMode = data.modePaie || (data.poste === "Enseignant" ? "Heure" : "Jour")
         joursTravailValue = data.joursTravail || 31
+        niveauScolaireText = data.niveauScolaire || ""
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = Qt.formatDate(new Date(), "yyyy-MM-dd")
         dateFinText = ""
@@ -89,6 +95,7 @@ ModalOverlay {
         specialtyText = data.specialite || ""
         selectedPaymentMode = data.modePaie || "Heure"
         joursTravailValue = data.joursTravail || 31
+        niveauScolaireText = data.niveauScolaire || ""
         baseValueText = String(data.valeurBase || 25)
         dateDebutText = data.dateDebutISO || ""
         dateFinText = data.dateFinISO || ""
@@ -149,13 +156,13 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "identity"
 
                 SectionLabel {
-                    text: "NOM COMPLET"
+                    text: qsTr("NOM COMPLET")
                 }
 
                 FormField {
                     id: fieldNom
                     width: parent.width
-                    placeholder: "Nom complet..."
+                    placeholder: qsTr("Nom complet...")
                     text: root.nomText
                     onTextChanged: root.nomText = text
                     nextTabItem: fieldTelephone.inputItem
@@ -169,12 +176,12 @@ ModalOverlay {
                 spacing: 6
                 visible: editMode === "full" || editMode === "identity"
 
-                SectionLabel { text: "TÉLÉPHONE" }
+                SectionLabel { text: qsTr("TÉLÉPHONE") }
 
                 FormField {
                     id: fieldTelephone
                     width: parent.width
-                    placeholder: "XX XXX XXX"
+                    placeholder: qsTr("XX XXX XXX")
                     text: root.telephoneText
                     onTextChanged: root.telephoneText = text
                     prevTabItem: fieldNom.inputItem
@@ -193,12 +200,12 @@ ModalOverlay {
                 spacing: 6
                 visible: editMode === "full" || editMode === "identity"
 
-                SectionLabel { text: "CIN" }
+                SectionLabel { text: qsTr("CIN") }
 
                 FormField {
                     id: fieldCin
                     width: parent.width
-                    placeholder: "Numéro CIN..."
+                    placeholder: qsTr("Numéro CIN...")
                     text: root.cinText
                     onTextChanged: root.cinText = text
                     prevTabItem: fieldTelephone.inputItem
@@ -213,7 +220,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "identity"
 
                 SectionLabel {
-                    text: "SEXE"
+                    text: qsTr("SEXE")
                 }
 
                 Rectangle {
@@ -234,7 +241,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "HOMME"
+                                text: qsTr("HOMME")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: root.selectedSexe === "M" ? Style.textPrimary : Style.textTertiary
@@ -257,7 +264,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "FEMME"
+                                text: qsTr("FEMME")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: root.selectedSexe === "F" ? Style.textPrimary : Style.textTertiary
@@ -294,7 +301,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "TYPE DE POSTE"
+                    text: qsTr("TYPE DE POSTE")
                 }
 
                 Rectangle {
@@ -336,18 +343,38 @@ ModalOverlay {
                 Layout.fillWidth: true
                 Layout.preferredWidth: parent.width / 2 - 8
                 spacing: 6
-                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract") && root.selectedPost === "Enseignant"
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract" || editMode === "identity") && root.selectedPost === "Enseignant"
 
                 SectionLabel {
-                    text: "SPÉCIALITÉ"
+                    text: qsTr("SPÉCIALITÉ")
                 }
 
                 FormField {
                     id: fieldSpecialty
                     width: parent.width
-                    placeholder: "ex: Fiqh & Hadith"
+                    placeholder: qsTr("ex: Fiqh & Hadith")
                     text: root.specialtyText
                     onTextChanged: root.specialtyText = text
+                }
+            }
+
+            // Niveau scolaire (si Enseignant)
+            Column {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                spacing: 6
+                visible: (editMode === "full" || editMode === "contract" || editMode === "editContract" || editMode === "identity") && root.selectedPost === "Enseignant"
+
+                SectionLabel {
+                    text: qsTr("NIVEAU D'ÉDUCATION")
+                }
+
+                FormField {
+                    id: fieldNiveauScolaire
+                    width: parent.width
+                    placeholder: qsTr("ex: Master Fiqh, Licence Arabe...")
+                    text: root.niveauScolaireText
+                    onTextChanged: root.niveauScolaireText = text
                 }
             }
 
@@ -359,7 +386,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "DATE DE DÉBUT"
+                    text: qsTr("DATE DE DÉBUT")
                 }
 
                 Rectangle {
@@ -417,7 +444,7 @@ ModalOverlay {
                 visible: editMode === "full" || editMode === "contract" || editMode === "editContract"
 
                 SectionLabel {
-                    text: "DATE DE FIN (OPTIONNEL)"
+                    text: qsTr("DATE DE FIN (OPTIONNEL)")
                 }
 
                 Rectangle {
@@ -459,7 +486,7 @@ ModalOverlay {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "x"
+                                text: qsTr("x")
                                 font.pixelSize: 10
                                 font.weight: Font.Bold
                                 color: Style.textTertiary
@@ -520,7 +547,7 @@ ModalOverlay {
                     }
 
                     Text {
-                        text: "PARAMÈTRES DE RÉMUNÉRATION"
+                        text: qsTr("PARAMÈTRES DE RÉMUNÉRATION")
                         font.pixelSize: 12
                         font.weight: Font.Black
                         color: Style.textPrimary
@@ -541,7 +568,7 @@ ModalOverlay {
                         spacing: 6
 
                         SectionLabel {
-                            text: "MODE DE PAIEMENT"
+                            text: qsTr("MODE DE PAIEMENT")
                         }
 
                         Rectangle {
@@ -592,7 +619,7 @@ ModalOverlay {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "SALAIRE FIXE"
+                                        text: qsTr("SALAIRE FIXE")
                                         font.pixelSize: 10
                                         font.weight: Font.Black
                                         color: root.selectedPaymentMode === "Fixe" ? Style.textPrimary : Style.textTertiary
@@ -643,7 +670,7 @@ ModalOverlay {
                         spacing: 8
                         visible: root.selectedPaymentMode === "Jour"
 
-                        SectionLabel { text: "JOURS DE TRAVAIL" }
+                        SectionLabel { text: qsTr("JOURS DE TRAVAIL") }
 
                         Row {
                             spacing: 6
@@ -696,7 +723,9 @@ ModalOverlay {
                         nom: root.nomText,
                         telephone: root.telephoneText,
                         sexe: root.selectedSexe,
-                        cin: root.cinText
+                        cin: root.cinText,
+                        specialite: root.selectedPost === "Enseignant" ? root.specialtyText : "",
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : ""
                     })
                 } else if (editMode === "contract") {
                     root.confirmed({
@@ -707,6 +736,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -720,6 +750,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })
@@ -735,6 +766,7 @@ ModalOverlay {
                         modePaie: root.selectedPaymentMode,
                         valeurBase: parseFloat(root.baseValueText) || 25.0,
                         joursTravail: root.joursTravailValue,
+                        niveauScolaire: root.selectedPost === "Enseignant" ? root.niveauScolaireText : "",
                         dateDebut: root.dateDebutText,
                         dateFin: root.dateFinText
                     })

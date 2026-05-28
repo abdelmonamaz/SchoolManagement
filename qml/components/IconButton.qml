@@ -1,14 +1,16 @@
-import QtQuick 2.15
+import QtQuick
 
 Rectangle {
     id: control
     property string iconName: ""
     property int iconSize: 18
+    property color baseColor: Style.bgPage
+    property color baseIconColor: Style.textTertiary
     property color hoverColor: Style.textPrimary
 
     width: 36; height: 36
     radius: 10
-    color: mouseArea.pressed ? Qt.rgba(0.85, 0.85, 0.85, 1) : Style.bgPage
+    color: mouseArea.pressed ? Qt.darker(control.baseColor, 1.15) : control.baseColor
     border.color: Style.borderLight
 
     Behavior on color { ColorAnimation { duration: 150 } }
@@ -23,7 +25,7 @@ Rectangle {
         anchors.centerIn: parent
         iconName: control.iconName
         iconSize: control.iconSize
-        iconColor: hover.hovered ? control.hoverColor : Style.textTertiary
+        iconColor: hover.hovered ? control.hoverColor : control.baseIconColor
     }
 
     MouseArea {

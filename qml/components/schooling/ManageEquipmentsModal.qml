@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 ModalOverlay {
@@ -20,7 +20,7 @@ ModalOverlay {
         padding: 32
 
         Text {
-            text: "Gérer les Équipements"
+            text: qsTr("Gérer les Équipements")
             font.pixelSize: 22
             font.weight: Font.Black
             color: Style.textPrimary
@@ -32,7 +32,7 @@ ModalOverlay {
             width: parent.width - 64
             spacing: 12
 
-            SectionLabel { text: "ÉQUIPEMENTS DISPONIBLES" }
+            SectionLabel { text: qsTr("ÉQUIPEMENTS DISPONIBLES") }
 
             Column {
                 width: parent.width
@@ -108,7 +108,7 @@ ModalOverlay {
 
                             Text {
                                 visible: !parent.text
-                                text: "Nouvel équipement..."
+                                text: qsTr("Nouvel équipement...")
                                 font: parent.font
                                 color: Style.textTertiary
                             }
@@ -121,7 +121,7 @@ ModalOverlay {
                 }
 
                 PrimaryButton {
-                    text: "AJOUTER"
+                    text: qsTr("AJOUTER")
                     iconName: "plus"
                     onClicked: {
                         if (newEquipmentInput.text.trim() !== "") {
@@ -143,10 +143,10 @@ ModalOverlay {
 
             Text {
                 anchors.centerIn: parent
-                text: "FERMER"
+                text: qsTr("FERMER")
                 font.pixelSize: 10
                 font.weight: Font.Black
-                color: "#FFFFFF"
+                color: Style.background
                 font.letterSpacing: 0.5
             }
 

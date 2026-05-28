@@ -9,10 +9,12 @@ public:
     explicit SqliteNiveauRepository(QString connectionName);
 
     Result<QList<Niveau>> getAll() override;
+    Result<QList<Niveau>> getAllGlobal() override;
     Result<std::optional<Niveau>> getById(int id) override;
     Result<int> create(const Niveau& entity) override;
     Result<bool> update(const Niveau& entity) override;
     Result<bool> remove(int id) override;
+    Result<bool> removeAndDetachChildren(int id) override;
 
 private:
     QString m_connectionName;
@@ -45,6 +47,7 @@ public:
     Result<bool> remove(int id) override;
 
     Result<QList<Matiere>> getByNiveauId(int niveauId) override;
+    Result<bool> setMatiereSemestre(int matiereId, int semestreNumero) override;
 
 private:
     QString m_connectionName;

@@ -4,7 +4,7 @@
 #include <QDebug>
 
 static QVariantMap niveauToMap(const Niveau& n) {
-    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}};
+    return {{"id", n.id}, {"nom", n.nom}, {"parentLevelId", n.parentLevelId}, {"anneeScolaireId", n.anneeScolaireId}, {"isFreestyle", n.isFreestyle}};
 }
 
 static QVariantMap classeToMap(const Classe& c) {
@@ -13,7 +13,8 @@ static QVariantMap classeToMap(const Classe& c) {
 
 static QVariantMap matiereToMap(const Matiere& m) {
     return {{"id", m.id}, {"nom", m.nom}, {"niveauId", m.niveauId},
-            {"nombreSeances", m.nombreSeances}, {"dureeSeanceMinutes", m.dureeSeanceMinutes}};
+            {"nombreSeances", m.nombreSeances}, {"dureeSeanceMinutes", m.dureeSeanceMinutes},
+            {"semestreNumero", m.semestreNumero}, {"coefficient", m.coefficient}};
 }
 
 static QVariantMap matiereExamenToMap(const MatiereExamen& e) {
@@ -50,6 +51,17 @@ void SchoolingController::loadNiveaux() {
     setLoading(true);
     m_worker->submit("Schooling.loadNiveaux", [svc = m_service]() -> QVariant {
         auto result = svc->getAllNiveaux();
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        QVariantList list;
+        for (const auto& n : result.value()) list.append(niveauToMap(n));
+        return list;
+    });
+}
+
+void SchoolingController::loadNiveauxGlobal() {
+    m_worker->submit("Schooling.loadNiveauxGlobal", [svc = m_service]() -> QVariant {
+        auto result = svc->getAllNiveauxGlobal();
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         QVariantList list;
@@ -139,9 +151,9 @@ void SchoolingController::createNiveau(const QString& nom) {
     });
 }
 
-void SchoolingController::updateNiveau(int id, const QString& nom) {
-    m_worker->submit("Schooling.updateNiveau", [svc = m_service, id, nom]() -> QVariant {
-        auto result = svc->updateNiveau(id, nom, 0);
+void SchoolingController::updateNiveau(int id, const QString& nom, int parentLevelId, bool isFreestyle) {
+    m_worker->submit("Schooling.updateNiveau", [svc = m_service, id, nom, parentLevelId, isFreestyle]() -> QVariant {
+        auto result = svc->updateNiveau(id, nom, parentLevelId, isFreestyle);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -190,10 +202,26 @@ void SchoolingController::deleteClasse(int id) {
 
 // ─── Matiere CRUD ───
 
-void SchoolingController::createMatiere(const QString& nom, int niveauId) {
+void SchoolingController::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes) {
     m_worker->submit("Schooling.createMatiere:" + QString::number(niveauId),
-        [svc = m_service, nom, niveauId]() -> QVariant {
-            auto result = svc->createMatiere(nom, niveauId);
+        [svc = m_service, nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes]() -> QVariant {
+            auto result = svc->createMatiere(nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
+void SchoolingController::cloneMatiereForSemestre(int sourceMatiereId, const QString& nom,
+                                                    int niveauId, int semestreNumero,
+                                                    double coefficient, int nombreSeances,
+                                                    int dureeSeanceMinutes) {
+    m_worker->submit("Schooling.createMatiere:" + QString::number(niveauId),
+        [svc = m_service, sourceMatiereId, nom, niveauId, semestreNumero,
+         coefficient, nombreSeances, dureeSeanceMinutes]() -> QVariant {
+            auto result = svc->cloneMatiereForSemestre(sourceMatiereId, nom, niveauId,
+                                                       semestreNumero, coefficient,
+                                                       nombreSeances, dureeSeanceMinutes);
             if (!result.isOk())
                 return QVariantMap{{"error", result.errorMessage()}};
             return QVariantMap{{"success", true}};
@@ -208,10 +236,21 @@ void SchoolingController::updateMatiere(int id, const QVariantMap& data) {
                 data.value("nom").toString(),
                 niveauId,
                 data.value("nombreSeances", 0).toInt(),
-                data.value("dureeSeanceMinutes", 60).toInt());
+                data.value("dureeSeanceMinutes", 60).toInt(),
+                data.value("coefficient", 1.0).toDouble());
             if (!result.isOk())
                 return QVariantMap{{"error", result.errorMessage()}};
             return QVariantMap{{"success", true}};
+        });
+}
+
+void SchoolingController::setMatiereSemestre(int matiereId, int semestreNumero) {
+    m_worker->submit("Schooling.setMatiereSemestre",
+        [svc = m_service, matiereId, semestreNumero]() -> QVariant {
+            auto result = svc->setMatiereSemestre(matiereId, semestreNumero);
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}, {"matiereId", matiereId}, {"semestreNumero", semestreNumero}};
         });
 }
 
@@ -220,6 +259,17 @@ void SchoolingController::deleteMatiere(int id) {
         auto result = svc->deleteMatiere(id);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void SchoolingController::deleteMatieres(const QVariantList& ids) {
+    m_worker->submit("Schooling.deleteMatieres", [svc = m_service, ids]() -> QVariant {
+        for (const auto& v : ids) {
+            auto result = svc->deleteMatiere(v.toInt());
+            if (!result.isOk())
+                return QVariantMap{{"error", result.errorMessage()}};
+        }
         return QVariantMap{{"success", true}};
     });
 }
@@ -283,6 +333,33 @@ void SchoolingController::createTypeAndMatiereExamen(int matiereId, const QStrin
         });
 }
 
+void SchoolingController::createTypeAndMatiereExamenForGroup(const QVariantList& matiereIds, const QString& titre) {
+    int primaryId = matiereIds.isEmpty() ? -1 : matiereIds.first().toInt();
+    m_worker->submit("Schooling.createMatiereExamen:" + QString::number(primaryId),
+        [svc = m_service, matiereIds, titre]() -> QVariant {
+            // Trouver ou créer le TypeExamen
+            auto typesResult = svc->getAllTypeExamens();
+            int typeId = -1;
+            if (typesResult.isOk()) {
+                for (const auto& t : typesResult.value()) {
+                    if (t.titre.toLower() == titre.trimmed().toLower()) {
+                        typeId = t.id; break;
+                    }
+                }
+            }
+            if (typeId == -1) {
+                auto r = svc->createTypeExamen(titre.trimmed());
+                if (!r.isOk()) return QVariantMap{{"error", r.errorMessage()}};
+                typeId = r.value();
+            }
+            QList<int> ids;
+            for (const auto& v : matiereIds) ids.append(v.toInt());
+            auto result = svc->createMatiereExamenForGroup(ids, typeId);
+            if (!result.isOk()) return QVariantMap{{"error", result.errorMessage()}};
+            return QVariantMap{{"success", true}};
+        });
+}
+
 void SchoolingController::updateMatiereExamen(int id, const QString& titre) {
     m_worker->submit("Schooling.updateMatiereExamen",
         [svc = m_service, id, titre]() -> QVariant {
@@ -312,6 +389,17 @@ void SchoolingController::updateMatiereExamen(int id, const QString& titre) {
 void SchoolingController::deleteMatiereExamen(int id) {
     m_worker->submit("Schooling.deleteMatiereExamen", [svc = m_service, id]() -> QVariant {
         auto result = svc->deleteMatiereExamen(id);
+        if (!result.isOk())
+            return QVariantMap{{"error", result.errorMessage()}};
+        return QVariantMap{{"success", true}};
+    });
+}
+
+void SchoolingController::deleteMatiereExamenForGroup(const QVariantList& matiereIds, int typeExamenId) {
+    m_worker->submit("Schooling.deleteMatiereExamen", [svc = m_service, matiereIds, typeExamenId]() -> QVariant {
+        QList<int> ids;
+        for (const auto& v : matiereIds) ids.append(v.toInt());
+        auto result = svc->deleteMatiereExamenByTypeForGroup(ids, typeExamenId);
         if (!result.isOk())
             return QVariantMap{{"error", result.errorMessage()}};
         return QVariantMap{{"success", true}};
@@ -438,6 +526,10 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
         else { m_niveaux = result.toList(); emit niveauxChanged(); }
         setLoading(false);
     }
+    else if (queryId == "Schooling.loadNiveauxGlobal") {
+        if (isError) setError(map["error"].toString());
+        else { m_niveauxGlobal = result.toList(); emit niveauxGlobalChanged(); }
+    }
     else if (queryId == "Schooling.loadAllClasses") {
         if (isError) setError(map["error"].toString());
         else { m_allClasses = result.toList(); emit allClassesChanged(); }
@@ -516,6 +608,17 @@ void SchoolingController::onQueryCompleted(const QString& queryId, const QVarian
     else if (queryId == "Schooling.deleteMatiere") {
         if (isError) emit operationFailed(map["error"].toString());
         else emit operationSucceeded("Matière supprimée");
+    }
+    else if (queryId == "Schooling.deleteMatieres") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else emit operationSucceeded("Matières supprimées");
+    }
+    else if (queryId == "Schooling.setMatiereSemestre") {
+        if (isError) emit operationFailed(map["error"].toString());
+        else {
+            // Reload matieres to propagate semestreNumero change
+            loadAllMatieres();
+        }
     }
     // ── MatiereExamen mutations ──
     else if (queryId.startsWith("Schooling.loadMatiereExamens:")) {

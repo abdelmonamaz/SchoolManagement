@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Item {
@@ -22,6 +22,7 @@ Item {
         studentController.loadStudents()
         studentController.loadSchoolYears()
         schoolingController.loadNiveaux()
+        schoolingController.loadNiveauxGlobal()
         schoolingController.loadAllClasses()
         checkPendingStudent()
     }
@@ -123,7 +124,7 @@ Item {
                 StudentListView {
                     students: studentController.students
                     niveaux: schoolingController.niveaux
-                    classes: schoolingController.classes
+                    classes: schoolingController.allClasses
                     filterLevel: studentsPage.filterLevel
 
                     onStudentViewClicked: (index) => {
@@ -163,7 +164,6 @@ Item {
     StudentRegistrationModal {
         visible: showRegistrationModal
         niveaux: schoolingController.niveaux
-        classes: schoolingController.classes
 
         onCreateRequested: (data) => {
             studentController.createStudent(data)
@@ -191,6 +191,7 @@ Item {
         id: listEnrollmentEditModal
         student: studentController.selectedStudent
         niveaux: schoolingController.niveaux
+        classes: schoolingController.allClasses
         enrollmentData: studentsPage.pendingEnrollmentData
     }
 

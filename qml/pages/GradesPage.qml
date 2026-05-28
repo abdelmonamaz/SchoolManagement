@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Item {
@@ -8,10 +8,36 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     // ── Sélection ──
-    property int selNiveauId:  -1
-    property int selClasseId:  -1
-    property int selMatiereId: -1
-    property int selSeanceId:  -1
+    property int selNiveauId:   -1
+    property int selClasseId:   -1
+    property int selMatiereId:  -1
+    property int selSeanceId:   -1
+    // 0 = tous, 1 = Semestre 1, 2 = Semestre 2
+    property int selSemestreNum: 0
+
+    // ── Gestion des semestres ──
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
+
+    // Semestre actif en fonction de la date du jour (pour pré-sélection)
+    function detectSemestreToday() {
+        if (!hasSemestres) return 0
+        var sems = setupController.activeSemestres
+        var iso = new Date().toISOString().substring(0, 10)
+        for (var i = 0; i < sems.length; i++)
+            if (iso >= sems[i].dateDebut && iso <= sems[i].dateFin) return sems[i].numero
+        return sems.length > 0 ? sems[0].numero : 0
+    }
+
+    // Liste des matières filtrées (semestreNumero 0 = toute l'année → toujours inclus)
+    readonly property var filteredGradesMatieres: {
+        var m = schoolingController.matieres
+        if (!hasSemestres || selSemestreNum <= 0) return m
+        var out = []
+        for (var i = 0; i < m.length; i++)
+            if (m[i].semestreNumero === 0 || m[i].semestreNumero === selSemestreNum)
+                out.push(m[i])
+        return out
+    }
 
     // ── Contexte pour le bulletin ──
     property string selNiveauNom:  ""
@@ -114,7 +140,19 @@ Item {
     // ── Cycle de vie ──
     Component.onCompleted: {
         schoolingController.loadNiveaux()
+        schoolingController.loadNiveauxGlobal()
         studentController.loadStudents()
+        studentController.loadSchoolYears()
+        if (hasSemestres) selSemestreNum = detectSemestreToday()
+    }
+
+    // Quand activeSemestres est chargé (peut arriver après onCompleted), ré-initialiser
+    Connections {
+        target: setupController
+        function onActiveSemestresChanged() {
+            if (gradesPage.hasSemestres && gradesPage.selSemestreNum <= 0)
+                gradesPage.selSemestreNum = gradesPage.detectSemestreToday()
+        }
     }
 
     // Rechargement automatique quand la page redevient visible
@@ -133,18 +171,23 @@ Item {
         target: yearClosureController
         function onClosureSuccess(newYearLabel) {
             // Reset all selections — old year data is no longer valid
-            niveauCombo.currentIndex  = -1
-            classeCombo.currentIndex  = -1
-            matiereCombo.currentIndex = -1
-            epreuveCombo.currentIndex = -1
-            gradesPage.selNiveauId  = -1
-            gradesPage.selNiveauNom = ""
-            gradesPage.selClasseId  = -1
-            gradesPage.selClasseNom = ""
-            gradesPage.selMatiereId = -1
-            gradesPage.selSeanceId  = -1
+            niveauCombo.currentIndex   = -1
+            classeCombo.currentIndex   = -1
+            semestreCombo.currentIndex = 0    // revenir à "Tous"
+            matiereCombo.currentIndex  = -1
+            epreuveCombo.currentIndex  = -1
+            gradesPage.selNiveauId    = -1
+            gradesPage.selNiveauNom   = ""
+            gradesPage.selClasseId    = -1
+            gradesPage.selClasseNom   = ""
+            gradesPage.selMatiereId   = -1
+            gradesPage.selSeanceId    = -1
+            gradesPage.selSemestreNum = gradesPage.hasSemestres ? gradesPage.detectSemestreToday() : 0
             gradesPage.pendingGrades  = ({})
             gradesPage.pendingVersion++
+            // Refresh year list + niveaux so BulletinConfigPopup sees the new year
+            studentController.loadSchoolYears()
+            schoolingController.loadNiveauxGlobal()
         }
     }
 
@@ -162,37 +205,77 @@ Item {
             gradesPage.pendingGrades  = ({})
             gradesPage.pendingVersion++
         }
-        function onBulletinDataLoaded(data) {
+        function onBulletinDocxDataLoaded(data) {
             var st = gradesPage._currentBulletinStudent
-            if (!st) return
+            if (!st) { console.log("[Bulletin] ERROR: _currentBulletinStudent is null"); return }
 
-            // Retrouve le nom de la classe depuis le classeId du bulletin
+            // Classe nom
             var classeNomBul = gradesPage.selClasseNom
-            var classeIdBul  = gradesPage._bulletinClasseId
-            if (classeIdBul >= 0) {
-                var cls = schoolingController.classes
-                for (var i = 0; i < cls.length; i++) {
-                    if (cls[i].id === classeIdBul) { classeNomBul = cls[i].nom; break }
-                }
+            var cls = schoolingController.classes
+            for (var i = 0; i < cls.length; i++) {
+                if (cls[i].id === gradesPage._bulletinClasseId) { classeNomBul = cls[i].nom; break }
             }
 
-            // Retrouve le niveau depuis les données de la classe
+            // Niveau nom
             var niveauNomBul = gradesPage.selNiveauNom
-            var niveaux = schoolingController.niveaux
-            if (st.niveauId !== undefined && st.niveauId >= 0) {
-                for (var j = 0; j < niveaux.length; j++) {
-                    if (niveaux[j].id === st.niveauId) { niveauNomBul = niveaux[j].nom; break }
-                }
+            var niveaux = schoolingController.niveauxGlobal.length > 0
+                          ? schoolingController.niveauxGlobal : schoolingController.niveaux
+            for (var j = 0; j < niveaux.length; j++) {
+                if (niveaux[j].id === st.niveauId) { niveauNomBul = niveaux[j].nom; break }
             }
 
-            bulletinPreviewPopup.bulletinData     = data
-            bulletinPreviewPopup.studentName      = (st.prenom || "") + " " + (st.nom || "")
-            bulletinPreviewPopup.studentMatricule = st.matricule || ("N°" + st.id)
-            bulletinPreviewPopup.niveauNom        = niveauNomBul
-            bulletinPreviewPopup.classeNom        = classeNomBul
-            bulletinPreviewPopup.anneeScolaire    = gradesPage.selAnneeScolaire
-            bulletinPreviewPopup.eleveId          = st.id
-            bulletinPreviewPopup.open()
+            // Année scolaire libelle
+            var annee = gradesPage.selAnneeScolaire
+            var sYears = studentController.schoolYears
+            for (var yi = 0; yi < sYears.length; yi++) {
+                if (sYears[yi].id === gradesPage._bulletinAnneeId) { annee = sYears[yi].libelle; break }
+            }
+
+            var stName = (st.prenom || "") + " " + (st.nom || "")
+            var stMatr = st.matricule || ("N°" + st.id)
+            var estFeminin = (st.sexe === "F" || st.sexe === "Féminin")
+
+            if (gradesPage._bulletinAllStudents && gradesPage._bulletinQueue.length > 0) {
+                // Batch mode — auto file name
+                var safeYear = annee.replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_')
+                var safeName = stName.replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '-').trim()
+                if (!safeName || safeName === "-") safeName = stMatr.replace(/[\/\\:*?"<>|]/g, '').trim() || "eleve"
+                var batchPath = gradesPage._bulletinTargetFolder.length > 0
+                    ? gradesPage._bulletinTargetFolder + "/bulletin_" + safeYear + "_" + safeName + "_S" + gradesPage._bulletinSemestre + ".docx"
+                    : ""
+
+                var exported = gradesController.exportBulletinDocx(
+                    data, stName, stMatr, niveauNomBul, classeNomBul, annee,
+                    gradesPage._bulletinPresident, estFeminin, gradesPage._bulletinSemestre, batchPath)
+
+                console.log("[Bulletin] Exported [" + (gradesPage._bulletinQueueIdx + 1)
+                    + "/" + gradesPage._bulletinQueue.length + "]: " + exported)
+                if (exported.length > 0) gradesPage._lastExportedPath = exported
+
+                gradesPage._bulletinQueueIdx++
+                if (gradesPage._bulletinQueueIdx < gradesPage._bulletinQueue.length) {
+                    var nextSt = gradesPage._bulletinQueue[gradesPage._bulletinQueueIdx]
+                    gradesPage._currentBulletinStudent = nextSt
+                    gradesController.loadBulletinDocxData(nextSt.id, gradesPage._bulletinClasseId,
+                        gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
+                } else {
+                    var lastPath = gradesPage._lastExportedPath
+                    if (lastPath.length > 0) {
+                        var folderPath = lastPath.substring(0, Math.max(lastPath.lastIndexOf("/"), lastPath.lastIndexOf("\\")))
+                        Qt.openUrlExternally("file:///" + folderPath)
+                    }
+                    gradesPage._bulletinQueue    = []
+                    gradesPage._bulletinQueueIdx = 0
+                    gradesPage._lastExportedPath = ""
+                }
+            } else {
+                // Single student — export directly to chosen file
+                var singlePath = gradesPage._bulletinTargetFolder  // set to chosen file path
+                var result = gradesController.exportBulletinDocx(
+                    data, stName, stMatr, niveauNomBul, classeNomBul, annee,
+                    gradesPage._bulletinPresident, estFeminin, gradesPage._bulletinSemestre, singlePath)
+                if (result.length > 0) Qt.openUrlExternally("file:///" + result)
+            }
         }
     }
 
@@ -209,22 +292,15 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Saisie des Notes"
-                subtitle: "Saisissez et validez les résultats des épreuves par classe."
+                title: qsTr("Saisie des Notes")
+                subtitle: qsTr("Saisissez et validez les résultats des épreuves par classe.")
             }
 
             Row {
                 spacing: 8
 
-                OutlineButton {
-                    text: "Exporter CSV"
-                    iconName: "download"
-                    enabled: selSeanceId >= 0 && gradesController.grades.length > 0
-                    opacity: enabled ? 1.0 : 0.5
-                }
-
                 PrimaryButton {
-                    text: "Générer les Bulletins"
+                    text: qsTr("Générer les Bulletins")
                     iconName: "file"
                     enabled: selClasseId >= 0
                     opacity: enabled ? 1.0 : 0.45
@@ -248,7 +324,7 @@ Item {
                 Column {
                     Layout.preferredWidth: 260
                     spacing: 6
-                    SectionLabel { text: "NIVEAU" }
+                    SectionLabel { text: qsTr("NIVEAU") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage; border.color: Style.borderLight
@@ -291,7 +367,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 160
                     spacing: 6
-                    SectionLabel { text: "CLASSE" }
+                    SectionLabel { text: qsTr("CLASSE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -328,12 +404,64 @@ Item {
                     }
                 }
 
+                // Semestre — visible seulement si l'année a des semestres
+                Column {
+                    Layout.preferredWidth: 180
+                    spacing: 6
+                    visible: gradesPage.hasSemestres
+                    SectionLabel { text: qsTr("SEMESTRE") }
+                    Rectangle {
+                        width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage; border.color: Style.borderLight
+
+                        ComboBox {
+                            id: semestreCombo
+                            anchors.fill: parent; anchors.margins: 4
+                            // 0 = Tous, 1 = S1, 2 = S2
+                            model: ListModel {
+                                ListElement { label: qsTr("Tous les semestres"); value: 0 }
+                                ListElement { label: qsTr("Semestre 1");          value: 1 }
+                                ListElement { label: qsTr("Semestre 2");          value: 2 }
+                            }
+                            textRole: "label"
+                            background: Rectangle { color: "transparent" }
+                            contentItem: Text {
+                                leftPadding: 8
+                                text: semestreCombo.currentIndex >= 0 ? semestreCombo.currentText : "Sélectionner..."
+                                font.pixelSize: 13; font.bold: true
+                                color: Style.textPrimary
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            // Pré-sélection basée sur selSemestreNum
+                            Component.onCompleted: {
+                                if (gradesPage.selSemestreNum > 0)
+                                    currentIndex = gradesPage.selSemestreNum   // index 1 = S1, index 2 = S2
+                                else
+                                    currentIndex = 0
+                            }
+                            onCurrentIndexChanged: {
+                                if (currentIndex < 0) return
+                                var newVal = model.get(currentIndex).value
+                                if (gradesPage.selSemestreNum !== newVal) {
+                                    gradesPage.selSemestreNum = newVal
+                                    // Réinitialiser la matière et l'épreuve si hors filtre
+                                    matiereCombo.currentIndex = -1
+                                    epreuveCombo.currentIndex = -1
+                                    gradesPage.selMatiereId = -1
+                                    gradesPage.selSeanceId  = -1
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Matière — plus large
                 Column {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 160
                     spacing: 6
-                    SectionLabel { text: "MATIÈRE" }
+                    SectionLabel { text: qsTr("MATIÈRE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -344,7 +472,7 @@ Item {
                             id: matiereCombo
                             anchors.fill: parent; anchors.margins: 4
                             enabled: gradesPage.selNiveauId >= 0
-                            model: schoolingController.matieres
+                            model: gradesPage.filteredGradesMatieres
                             textRole: "nom"; valueRole: "id"
                             currentIndex: -1
                             background: Rectangle { color: "transparent" }
@@ -374,7 +502,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 180
                     spacing: 6
-                    SectionLabel { text: "ÉPREUVE" }
+                    SectionLabel { text: qsTr("ÉPREUVE") }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -435,7 +563,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: "Sélectionnez un niveau, une classe, une matière et une épreuve\npour afficher la grille de saisie des notes."
+                    text: qsTr("Sélectionnez un niveau, une classe, une matière et une épreuve\npour afficher la grille de saisie des notes.")
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: Style.textTertiary
                     horizontalAlignment: Text.AlignHCenter
@@ -457,7 +585,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 3
 
-                title: "Grille de Saisie"
+                title: qsTr("Grille de Saisie")
                 subtitle: {
                     var mat = "", cls = ""
                     var m = schoolingController.matieres
@@ -474,10 +602,10 @@ Item {
                     // En-tête du tableau
                     RowLayout {
                         width: parent.width; height: 40; spacing: 0
-                        SectionLabel { Layout.preferredWidth: 210; text: "ÉLÈVE" }
-                        SectionLabel { Layout.preferredWidth: 120; text: "NOTE / 20" }
-                        SectionLabel { Layout.fillWidth: true; text: "STATUT" }
-                        SectionLabel { Layout.preferredWidth: 110; text: "ÉTAT"; horizontalAlignment: Text.AlignRight }
+                        SectionLabel { Layout.preferredWidth: 210; text: qsTr("ÉLÈVE") }
+                        SectionLabel { Layout.preferredWidth: 120; text: qsTr("NOTE / 20") }
+                        SectionLabel { Layout.fillWidth: true; text: qsTr("STATUT") }
+                        SectionLabel { Layout.preferredWidth: 110; text: qsTr("ÉTAT"); horizontalAlignment: Text.AlignRight }
                     }
 
                     Separator { width: parent.width }
@@ -488,7 +616,7 @@ Item {
                         visible: gradesController.loading
                         Text {
                             anchors.centerIn: parent
-                            text: "Chargement des participations..."
+                            text: qsTr("Chargement des participations...")
                             font.pixelSize: 13; font.italic: true; color: Style.textTertiary
                         }
                     }
@@ -499,7 +627,7 @@ Item {
                         visible: !gradesController.loading && gradesController.grades.length === 0
                         Text {
                             anchors.centerIn: parent
-                            text: "Aucune participation enregistrée pour cette épreuve"
+                            text: qsTr("Aucune participation enregistrée pour cette épreuve")
                             font.pixelSize: 13; font.italic: true; color: Style.textTertiary
                         }
                     }
@@ -547,7 +675,7 @@ Item {
                                         Avatar {
                                             initials: gradesPage.studentInitials(modelData.eleveId)
                                             size: 34
-                                            bgColor: modelData.statut === "Absent" ? "#FEE2E2" : Style.bgSecondary
+                                            bgColor: modelData.statut === "Absent" ? Style.errorBorder : Style.bgSecondary
                                             textColor: modelData.statut === "Absent" ? Style.errorColor : Style.primary
                                         }
 
@@ -611,7 +739,7 @@ Item {
                                                 Text {
                                                     visible: !noteInput.text
                                                     anchors.centerIn: parent
-                                                    text: "—"
+                                                    text: qsTr("—")
                                                     font.pixelSize: 15; font.weight: Font.Black
                                                     color: Style.textTertiary
                                                 }
@@ -631,7 +759,7 @@ Item {
                                             }
 
                                             Text {
-                                                text: "/20"
+                                                text: qsTr("/20")
                                                 font.pixelSize: 9; font.weight: Font.Black
                                                 color: Style.textTertiary
                                             }
@@ -703,7 +831,7 @@ Item {
 
                             Column {
                                 spacing: 3
-                                SectionLabel { text: "MOYENNE DE CLASSE" }
+                                SectionLabel { text: qsTr("MOYENNE DE CLASSE") }
                                 Text {
                                     text: gradesPage.completionCount > 0
                                           ? gradesPage.liveAverage.toFixed(2)
@@ -715,7 +843,7 @@ Item {
 
                             Column {
                                 spacing: 3
-                                SectionLabel { text: "NOTES SAISIES" }
+                                SectionLabel { text: qsTr("NOTES SAISIES") }
                                 Text {
                                     text: gradesPage.completionCount + " / " + gradesPage.totalCount
                                     font.pixelSize: 26; font.weight: Font.Black
@@ -750,7 +878,7 @@ Item {
                 // Guide de saisie
                 AppCard {
                     Layout.fillWidth: true
-                    title: "Guide de Saisie"
+                    title: qsTr("Guide de Saisie")
 
                     Column {
                         width: parent.width
@@ -762,11 +890,11 @@ Item {
                             Rectangle {
                                 width: 32; height: 32; radius: 16
                                 color: Style.infoBg
-                                Text { anchors.centerIn: parent; text: "🔢"; font.pixelSize: 14 }
+                                Text { anchors.centerIn: parent; text: qsTr("🔢"); font.pixelSize: 14 }
                             }
                             Text {
                                 Layout.fillWidth: true
-                                text: "Utilisez le point (.) pour les décimales (ex: 15.5). La note doit être comprise entre 0 et 20."
+                                text: qsTr("Utilisez le point (.) pour les décimales (ex: 15.5). La note doit être comprise entre 0 et 20.")
                                 font.pixelSize: 11; color: Style.textSecondary
                                 wrapMode: Text.WordWrap
                             }
@@ -777,8 +905,8 @@ Item {
                             width: parent.width
                             implicitHeight: sideWarnCol.implicitHeight + 24
                             radius: 12
-                            color: gradesPage.allEntered ? "#F0FDF4" : "#FEF3C7"
-                            border.color: gradesPage.allEntered ? "#BBF7D0" : "#FCD34D"
+                            color: gradesPage.allEntered ? Style.successBg : Style.warningBorder
+                            border.color: gradesPage.allEntered ? Style.successColor : Style.warningBorder
                             Behavior on color { ColorAnimation { duration: 300 } }
 
                             Column {
@@ -789,7 +917,7 @@ Item {
                                 Text {
                                     text: gradesPage.allEntered ? "Prêt pour les bulletins ✓" : "Attention"
                                     font.pixelSize: 11; font.bold: true
-                                    color: gradesPage.allEntered ? "#166534" : "#92400E"
+                                    color: gradesPage.allEntered ? Style.zitouna : Style.warningColor
                                 }
                                 Text {
                                     width: parent.width
@@ -797,7 +925,7 @@ Item {
                                           ? "Toutes les notes sont saisies. Le bouton « Générer les Bulletins » est maintenant actif."
                                           : "Les bulletins ne peuvent être générés que si 100% des notes sont saisies pour cette épreuve."
                                     font.pixelSize: 10
-                                    color: gradesPage.allEntered ? "#166534" : "#92400E"
+                                    color: gradesPage.allEntered ? Style.zitouna : Style.warningColor
                                     wrapMode: Text.WordWrap
                                 }
                             }
@@ -808,7 +936,7 @@ Item {
                 // Progression
                 AppCard {
                     Layout.fillWidth: true
-                    title: "Progression de Saisie"
+                    title: qsTr("Progression de Saisie")
 
                     Column {
                         width: parent.width
@@ -864,7 +992,7 @@ Item {
 
                                 Column {
                                     spacing: 2
-                                    SectionLabel { text: "MOYENNE" }
+                                    SectionLabel { text: qsTr("MOYENNE") }
                                     Text {
                                         text: gradesPage.liveAverage.toFixed(2)
                                         font.pixelSize: 18; font.weight: Font.Black
@@ -876,7 +1004,7 @@ Item {
 
                                 Column {
                                     spacing: 2
-                                    SectionLabel { text: "SAISIES" }
+                                    SectionLabel { text: qsTr("SAISIES") }
                                     Text {
                                         text: gradesPage.completionCount
                                         font.pixelSize: 18; font.weight: Font.Black
@@ -897,51 +1025,62 @@ Item {
     BulletinConfigPopup {
         id: bulletinConfigPopup
 
-        onBulletinRequested: function(eleveId, classeId, allStudents) {
-            // Stocke les paramètres pour la preview
-            gradesPage._bulletinAllStudents = allStudents
-            gradesPage._bulletinClasseId    = classeId
+        onBulletinRequested: function(eleveId, classeId, allStudents, semestre, anneeId, targetPath, president) {
+            console.log("[Bulletin] bulletinRequested: eleveId=" + eleveId
+                + " allStudents=" + allStudents + " semestre=" + semestre
+                + " anneeId=" + anneeId + " targetPath=" + targetPath)
+
+            gradesPage._bulletinAllStudents  = allStudents
+            gradesPage._bulletinClasseId     = classeId
+            gradesPage._bulletinAnneeId      = anneeId || -1
+            gradesPage._bulletinSemestre     = semestre || 1
+            gradesPage._bulletinTargetFolder = targetPath || ""
+            gradesPage._bulletinPresident    = president || ""
+
+            var classStudents = studentController.studentsForBulletin
 
             if (allStudents) {
-                // Génère pour tous les élèves de la classe
-                var students = studentController.students
-                var classStudents = []
-                for (var i = 0; i < students.length; i++)
-                    if (students[i].classeId === classeId) classStudents.push(students[i])
-
-                if (classStudents.length === 0) return
-                gradesPage._bulletinQueue   = classStudents
+                if (classStudents.length === 0) {
+                    console.log("[Bulletin] ERROR: classStudents is empty, aborting batch")
+                    return
+                }
+                gradesPage._bulletinQueue    = classStudents
                 gradesPage._bulletinQueueIdx = 0
-                // Lance le premier
+                gradesPage._lastExportedPath = ""
                 var s = classStudents[0]
                 gradesPage._currentBulletinStudent = s
-                gradesController.loadBulletinData(s.id, classeId)
+                gradesController.loadBulletinDocxData(s.id, classeId, gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
             } else {
-                // Un seul élève
-                var st = studentController.students
-                for (var j = 0; j < st.length; j++) {
-                    if (st[j].id === eleveId) {
-                        gradesPage._currentBulletinStudent = st[j]
-                        break
+                var found = null
+                for (var j = 0; j < classStudents.length; j++) {
+                    if (classStudents[j].id === eleveId) { found = classStudents[j]; break }
+                }
+                if (!found) {
+                    var st = studentController.students
+                    for (var k = 0; k < st.length; k++) {
+                        if (st[k].id === eleveId) { found = st[k]; break }
                     }
                 }
+                if (!found) { console.log("[Bulletin] ERROR: student id=" + eleveId + " not found"); return }
+                gradesPage._currentBulletinStudent = found
                 gradesPage._bulletinQueue    = []
                 gradesPage._bulletinQueueIdx = 0
-                gradesController.loadBulletinData(eleveId, classeId)
+                gradesController.loadBulletinDocxData(eleveId, classeId, gradesPage._bulletinAnneeId, gradesPage._bulletinSemestre)
             }
             bulletinConfigPopup.close()
         }
-    }
-
-    BulletinPreviewPopup {
-        id: bulletinPreviewPopup
     }
 
     // Propriétés internes pour la gestion de file d'attente
     property var    _bulletinQueue:           []
     property int    _bulletinQueueIdx:        0
     property bool   _bulletinAllStudents:     false
+    property int    _bulletinSemestre:        1
     property int    _bulletinClasseId:        -1
+    property int    _bulletinAnneeId:         -1
+    property string _bulletinTargetFolder:    ""
+    property string _bulletinPresident:       ""
     property var    _currentBulletinStudent:  null
+    property string _lastExportedPath:        ""
 
 }

@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 AppCard {
@@ -82,7 +82,7 @@ AppCard {
     }
 
     // ── AppCard header ───────────────────────────────────────────────────────
-    title:    tab.viewMode === "dons" ? "Dons & Waqf — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
+    title:    tab.viewMode === "dons" ? "Dons & Revenues — " + page.selectedMonth + " " + page.selectedYear : "Projets de l'association"
     subtitle: tab.viewMode === "dons" ? "Donations enregistrées ce mois" : projetsStats.total + " projet(s) au total"
 
     headerAction: Component {
@@ -93,7 +93,7 @@ AppCard {
                 color: tab.viewMode === "dons" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "dons" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "DONS"
+                    anchors.centerIn: parent; text: qsTr("DONS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "dons" ? "white" : Style.textSecondary
                 }
@@ -107,7 +107,7 @@ AppCard {
                 color: tab.viewMode === "projets" ? Style.primary : Style.bgPage
                 border.color: tab.viewMode === "projets" ? Style.primary : Style.borderLight
                 Text {
-                    anchors.centerIn: parent; text: "PROJETS"
+                    anchors.centerIn: parent; text: qsTr("PROJETS")
                     font.pixelSize: 10; font.weight: Font.Bold
                     color: tab.viewMode === "projets" ? "white" : Style.textSecondary
                 }
@@ -169,7 +169,7 @@ AppCard {
                     id: newDonRow
                     anchors.centerIn: parent; spacing: 6
                     IconLabel { iconName: "plus"; iconSize: 14; iconColor: "white" }
-                    Text { text: "Nouveau Don"; font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                    Text { text: qsTr("Nouveau Don"); font.pixelSize: 11; font.weight: Font.Black; color: "white" }
                 }
                 MouseArea { id: newDonMa; anchors.fill: parent; hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -185,7 +185,7 @@ AppCard {
                     id: newProjRow
                     anchors.centerIn: parent; spacing: 6
                     IconLabel { iconName: "plus"; iconSize: 14; iconColor: "white" }
-                    Text { text: "Nouveau Projet"; font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                    Text { text: qsTr("Nouveau Projet"); font.pixelSize: 11; font.weight: Font.Black; color: "white" }
                 }
                 MouseArea { id: newProjMa; anchors.fill: parent; hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -211,21 +211,21 @@ AppCard {
 
 
         Item { width: parent.width; height: 48; visible: financeController.loading
-            Text { anchors.centerIn: parent; text: "Chargement…"; font.pixelSize: 13; color: Style.textTertiary } }
+            Text { anchors.centerIn: parent; text: qsTr("Chargement…"); font.pixelSize: 13; color: Style.textTertiary } }
 
         // ── Empty state (Dons) ───────────────────────────────────────────────
         Column { width: parent.width; spacing: 16
             visible: !financeController.loading && tab.viewMode === "dons" && tab.filteredDons.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#FEF3C7"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.warningBorder
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "heart"; iconSize: 24; iconColor: "#D97706" } }
+                IconLabel { anchors.centerIn: parent; iconName: "heart"; iconSize: 24; iconColor: Style.warningColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: page.searchTerm !== "" ? "Aucun résultat pour \"" + page.searchTerm + "\""
                                                 : "Aucun don pour " + page.selectedMonth + " " + page.selectedYear
                    font.pixelSize: 13; font.weight: Font.Medium; color: Style.textTertiary }
             PrimaryButton { anchors.horizontalCenter: parent.horizontalCenter
-                visible: page.searchTerm === ""; text: "Enregistrer un don"; iconName: "plus"
+                visible: page.searchTerm === ""; text: qsTr("Enregistrer un don"); iconName: "plus"
                 onClicked: page.showDonationModal = true }
             Item { width: 1; height: 24 }
         }
@@ -234,9 +234,9 @@ AppCard {
         Column { width: parent.width; spacing: 16
             visible: !financeController.loading && tab.viewMode === "projets" && tab.filteredProjets.length === 0
             Item { width: 1; height: 24 }
-            Rectangle { width: 56; height: 56; radius: 20; color: "#ECFDF5"
+            Rectangle { width: 56; height: 56; radius: 20; color: Style.successBg
                         anchors.horizontalCenter: parent.horizontalCenter
-                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: "#059669" } }
+                IconLabel { anchors.centerIn: parent; iconName: "target"; iconSize: 24; iconColor: Style.successColor } }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: tab.projectSearch !== "" || tab.projectStatusFilter !== "Tous"
                          ? "Aucun résultat pour cette recherche"
@@ -252,11 +252,11 @@ AppCard {
             visible: tab.viewMode === "dons" && tab.filteredDons.length > 0
             spacing: 12
 
-            SectionLabel { Layout.fillWidth: true; text: "DONATEUR" }
-            SectionLabel { Layout.preferredWidth: tab.wProjet; text: "PROJET"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wNature; text: "NATURE"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wDate; text: "DATE"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wMontant; text: "MONTANT"; horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("DONATEUR") }
+            SectionLabel { Layout.preferredWidth: tab.wProjet; text: qsTr("PROJET"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wNature; text: qsTr("NATURE"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wDate; text: qsTr("DATE"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wMontant; text: qsTr("MONTANT"); horizontalAlignment: Text.AlignHCenter }
             Item { Layout.preferredWidth: tab.wActions }
         }
         Separator { width: parent.width; visible: tab.viewMode === "dons" && tab.filteredDons.length > 0 }
@@ -304,12 +304,12 @@ AppCard {
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: 76; height: 22; radius: 6
-                                    color: modelData.natureDon === "Nature" ? "#FEF3C7" : Style.primaryBg
+                                    color: modelData.natureDon === "Nature" ? Style.warningBorder : Style.primaryBg
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.natureDon === "Nature" ? "EN NATURE" : "NUMÉRAIRE"
                                         font.pixelSize: 8; font.weight: Font.Black
-                                        color: modelData.natureDon === "Nature" ? "#D97706" : Style.primary
+                                        color: modelData.natureDon === "Nature" ? Style.warningColor : Style.primary
                                     }
                                 }
                             }
@@ -369,10 +369,10 @@ AppCard {
             width: parent.width; height: 40
             visible: tab.viewMode === "projets" && tab.filteredProjets.length > 0
             spacing: 12
-            SectionLabel { Layout.fillWidth: true; text: "PROJET" }
-            SectionLabel { Layout.preferredWidth: tab.wDate; text: "PÉRIODE"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wStatus; text: "STATUT"; horizontalAlignment: Text.AlignHCenter }
-            SectionLabel { Layout.preferredWidth: tab.wMontantProj; text: "MONTANT (COLLECTÉ / OBJECTIF)"; horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.fillWidth: true; text: qsTr("PROJET") }
+            SectionLabel { Layout.preferredWidth: tab.wDate; text: qsTr("PÉRIODE"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wStatus; text: qsTr("STATUT"); horizontalAlignment: Text.AlignHCenter }
+            SectionLabel { Layout.preferredWidth: tab.wMontantProj; text: qsTr("MONTANT (COLLECTÉ / OBJECTIF)"); horizontalAlignment: Text.AlignHCenter }
             Item { Layout.preferredWidth: tab.wActions }
         }
         Separator { width: parent.width; visible: tab.viewMode === "projets" && tab.filteredProjets.length > 0 }
@@ -427,7 +427,7 @@ AppCard {
                                 Layout.preferredWidth: tab.wMontantProj; spacing: 4
                                 RowLayout {
                                     width: parent.width; spacing: 4
-                                    Text { Layout.fillWidth: true; text: "COLLECTÉ"; font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
+                                    Text { Layout.fillWidth: true; text: qsTr("COLLECTÉ"); font.pixelSize: 8; font.weight: Font.Black; font.letterSpacing: 0.8; color: Style.textTertiary }
                                     Text { text: (modelData.totalDons || 0).toFixed(0) + " / " + modelData.objectifFinancier.toFixed(0) + " DT"
                                            font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary }
                                 }

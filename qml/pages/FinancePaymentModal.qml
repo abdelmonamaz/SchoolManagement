@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.platform 1.1 as Platform
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import UI.Components
 
 // Payment modal — direct child of FinancePage (fills parent for z-ordering)
@@ -19,7 +19,7 @@ ModalOverlay {
 
     Platform.FileDialog {
         id: fileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -35,6 +35,7 @@ ModalOverlay {
         overwrite = false
         payDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
         payJustifField.text = ""
+        payNumeroRecuField.text = ""
         if (page.payingEleveId > 0) {
             var students = studentController.students
             for (var i = 0; i < students.length; i++) {
@@ -60,7 +61,7 @@ ModalOverlay {
                 IconLabel { anchors.centerIn: parent; iconName: "wallet"; iconSize: 24; iconColor: Style.primary } }
             Column { Layout.fillWidth: true; spacing: 2
                 Text {
-                    text: page.payingEleveId > 0 ? "Paiement — " + page.payingEleveNom : "Nouveau Paiement"
+                    text: page.payingEleveId > 0 ? "Paiement — " + page.payingEleveNom : qsTr("Nouveau Paiement")
                     font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
                     elide: Text.ElideRight; width: parent.width
                 }
@@ -73,7 +74,7 @@ ModalOverlay {
 
         // ── Élève selector ────────────────────────────────────────────────────
         Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 6
-            SectionLabel { text: "ÉLÈVE" }
+            SectionLabel { text: qsTr("ÉLÈVE") }
             Rectangle { width: parent.width; height: 44; radius: 12; color: Style.bgPage; border.color: Style.borderLight
                 ComboBox {
                     id: payEleveCombo
@@ -101,17 +102,20 @@ ModalOverlay {
         }
 
         FormField { id: payMontantField; width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                    label: "MONTANT PAYÉ (DT)"; placeholder: "0.00"; fieldHeight: 44 }
+                    label: qsTr("MONTANT PAYÉ (DT)"); placeholder: qsTr("0.00"); fieldHeight: 44 }
+
+        FormField { id: payNumeroRecuField; width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
+                    label: qsTr("N° REÇU"); placeholder: qsTr("ex: REC-2024-001"); fieldHeight: 44 }
 
         // ── Date et Justificatif ──────────────────────────────────────────────
         Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 6
             DateField {
                 id: payDateField
                 width: parent.width
-                label: "DATE DU PAIEMENT"
+                label: qsTr("DATE DU PAIEMENT")
             }
 
-            SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+            SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
             RowLayout { width: parent.width; spacing: 8
                 Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                             color: Style.bgPage; border.color: Style.borderLight
@@ -120,14 +124,14 @@ ModalOverlay {
                         anchors.fill: parent; anchors.margins: 12
                         font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                         clip: true; selectByMouse: true; readOnly: true
-                        Text { visible: !payJustifField.text; text: "Aucun fichier sélectionné"
+                        Text { visible: !payJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                font: payJustifField.font; color: Style.textTertiary }
                     }
                 }
                 Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                     color: browseHover.containsMouse ? Style.primary : Style.bgPage
                     border.color: browseHover.containsMouse ? Style.primary : Style.borderLight
-                    Text { anchors.centerIn: parent; text: "…"
+                    Text { anchors.centerIn: parent; text: qsTr("…")
                            font.pixelSize: 16; font.bold: true
                            color: browseHover.containsMouse ? "white" : Style.textTertiary }
                     MouseArea { id: browseHover; anchors.fill: parent; hoverEnabled: true
@@ -139,38 +143,39 @@ ModalOverlay {
 
         // ── Mode Ajouter / Écraser ────────────────────────────────────────────
         Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 6
-            SectionLabel { text: "MODE DE SAISIE" }
+            SectionLabel { text: qsTr("MODE DE SAISIE") }
             Row { width: parent.width; spacing: 6
                 Rectangle { width: (parent.width - 6) / 2; height: 38; radius: 10
                     color: !root.overwrite ? Style.primary : Style.bgPage
                     border.color: !root.overwrite ? Style.primary : Style.borderLight
-                    Text { anchors.centerIn: parent; text: "AJOUTER"
+                    Text { anchors.centerIn: parent; text: qsTr("AJOUTER")
                            font.pixelSize: 10; font.weight: Font.Black; font.letterSpacing: 0.5
                            color: !root.overwrite ? "white" : Style.textTertiary }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.overwrite = false }
                 }
                 Rectangle { width: (parent.width - 6) / 2; height: 38; radius: 10
-                    color: root.overwrite ? "#EF4444" : Style.bgPage
-                    border.color: root.overwrite ? "#EF4444" : Style.borderLight
-                    Text { anchors.centerIn: parent; text: "ÉCRASER"
+                    color: root.overwrite ? Style.errorColor : Style.bgPage
+                    border.color: root.overwrite ? Style.errorColor : Style.borderLight
+                    Text { anchors.centerIn: parent; text: qsTr("ÉCRASER")
                            font.pixelSize: 10; font.weight: Font.Black; font.letterSpacing: 0.5
                            color: root.overwrite ? "white" : Style.textTertiary }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.overwrite = true }
                 }
             }
             Text { width: parent.width; visible: root.overwrite
-                   text: "Tous les paiements existants du mois seront supprimés et remplacés par ce montant."
-                   font.pixelSize: 10; color: "#EF4444"; wrapMode: Text.WordWrap }
+                   text: qsTr("Tous les paiements existants du mois seront supprimés et remplacés par ce montant.")
+                   font.pixelSize: 10; color: Style.errorColor; wrapMode: Text.WordWrap }
         }
 
         ModalButtons {
             width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-            cancelText: "Annuler"; confirmText: "Enregistrer"
+            cancelText: qsTr("Annuler"); confirmText: qsTr("Enregistrer")
             onCancel: {
                 page.showSchoolingModal = false
                 payEleveCombo.currentIndex = -1
                 payMontantField.text = ""
                 payJustifField.text = ""
+                payNumeroRecuField.text = ""
                 root.overwrite = false
             }
             onConfirm: {
@@ -183,7 +188,8 @@ ModalOverlay {
                     mois:    page.selectedMonthIndex + 1,
                     annee:   page.selectedYear,
                     datePaiement: payDateField.dateString !== "" ? payDateField.dateString : Qt.formatDate(new Date(), "yyyy-MM-dd"),
-                    justificatifPath: payJustifField.text.trim()
+                    justificatifPath: payJustifField.text.trim(),
+                    numeroRecu: payNumeroRecuField.text.trim()
                 }
                 if (root.overwrite)
                     financeController.overwritePayment(payload)
@@ -192,6 +198,7 @@ ModalOverlay {
                 payEleveCombo.currentIndex = -1
                 payMontantField.text = ""
                 payJustifField.text = ""
+                payNumeroRecuField.text = ""
                 root.overwrite = false
             }
         }

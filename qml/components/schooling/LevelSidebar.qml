@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 Column {
@@ -11,12 +11,12 @@ Column {
     required property int selectedNiveauId
 
     signal niveauSelected(int niveauId)
-    signal niveauEditRequested(int id, string nom)
+    signal niveauEditRequested(int id, string nom, bool isFreestyle)
     signal niveauDeleteRequested(int id)
     signal niveauAddRequested()
 
     SectionLabel {
-        text: "SÉLECTIONNER UN NIVEAU"
+        text: qsTr("SÉLECTIONNER UN NIVEAU")
         leftPadding: 4
     }
 
@@ -31,8 +31,13 @@ Column {
                 width: 220
                 height: 52
                 radius: 16
-                color: root.selectedNiveauId === modelData.id ? Style.primary : Style.bgWhite
-                border.color: root.selectedNiveauId === modelData.id ? Style.primary : Style.borderLight
+                readonly property bool freestyle: modelData.isFreestyle || false
+                color: root.selectedNiveauId === modelData.id
+                       ? (freestyle ? Style.warningColor : Style.primary)
+                       : Style.bgWhite
+                border.color: root.selectedNiveauId === modelData.id
+                              ? (freestyle ? Style.warningColor : Style.primary)
+                              : (freestyle ? Style.warningColor : Style.borderLight)
 
                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -47,7 +52,16 @@ Column {
                         text: modelData.nom
                         font.pixelSize: 13
                         font.bold: true
-                        color: root.selectedNiveauId === modelData.id ? "#FFFFFF" : Style.textPrimary
+                        color: root.selectedNiveauId === modelData.id ? Style.background
+                               : (parent.parent.freestyle ? Style.warningColor : Style.textPrimary)
+                        horizontalAlignment: Text.AlignLeft
+                    }
+
+                    Rectangle {
+                        visible: parent.parent.freestyle && root.selectedNiveauId !== modelData.id
+                        height: 16; radius: 8; width: hallBadge.implicitWidth + 10
+                        color: Style.warningBg
+                        Text { id: hallBadge; anchors.centerIn: parent; text: "HALL"; font.pixelSize: 8; font.weight: Font.Black; color: Style.warningColor }
                     }
 
                     Row {
@@ -56,8 +70,8 @@ Column {
                         IconButton {
                             iconName: "edit"
                             iconSize: 12
-                            hoverColor: "#FFFFFF"
-                            onClicked: root.niveauEditRequested(modelData.id, modelData.nom)
+                            hoverColor: Style.background
+                            onClicked: root.niveauEditRequested(modelData.id, modelData.nom, modelData.isFreestyle || false)
                         }
                         IconButton {
                             iconName: "delete"
@@ -69,7 +83,7 @@ Column {
 
                     Text {
                         visible: root.selectedNiveauId !== modelData.id
-                        text: "›"
+                        text: Qt.application.layoutDirection === Qt.RightToLeft ? "‹" : "›"
                         font.pixelSize: 16
                         color: Style.textTertiary
                     }
@@ -104,7 +118,7 @@ Column {
                 }
 
                 Text {
-                    text: "NOUVEAU NIVEAU"
+                    text: qsTr("NOUVEAU NIVEAU")
                     font.pixelSize: 10
                     font.weight: Font.Black
                     color: addNiveauMa.containsMouse ? Style.primary : Style.textTertiary
@@ -122,3 +136,4 @@ Column {
         }
     }
 }
+

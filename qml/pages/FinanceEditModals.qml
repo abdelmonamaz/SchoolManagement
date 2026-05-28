@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.platform 1.1 as Platform
+import QtQuick
+import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import UI.Components
 
 // Wraps both edit modal and edit-confirm modal.
@@ -16,7 +16,7 @@ Item {
 
     Platform.FileDialog {
         id: editFileDialog
-        title: "Sélectionner un justificatif"
+        title: qsTr("Sélectionner un justificatif")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Documents (*.pdf *.jpg *.jpeg *.png *.doc *.docx)", "Tous les fichiers (*)"]
         onAccepted: {
@@ -36,6 +36,7 @@ Item {
             page.showEditModal = false
             page.editingPayId = -1
             editNewAmountField.text = ""
+            editNumeroRecuField.text = ""
             root.editCurrentDate = ""
             root.editCurrentJustif = ""
             editJustifField.text = ""
@@ -45,6 +46,7 @@ Item {
             if (!show) {
                 page.editingPayId = -1
                 editNewAmountField.text = ""
+                editNumeroRecuField.text = ""
                 root.editCurrentDate = ""
                 root.editCurrentJustif = ""
                 editJustifField.text = ""
@@ -58,10 +60,10 @@ Item {
 
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
-                Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || "#FEF3C7"
-                    IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || "#D97706" } }
+                Rectangle { width: 48; height: 48; radius: 20; color: Style.warningBg || Style.warningBorder
+                    IconLabel { anchors.centerIn: parent; iconName: "edit"; iconSize: 22; iconColor: Style.warningColor || Style.warningColor } }
                 Column { Layout.fillWidth: true; spacing: 2
-                    Text { text: "Modifier un paiement"; font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("Modifier un paiement"); font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: page.editingEleveNom + " · " + page.selectedMonth + " " + page.selectedYear
                            font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium
                            elide: Text.ElideRight; width: parent.width }
@@ -72,7 +74,7 @@ Item {
 
             // ── Payment list ─────────────────────────────────────────────────
             Column { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 8
-                SectionLabel { text: "PAIEMENTS DU MOIS" }
+                SectionLabel { text: qsTr("PAIEMENTS DU MOIS") }
                 Column { width: parent.width; spacing: 6
                     Repeater {
                         model: page.currentEditingPayments
@@ -86,7 +88,7 @@ Item {
                                 }
                                 Rectangle { width: 90; height: 32; radius: 8
                                     color: editPayMa.containsMouse ? Style.primary : Style.primaryBg
-                                    Text { anchors.centerIn: parent; text: "MODIFIER"
+                                    Text { anchors.centerIn: parent; text: qsTr("MODIFIER")
                                            font.pixelSize: 9; font.weight: Font.Black; font.letterSpacing: 0.4
                                            color: editPayMa.containsMouse ? "white" : Style.primary }
                                     MouseArea { id: editPayMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -103,16 +105,17 @@ Item {
                                                 editDateField.setDate(Qt.formatDate(new Date(), "yyyy-MM-dd"))
                                             }
                                             editJustifField.text      = root.editCurrentJustif
-                                            
+                                            editNumeroRecuField.text  = modelData.numeroRecu || ""
+
                                             editNewAmountField.forceActiveFocus()
                                         }
                                     }
                                 }
                                 Rectangle { width: 32; height: 32; radius: 8
-                                    color: delInlineMa.containsMouse ? "#FEE2E2" : Style.bgPage
-                                    border.color: delInlineMa.containsMouse ? "#EF4444" : Style.borderLight
+                                    color: delInlineMa.containsMouse ? Style.errorBorder : Style.bgPage
+                                    border.color: delInlineMa.containsMouse ? Style.errorColor : Style.borderLight
                                     IconLabel { anchors.centerIn: parent; iconName: "trash"; iconSize: 14
-                                                iconColor: delInlineMa.containsMouse ? "#EF4444" : Style.textTertiary }
+                                                iconColor: delInlineMa.containsMouse ? Style.errorColor : Style.textTertiary }
                                     MouseArea { id: delInlineMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
                                             page.deleteType     = "payment"
@@ -126,7 +129,7 @@ Item {
                         }
                     }
                     Text { width: parent.width; visible: page.currentEditingPayments.length === 0
-                           text: "Aucun paiement enregistré pour ce mois."
+                           text: qsTr("Aucun paiement enregistré pour ce mois.")
                            font.pixelSize: 12; color: Style.textTertiary; horizontalAlignment: Text.AlignHCenter }
                 }
             }
@@ -139,19 +142,22 @@ Item {
 
                 Separator { width: parent.width }
                 Row { spacing: 8
-                    Text { text: "Montant actuel : "; font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: qsTr("Montant actuel : "); font.pixelSize: 12; color: Style.textTertiary; anchors.verticalCenter: parent.verticalCenter }
                     Text { text: (page.editingPayId > 0 ? page.editingCurrentAmount.toFixed(2) : "0.00") + " DT"; font.pixelSize: 13; font.weight: Font.Black; color: Style.textPrimary; anchors.verticalCenter: parent.verticalCenter }
                 }
                 FormField { id: editNewAmountField; width: parent.width
-                            label: "NOUVEAU MONTANT (DT)"; placeholder: "0.00"; fieldHeight: 44 }
-                
+                            label: qsTr("NOUVEAU MONTANT (DT)"); placeholder: qsTr("0.00"); fieldHeight: 44 }
+
+                FormField { id: editNumeroRecuField; width: parent.width
+                            label: qsTr("N° REÇU"); placeholder: qsTr("ex: REC-2024-001"); fieldHeight: 44 }
+
                 DateField {
                     id: editDateField
                     width: parent.width
-                    label: "DATE DU PAIEMENT"
+                    label: qsTr("DATE DU PAIEMENT")
                 }
 
-                SectionLabel { text: "JUSTIFICATIF (PIÈCE JOINTE)" }
+                SectionLabel { text: qsTr("JUSTIFICATIF (PIÈCE JOINTE)") }
                 RowLayout { width: parent.width; spacing: 8
                     Rectangle { Layout.fillWidth: true; height: 44; radius: 12
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -160,14 +166,14 @@ Item {
                             anchors.fill: parent; anchors.margins: 12
                             font.pixelSize: 12; font.bold: true; color: Style.textPrimary
                             clip: true; selectByMouse: true; readOnly: true
-                            Text { visible: !editJustifField.text; text: "Aucun fichier sélectionné"
+                            Text { visible: !editJustifField.text; text: qsTr("Aucun fichier sélectionné")
                                    font: editJustifField.font; color: Style.textTertiary }
                         }
                     }
                     Rectangle { Layout.preferredWidth: 44; height: 44; radius: 12
                         color: editBrowseHover.containsMouse ? Style.primary : Style.bgPage
                         border.color: editBrowseHover.containsMouse ? Style.primary : Style.borderLight
-                        Text { anchors.centerIn: parent; text: "…"
+                        Text { anchors.centerIn: parent; text: qsTr("…")
                                font.pixelSize: 16; font.bold: true
                                color: editBrowseHover.containsMouse ? "white" : Style.textTertiary }
                         MouseArea { id: editBrowseHover; anchors.fill: parent; hoverEnabled: true
@@ -178,7 +184,7 @@ Item {
                             
                 Rectangle { width: parent.width; height: 44; radius: 12
                     color: confirmEditBtnMa.containsMouse ? Style.primary : Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "ENREGISTRER"
+                    Text { anchors.centerIn: parent; text: qsTr("ENREGISTRER")
                            font.pixelSize: 11; font.weight: Font.Black; font.letterSpacing: 0.5
                            color: confirmEditBtnMa.containsMouse ? "white" : Style.primary }
                     MouseArea { id: confirmEditBtnMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -209,10 +215,10 @@ Item {
             RowLayout {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter; spacing: 14
                 Rectangle { width: 48; height: 48; radius: 20
-                    color: page.editingNewAmount === 0 ? Style.errorBg : (Style.warningBg || "#FEF3C7")
+                    color: page.editingNewAmount === 0 ? Style.errorBg : (Style.warningBg || Style.warningBorder)
                     IconLabel { anchors.centerIn: parent
                         iconName: page.editingNewAmount === 0 ? "trash" : "edit"; iconSize: 24
-                        iconColor: page.editingNewAmount === 0 ? Style.errorColor : (Style.warningColor || "#D97706") }
+                        iconColor: page.editingNewAmount === 0 ? Style.errorColor : (Style.warningColor || Style.warningColor) }
                 }
                 Column { Layout.fillWidth: true; spacing: 2
                     Text { text: page.editingNewAmount === 0 ? "Confirmer la suppression" : "Confirmer la modification"
@@ -225,22 +231,22 @@ Item {
 
             Rectangle { width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
                 implicitHeight: confirmEditText.implicitHeight + 28; radius: 14
-                color: page.editingNewAmount === 0 ? Style.errorBg : "#FEF3C7"
-                border.color: page.editingNewAmount === 0 ? Style.errorBorder : "#F59E0B"
+                color: page.editingNewAmount === 0 ? Style.errorBg : Style.warningBorder
+                border.color: page.editingNewAmount === 0 ? Style.errorBorder : Style.warningColor
                 Text { id: confirmEditText; anchors.fill: parent; anchors.margins: 14
                     text: page.editingNewAmount === 0
                         ? "Supprimer ce paiement de <b>" + page.editingCurrentAmount.toFixed(2) + " DT</b> ?"
                         : "Modifier ce paiement de <b>" + page.editingCurrentAmount.toFixed(2)
                           + " DT</b> à <b>" + page.editingNewAmount.toFixed(2) + " DT</b> ?"
                     font.pixelSize: 13; font.weight: Font.Medium
-                    color: page.editingNewAmount === 0 ? Style.errorColor : "#92400E"
+                    color: page.editingNewAmount === 0 ? Style.errorColor : Style.warningColor
                     wrapMode: Text.WordWrap; textFormat: Text.RichText; lineHeight: 1.5
                 }
             }
 
             ModalButtons {
                 width: parent.width - 72; anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
+                cancelText: qsTr("Annuler")
                 confirmText: page.editingNewAmount === 0 ? "SUPPRIMER" : "CONFIRMER"
                 confirmColor: page.editingNewAmount === 0 ? Style.errorColor : Style.primary
                 onCancel: { page.showEditConfirmModal = false; page.showEditModal = true }
@@ -248,15 +254,17 @@ Item {
                     if (page.editingNewAmount === 0)
                         financeController.deletePayment(page.editingPayId)
                     else
-                        financeController.updatePayment(page.editingPayId, { 
+                        financeController.updatePayment(page.editingPayId, {
                             montant: page.editingNewAmount,
                             datePaiement: root.editCurrentDate,
-                            justificatifPath: root.editCurrentJustif
+                            justificatifPath: root.editCurrentJustif,
+                            numeroRecu: editNumeroRecuField.text.trim()
                         })
                     
                     // Reset edit state
                     page.editingPayId         = -1
                     editNewAmountField.text = ""
+                    editNumeroRecuField.text = ""
                     root.editCurrentDate = ""
                     root.editCurrentJustif = ""
                     editJustifField.text = ""

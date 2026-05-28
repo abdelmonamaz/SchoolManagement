@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 ModalOverlay {
@@ -15,6 +15,19 @@ ModalOverlay {
 
     property bool itemIsEvent: selectedItem ? selectedItem.typeSeance === "Événement" : false
     property bool itemIsExam: selectedItem ? selectedItem.typeSeance === "Examen" : false
+
+    // ── Gestion des semestres ─────────────────────────────────────
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
+
+    // Retourne le numéro de semestre correspondant à une date ISO (YYYY-MM-DD).
+    function detectSemestreFromIso(isoDate) {
+        if (!hasSemestres || !isoDate) return 0
+        var sems = setupController.activeSemestres
+        var d = isoDate.indexOf("T") >= 0 ? isoDate.split("T")[0] : isoDate
+        for (var i = 0; i < sems.length; i++)
+            if (d >= sems[i].dateDebut && d <= sems[i].dateFin) return sems[i].numero
+        return sems.length > 0 ? sems[0].numero : 0
+    }
 
     modalWidth: isEditing ? Math.min(pageWidth - 64, 580) : 420
 
@@ -151,7 +164,7 @@ ModalOverlay {
                     Separator { width: parent.width }
 
                     Text {
-                        text: "DESCRIPTIF"
+                        text: qsTr("DESCRIPTIF")
                         font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary
                         font.letterSpacing: 1
                     }
@@ -176,7 +189,7 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "MODIFIER"
+                        anchors.centerIn: parent; text: qsTr("MODIFIER")
                         font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary
                         font.letterSpacing: 0.5
                     }
@@ -216,7 +229,7 @@ ModalOverlay {
                         anchors.centerIn: parent
                         text: root.showDeleteConfirm ? "CONFIRMER" : "SUPPRIMER"
                         font.pixelSize: 10; font.weight: Font.Black
-                        color: root.showDeleteConfirm ? "#FFFFFF" : Style.errorColor
+                        color: root.showDeleteConfirm ? Style.background : Style.errorColor
                         font.letterSpacing: 0.5
                     }
 
@@ -245,7 +258,7 @@ ModalOverlay {
                 Behavior on color { ColorAnimation { duration: 150 } }
 
                 Text {
-                    anchors.centerIn: parent; text: "ANNULER LA SUPPRESSION"
+                    anchors.centerIn: parent; text: qsTr("ANNULER LA SUPPRESSION")
                     font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary
                     font.letterSpacing: 0.5
                 }
@@ -261,128 +274,150 @@ ModalOverlay {
 
         // ─── Edit Mode ───
         Column {
+            id: editModeCol
             width: parent.width - 64
             spacing: 16
             visible: root.isEditing
 
             property bool editIsEvent: root.editData ? root.editData.typeSeance === "Événement" : false
-            property bool editIsExam: root.editData ? root.editData.typeSeance === "Examen" : false
+            property bool editIsExam:  root.editData ? root.editData.typeSeance === "Examen"    : false
+
+            // Charger les classes du bon niveau quand on entre en mode édition
+            Connections {
+                target: root
+                function onIsEditingChanged() {
+                    if (!root.isEditing || !root.editData) return
+                    var classes = schoolingController.allClasses
+                    for (var c = 0; c < classes.length; c++) {
+                        if (classes[c].id === root.editData.classeId) {
+                            schoolingController.loadClassesByNiveau(classes[c].niveauId)
+                            break
+                        }
+                    }
+                }
+            }
+
+            // Resélectionner la classe dès que le modèle est rechargé
+            Connections {
+                target: schoolingController
+                function onClassesChanged() {
+                    if (!root.isEditing || !root.editData) return
+                    for (var i = 0; i < editClasseCombo.count; i++) {
+                        if (editClasseCombo.model[i].id === root.editData.classeId) {
+                            editClasseCombo.currentIndex = i; break
+                        }
+                    }
+                }
+            }
 
             Text {
-                text: "Modifier la Session"
+                text: qsTr("Modifier la Session")
                 font.pixelSize: 20; font.weight: Font.Black; color: Style.textPrimary
             }
 
+            // ── Informations en lecture seule ────────────────────────
+            Column {
+                width: parent.width; spacing: 10
+
+                // Matière (cours / examen)
+                Column {
+                    width: parent.width; spacing: 4
+                    visible: !editModeCol.editIsEvent
+                    SectionLabel { text: qsTr("MATIÈRE") }
+                    Rectangle {
+                        width: parent.width; height: 40; radius: 10
+                        color: Style.bgPage; border.color: Style.bgTertiary
+                        Text {
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                            text: root.selectedItem ? (root.selectedItem.subject || "—") : "—"
+                            font.pixelSize: 12; font.weight: Font.Bold
+                            color: Style.textSecondary; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                // Titre (examen / événement)
+                Column {
+                    width: parent.width; spacing: 4
+                    visible: editModeCol.editIsExam || editModeCol.editIsEvent
+                    SectionLabel { text: editModeCol.editIsExam ? qsTr("ÉPREUVE") : qsTr("NOM DE L'ÉVÈNEMENT") }
+                    Rectangle {
+                        width: parent.width; height: 40; radius: 10
+                        color: Style.bgPage; border.color: Style.bgTertiary
+                        Text {
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                            text: root.editData ? (root.editData.titre || "—") : "—"
+                            font.pixelSize: 12; font.weight: Font.Bold
+                            color: Style.textSecondary; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                // Durée (lecture seule)
+                Column {
+                    width: parent.width; spacing: 4
+                    SectionLabel { text: qsTr("DURÉE (MIN)") }
+                    Rectangle {
+                        width: parent.width; height: 40; radius: 10
+                        color: Style.bgPage; border.color: Style.bgTertiary
+                        Text {
+                            anchors { fill: parent; leftMargin: 12 }
+                            text: root.editData ? root.editData.dureeMinutes.toString() : "—"
+                            font.pixelSize: 12; font.weight: Font.Bold
+                            color: Style.textSecondary; verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+            }
+
+            Separator { width: parent.width }
+
+            // ── Champs éditables ─────────────────────────────────────
             GridLayout {
                 id: editGrid
                 width: parent.width
-                columns: 2
-                columnSpacing: 14
-                rowSpacing: 14
+                columns: 2; columnSpacing: 14; rowSpacing: 14
 
-                property bool editIsEvent: root.editData ? root.editData.typeSeance === "Événement" : false
-                property bool editIsExam: root.editData ? root.editData.typeSeance === "Examen" : false
+                property bool editIsEvent: editModeCol.editIsEvent
+                property bool editIsExam:  editModeCol.editIsExam
 
-                // Titre (Examen & Événement)
+                // Heure
                 Column {
-                    Layout.fillWidth: true
-                    Layout.columnSpan: editGrid.editIsEvent ? 2 : 1
-                    Layout.preferredWidth: 1
-                    spacing: 6
-                    visible: editGrid.editIsExam || editGrid.editIsEvent
-
-                    SectionLabel { text: editGrid.editIsExam ? "TITRE DE L'ÉPREUVE" : "NOM DE L'ÉVÈNEMENT" }
+                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
+                    SectionLabel { text: qsTr("HEURE") }
                     Rectangle {
+                        id: editTimeRect
                         width: parent.width; height: 40; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
+                        color: Style.bgPage
+                        border.color: editTimeInput.isValidTime ? Style.borderLight : Style.errorColor
+                        border.width: editTimeInput.isValidTime ? 1 : 1.5
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+
                         TextInput {
-                            id: editTitreInput
+                            id: editTimeInput
                             anchors.fill: parent; anchors.margins: 10
-                            text: root.editData ? (root.editData.titre || "") : ""
+                            inputMask: "00:00"
                             font.pixelSize: 12; font.weight: Font.Bold
                             color: Style.textPrimary; verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-                }
+                            KeyNavigation.tab: editClasseCombo
 
-                // Niveau (Cours & Examen) — permet de filtrer matières et classes
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    visible: !editGrid.editIsEvent
+                            // Plage valide : heures 00-23, minutes 00-59
+                            // displayText inclut le ":" du masque, text non.
+                            readonly property bool isValidTime: {
+                                var parts = displayText.split(":")
+                                if (parts.length !== 2) return false
+                                var h = parseInt(parts[0]); var m = parseInt(parts[1])
+                                return h >= 0 && h <= 23 && m >= 0 && m <= 59
+                            }
 
-                    SectionLabel { text: "NIVEAU" }
-                    Rectangle {
-                        width: parent.width; height: 40; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: editNiveauCombo
-                            anchors.fill: parent; anchors.margins: 4
-                            model: schoolingController.niveaux
-                            textRole: "nom"; valueRole: "id"
-                            currentIndex: -1
                             Component.onCompleted: {
-                                // Trouver le niveau de la classe actuelle
-                                if (root.editData) {
-                                    var classes = schoolingController.allClasses
-                                    for (var c = 0; c < classes.length; c++) {
-                                        if (classes[c].id === root.editData.classeId) {
-                                            var niveauId = classes[c].niveauId
-                                            for (var n = 0; n < count; n++) {
-                                                if (model[n].id === niveauId) { currentIndex = n; break }
-                                            }
-                                            break
-                                        }
-                                    }
+                                if (root.editData && root.editData.dateHeureDebut) {
+                                    var d = root.editData.dateHeureDebut
+                                    if (typeof d === "string" && d.indexOf("T") >= 0)
+                                        text = d.split("T")[1].substring(0, 5)
+                                } else {
+                                    text = "08:00"
                                 }
-                            }
-                            onCurrentValueChanged: {
-                                if (currentIndex >= 0) {
-                                    schoolingController.loadMatieresByNiveau(currentValue)
-                                    schoolingController.loadClassesByNiveau(currentValue)
-                                }
-                            }
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                leftPadding: 8
-                                text: editNiveauCombo.currentIndex >= 0 ? editNiveauCombo.displayText : "Sélectionner..."
-                                font.pixelSize: 12; font.weight: Font.Bold
-                                color: editNiveauCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
-                    }
-                }
-
-                // Matière (Cours & Examen)
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    visible: !editGrid.editIsEvent
-
-                    SectionLabel { text: "MATIÈRE" }
-                    Rectangle {
-                        width: parent.width; height: 40; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
-                        ComboBox {
-                            id: editMatiereCombo
-                            anchors.fill: parent; anchors.margins: 4
-                            model: schoolingController.matieres
-                            textRole: "nom"; valueRole: "id"
-                            currentIndex: -1
-                            Component.onCompleted: {
-                                if (root.editData) {
-                                    for (var i = 0; i < count; i++) {
-                                        if (model[i].id === root.editData.matiereId) { currentIndex = i; break }
-                                    }
-                                }
-                            }
-                            onCurrentValueChanged: if (root.editData && currentIndex >= 0) root.editData.matiereId = currentValue
-                            background: Rectangle { color: "transparent" }
-                            contentItem: Text {
-                                leftPadding: 8
-                                text: editMatiereCombo.currentIndex >= 0 ? editMatiereCombo.displayText : "Sélectionner..."
-                                font.pixelSize: 12; font.weight: Font.Bold
-                                color: editMatiereCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
-                                verticalAlignment: Text.AlignVCenter
                             }
                         }
                     }
@@ -392,8 +427,7 @@ ModalOverlay {
                 Column {
                     Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
                     visible: !editGrid.editIsEvent
-
-                    SectionLabel { text: "CLASSE" }
+                    SectionLabel { text: qsTr("CLASSE") }
                     Rectangle {
                         width: parent.width; height: 40; radius: 10
                         color: Style.bgPage; border.color: Style.borderLight
@@ -401,20 +435,18 @@ ModalOverlay {
                             id: editClasseCombo
                             anchors.fill: parent; anchors.margins: 4
                             model: schoolingController.classes
-                            textRole: "nom"; valueRole: "id"
-                            currentIndex: -1
+                            textRole: "nom"; valueRole: "id"; currentIndex: -1
                             Component.onCompleted: {
                                 if (root.editData) {
-                                    for (var i = 0; i < count; i++) {
+                                    for (var i = 0; i < count; i++)
                                         if (model[i].id === root.editData.classeId) { currentIndex = i; break }
-                                    }
                                 }
                             }
                             onCurrentValueChanged: if (root.editData && currentIndex >= 0) root.editData.classeId = currentValue
                             background: Rectangle { color: "transparent" }
                             contentItem: Text {
                                 leftPadding: 8
-                                text: editClasseCombo.currentIndex >= 0 ? editClasseCombo.displayText : "Sélectionner..."
+                                text: editClasseCombo.currentIndex >= 0 ? editClasseCombo.displayText : qsTr("Sélectionner...")
                                 font.pixelSize: 12; font.weight: Font.Bold
                                 color: editClasseCombo.currentIndex >= 0 ? Style.textPrimary : Style.textTertiary
                                 verticalAlignment: Text.AlignVCenter
@@ -477,7 +509,7 @@ ModalOverlay {
 
                                             Text {
                                                 anchors.fill: parent; leftPadding: 12
-                                                text: "Sélectionner..."
+                                                text: qsTr("Sélectionner...")
                                                 font.pixelSize: 12; font.italic: true; font.bold: true
                                                 color: Style.textTertiary; verticalAlignment: Text.AlignVCenter
                                             }
@@ -509,7 +541,7 @@ ModalOverlay {
                                     }
                                 }
 
-                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: "#FFFFFF" }
+                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: Style.background }
                             }
                         }
                     }
@@ -568,7 +600,7 @@ ModalOverlay {
 
                                             Text {
                                                 anchors.fill: parent; leftPadding: 12
-                                                text: "Sélectionner..."
+                                                text: qsTr("Sélectionner...")
                                                 font.pixelSize: 12; font.italic: true; font.bold: true
                                                 color: Style.textTertiary; verticalAlignment: Text.AlignVCenter
                                             }
@@ -600,84 +632,27 @@ ModalOverlay {
                                     }
                                 }
 
-                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: "#FFFFFF" }
+                                background: Rectangle { radius: 8; border.color: Style.borderLight; color: Style.background }
                             }
                         }
                     }
                 }
 
-                // Heure
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "HEURE" }
-                    Rectangle {
-                        width: parent.width; height: 40; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
-                        TextInput {
-                            id: editTimeInput
-                            anchors.fill: parent; anchors.margins: 10
-                            text: {
-                                if (root.editData && root.editData.dateHeureDebut) {
-                                    var d = root.editData.dateHeureDebut
-                                    if (typeof d === "string" && d.indexOf("T") >= 0)
-                                        return d.split("T")[1].substring(0, 5)
-                                }
-                                return "08:00"
-                            }
-                            font.pixelSize: 12; font.weight: Font.Bold
-                            color: Style.textPrimary; verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-                }
-
-                // Durée
-                Column {
-                    Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 6
-                    SectionLabel { text: "DURÉE (MIN)" }
-                    Rectangle {
-                        width: parent.width; height: 40; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
-                        TextInput {
-                            id: editDureeInput
-                            anchors.fill: parent; anchors.margins: 10
-                            text: root.editData ? root.editData.dureeMinutes.toString() : "60"
-                            font.pixelSize: 12; font.weight: Font.Bold
-                            color: Style.textPrimary; verticalAlignment: Text.AlignVCenter
-                            inputMethodHints: Qt.ImhDigitsOnly
-                        }
-                    }
-                }
-
-                // Descriptif (Événement uniquement)
+                // Descriptif événement (lecture seule)
                 Column {
                     Layout.fillWidth: true; Layout.columnSpan: 2; spacing: 6
-                    visible: editGrid.editIsEvent
+                    visible: editGrid.editIsEvent && root.editData && root.editData.descriptif
 
-                    SectionLabel { text: "DESCRIPTIF (OPTIONNEL)" }
+                    SectionLabel { text: qsTr("DESCRIPTIF") }
                     Rectangle {
-                        width: parent.width; height: 70; radius: 10
-                        color: Style.bgPage; border.color: Style.borderLight
-
-                        Flickable {
-                            anchors.fill: parent; anchors.margins: 10
-                            contentWidth: width; contentHeight: editDescriptifInput.implicitHeight
-                            clip: true; flickableDirection: Flickable.VerticalFlick
-
-                            TextEdit {
-                                id: editDescriptifInput
-                                width: parent.width
-                                text: root.editData ? (root.editData.descriptif || "") : ""
-                                font.pixelSize: 12; font.weight: Font.Bold
-                                color: Style.textPrimary
-                                wrapMode: TextEdit.Wrap; selectByMouse: true
-
-                                Text {
-                                    visible: !editDescriptifInput.text
-                                    text: "Description de l'évènement..."
-                                    font: editDescriptifInput.font
-                                    color: Style.textTertiary
-                                }
-                            }
+                        width: parent.width; height: 60; radius: 10
+                        color: Style.bgPage; border.color: Style.bgTertiary
+                        Text {
+                            anchors { fill: parent; margins: 10 }
+                            text: root.editData ? (root.editData.descriptif || "") : ""
+                            font.pixelSize: 12; font.weight: Font.Bold
+                            color: Style.textSecondary
+                            wrapMode: Text.WordWrap; verticalAlignment: Text.AlignVCenter
                         }
                     }
                 }
@@ -695,7 +670,7 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "ANNULER"
+                        anchors.centerIn: parent; text: qsTr("ANNULER")
                         font.pixelSize: 10; font.weight: Font.Black; color: Style.textSecondary
                         font.letterSpacing: 0.5
                     }
@@ -713,12 +688,11 @@ ModalOverlay {
 
                     property bool editValid: {
                         if (!root.editData) return false
-                        if (editGrid.editIsEvent)
-                            return editTitreInput.text.length > 0
-                        if (editGrid.editIsExam)
-                            return editTitreInput.text.length > 0 && editMatiereCombo.currentIndex >= 0 && editClasseCombo.currentIndex >= 0 && editSalleCombo.currentIndex >= 0
+                        if (!editTimeInput.isValidTime) return false
+                        if (editGrid.editIsEvent) return editSalleCombo.currentIndex >= 0
+                        if (editGrid.editIsExam)  return editClasseCombo.currentIndex >= 0 && editSalleCombo.currentIndex >= 0
                         // Cours
-                        return editMatiereCombo.currentIndex >= 0 && editProfCombo.currentIndex >= 0 && editClasseCombo.currentIndex >= 0 && editSalleCombo.currentIndex >= 0
+                        return editProfCombo.currentIndex >= 0 && editClasseCombo.currentIndex >= 0 && editSalleCombo.currentIndex >= 0
                     }
 
                     opacity: editValid ? 1.0 : 0.5
@@ -726,8 +700,8 @@ ModalOverlay {
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
-                        anchors.centerIn: parent; text: "ENREGISTRER"
-                        font.pixelSize: 10; font.weight: Font.Black; color: "#FFFFFF"
+                        anchors.centerIn: parent; text: qsTr("ENREGISTRER")
+                        font.pixelSize: 10; font.weight: Font.Black; color: Style.background
                         font.letterSpacing: 0.5
                     }
 
@@ -740,12 +714,8 @@ ModalOverlay {
                             if (root.editData) {
                                 var origDate = root.editData.dateHeureDebut
                                 var datePart = origDate.split("T")[0]
-                                var newTime = editTimeInput.text || "08:00"
+                                var newTime = editTimeInput.displayText || "08:00"
                                 root.editData.dateHeureDebut = datePart + "T" + newTime + ":00"
-                                root.editData.dureeMinutes = parseInt(editDureeInput.text) || 60
-                                root.editData.titre = editTitreInput.text || ""
-                                root.editData.descriptif = editDescriptifInput.text || ""
-
                                 examsController.updateExam(root.editData.id, root.editData)
                                 root.isEditing = false
                                 root.close()

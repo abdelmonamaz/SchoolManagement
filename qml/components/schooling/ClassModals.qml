@@ -15,10 +15,19 @@ Item {
     required property string selectedNiveauNom
     required property int selectedNiveauId
     required property string activeAnneeScolaire
+    required property var niveaux
 
     // Students passed from parent to see existing assignments
     property var allStudents: studentController.students
     property var unassignedStudentsList: studentController.unassignedStudents
+
+    readonly property bool selectedNiveauIsFreestyle: {
+        for (var i = 0; i < root.niveaux.length; i++) {
+            if (root.niveaux[i].id === root.selectedNiveauId)
+                return root.niveaux[i].isFreestyle || false
+        }
+        return false
+    }
 
     signal createRequested(string nom, int niveauId, var studentIdsToAssign)
     signal editRequested(int id, string nom, int niveauId, var studentIdsToAssign, var studentIdsToRemove)
@@ -42,9 +51,12 @@ Item {
         initiallyAssignedIds = []
         if (root.showEdit && root.editingClass && root.editingClass.id > 0) {
             for (var i = 0; i < root.allStudents.length; i++) {
-                if (root.allStudents[i].classeId === root.editingClass.id) {
-                    currentAssignedStudents.push(root.allStudents[i])
-                    initiallyAssignedIds.push(root.allStudents[i].id)
+                var st = root.allStudents[i]
+                var inThisClass = st.classeId === root.editingClass.id
+                    || (root.selectedNiveauIsFreestyle && st.hallClasseId === root.editingClass.id)
+                if (inThisClass) {
+                    currentAssignedStudents.push(st)
+                    initiallyAssignedIds.push(st.id)
                 }
             }
         }
@@ -70,6 +82,8 @@ Item {
 
     onShowEditChanged: {
         if (showEdit) {
+            console.log("[ClassModals] onShowEdit: editingClass=" + JSON.stringify(root.editingClass)
+                + " selectedNiveauId=" + root.selectedNiveauId)
             resetFilters()
             initEditState()
             localClassNameText = root.editingClass.nom
@@ -77,15 +91,36 @@ Item {
     }
 
     function reloadUnassigned() {
+        console.log("[ClassModals] reloadUnassigned: selectedNiveauId=" + root.selectedNiveauId
+            + " sexe=" + selectedSexe + " categorie=" + selectedCategorie)
         studentController.loadUnassignedStudents(root.selectedNiveauId, selectedSexe, selectedCategorie)
     }
 
     // Assign multiple randomly
     function autoFill(count) {
         var available = []
+        var sourceList = []
+        if (root.selectedNiveauIsFreestyle) {
+            // Freestyle: enrolled students with no hall_classe_id, applying active filters
+            for (var s = 0; s < root.allStudents.length; s++) {
+                var candidate = root.allStudents[s]
+                if (!candidate.inscritAnneeActive) continue
+                if (candidate.hallClasseId !== 0) continue
+                if (root.selectedSexe !== "all" && candidate.sexe !== root.selectedSexe) continue
+                if (root.selectedCategorie !== "all" && candidate.categorie !== root.selectedCategorie) continue
+                sourceList.push(candidate)
+            }
+        } else {
+            sourceList = root.unassignedStudentsList
+        }
+
+        // Respect capacity: count is the target total, only fill the remaining slots
+        var remaining = count - currentAssignedStudents.length
+        if (remaining <= 0) return
+
         // Filter out those already in currentAssignedStudents
-        for (var i = 0; i < unassignedStudentsList.length; i++) {
-            var st = unassignedStudentsList[i]
+        for (var i = 0; i < sourceList.length; i++) {
+            var st = sourceList[i]
             var alreadyAdded = false
             for (var j = 0; j < currentAssignedStudents.length; j++) {
                 if (currentAssignedStudents[j].id === st.id) {
@@ -97,13 +132,13 @@ Item {
 
         // Shuffle
         for (var k = available.length - 1; k > 0; k--) {
-            var j = Math.floor(Math.random() * (k + 1));
+            var rj = Math.floor(Math.random() * (k + 1));
             var temp = available[k];
-            available[k] = available[j];
-            available[j] = temp;
+            available[k] = available[rj];
+            available[rj] = temp;
         }
 
-        var toAdd = Math.min(count, available.length)
+        var toAdd = Math.min(remaining, available.length)
         var newAssigned = currentAssignedStudents.slice()
         for (var n = 0; n < toAdd; n++) {
             newAssigned.push(available[n])
@@ -162,7 +197,7 @@ Item {
                     }
                     
                     Text {
-                        text: "Niveau : " + root.selectedNiveauNom
+                        text: qsTr("Niveau : ") + root.selectedNiveauNom
                         font.pixelSize: 13
                         font.weight: Font.Bold
                         color: Style.primary
@@ -171,19 +206,19 @@ Item {
                     FormField {
                         id: localClassNameField
                         Layout.fillWidth: true
-                        label: "NOM DU GROUPE"
-                        placeholder: "ex: A, Matin..."
+                        label: qsTr("NOM DU GROUPE")
+                        placeholder: qsTr("ex: A, Matin...")
                         text: root.localClassNameText
                         onTextChanged: root.localClassNameText = text
                     }
                     
                     Separator { Layout.fillWidth: true; anchors.leftMargin: -12; anchors.rightMargin: -12 }
                     
-                    Text { text: "FILTRAGE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+                    Text { text: qsTr("FILTRAGE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
 
                     Column {
                         Layout.fillWidth: true; spacing: 4
-                        SectionLabel { text: "ANNÉE SCOLAIRE" }
+                        SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                         Rectangle {
                             width: parent.width; height: 40; radius: 10
                             color: Style.bgSecondary; border.color: Style.borderLight
@@ -201,7 +236,7 @@ Item {
                         Layout.fillWidth: true; spacing: 12
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "SEXE" }
+                            SectionLabel { text: qsTr("SEXE") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -223,7 +258,7 @@ Item {
                         }
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "CATÉGORIE" }
+                            SectionLabel { text: qsTr("CATÉGORIE") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -249,7 +284,7 @@ Item {
                         Layout.fillWidth: true; spacing: 12
                         Column {
                             Layout.fillWidth: true; Layout.preferredWidth: 1; spacing: 4
-                            SectionLabel { text: "QTÉ" }
+                            SectionLabel { text: qsTr("QTÉ") }
                             Rectangle {
                                 width: parent.width; height: 40; radius: 10
                                 color: Style.bgPage; border.color: Style.borderLight
@@ -264,7 +299,7 @@ Item {
                         PrimaryButton {
                             Layout.alignment: Qt.AlignBottom
                             Layout.fillWidth: true; Layout.preferredWidth: 2; Layout.preferredHeight: 40
-                            text: "Auto Remplissage"
+                            text: qsTr("Auto Remplissage")
                             onClicked: {
                                 var qte = parseInt(qteInput.text) || 0
                                 if (qte > 0) root.autoFill(qte)
@@ -273,14 +308,28 @@ Item {
                     }
                     
                     Text {
-                        text: root.unassignedStudentsList.length + " élèves non assignés disponibles."
+                        text: {
+                            if (root.selectedNiveauIsFreestyle) {
+                                var count = 0
+                                for (var i = 0; i < root.allStudents.length; i++) {
+                                    var st = root.allStudents[i]
+                                    if (!st.inscritAnneeActive) continue
+                                    if (st.hallClasseId !== 0) continue
+                                    if (root.selectedSexe !== "all" && st.sexe !== root.selectedSexe) continue
+                                    if (root.selectedCategorie !== "all" && st.categorie !== root.selectedCategorie) continue
+                                    count++
+                                }
+                                return count + qsTr(" élèves inscrits disponibles.")
+                            }
+                            return root.unassignedStudentsList.length + qsTr(" élèves non assignés disponibles.")
+                        }
                         font.pixelSize: 11; color: Style.textSecondary; Layout.fillWidth: true; wrapMode: Text.WordWrap
                     }
 
                     Item { height: 1; width: 1; Layout.fillHeight: true } // Spacer
                     
                     Text {
-                        text: "Total inscrits : " + currentAssignedStudents.length
+                        text: qsTr("Total inscrits : ") + currentAssignedStudents.length
                         font.pixelSize: 14
                         font.weight: Font.Black
                         color: Style.textPrimary
@@ -313,7 +362,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: "Affectation des Étudiants"
+                            text: qsTr("Affectation des Étudiants")
                             font.pixelSize: 18
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -330,7 +379,9 @@ Item {
                         SearchField {
                             id: searchInput
                             Layout.fillWidth: true
-                            placeholder: "Chercher un élève non assigné..."
+                            placeholder: root.selectedNiveauIsFreestyle
+                                ? qsTr("Chercher un élève inscrit...")
+                                : qsTr("Chercher un élève non assigné...")
                             text: root.searchText
                             onTextChanged: root.searchText = text
                         }
@@ -339,11 +390,11 @@ Item {
                     // Matching search results (dropdown overlay-like, but inline for simplicity)
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: Math.min(150, searchRepeater.count * 40 + 8)
-                        visible: root.searchText.trim().length > 0 && searchRepeater.count > 0
+                        implicitHeight: Math.min(200, searchRepeater.count * 40 + 8)
+                        visible: (searchInput.inputFocused || root.searchText.trim().length > 0) && searchRepeater.count > 0
                         color: Style.bgPage; radius: 12; border.color: Style.borderLight
                         clip: true
-                        
+
                         Flickable {
                             anchors.fill: parent; anchors.margins: 4
                             contentHeight: searchCol.height
@@ -353,19 +404,33 @@ Item {
                                     id: searchRepeater
                                     model: {
                                         var query = root.searchText.trim().toLowerCase()
-                                        var res = []
-                                        if (query === "") return res
-                                        for (var i = 0; i < root.unassignedStudentsList.length; i++) {
-                                            var st = root.unassignedStudentsList[i]
-                                            var nomComplet = (st.prenom + " " + st.nom).toLowerCase()
-                                            if (nomComplet.indexOf(query) !== -1 || st.id.toString().indexOf(query) !== -1) {
-                                                // Check if already assigned
-                                                var added = false
-                                                for (var j = 0; j < root.currentAssignedStudents.length; j++) {
-                                                    if (root.currentAssignedStudents[j].id === st.id) { added = true; break; }
-                                                }
-                                                if (!added) res.push(st)
+                                        // Build source list with freestyle-aware filtering
+                                        var sourceList = []
+                                        if (root.selectedNiveauIsFreestyle) {
+                                            for (var s = 0; s < root.allStudents.length; s++) {
+                                                var candidate = root.allStudents[s]
+                                                if (!candidate.inscritAnneeActive) continue
+                                                if (candidate.hallClasseId !== 0) continue
+                                                if (root.selectedSexe !== "all" && candidate.sexe !== root.selectedSexe) continue
+                                                if (root.selectedCategorie !== "all" && candidate.categorie !== root.selectedCategorie) continue
+                                                sourceList.push(candidate)
                                             }
+                                        } else {
+                                            sourceList = root.unassignedStudentsList
+                                        }
+                                        var res = []
+                                        for (var i = 0; i < sourceList.length; i++) {
+                                            var st = sourceList[i]
+                                            // Apply text filter only when there's a query
+                                            if (query !== "") {
+                                                var nomComplet = (st.prenom + " " + st.nom).toLowerCase()
+                                                if (nomComplet.indexOf(query) === -1 && st.id.toString().indexOf(query) === -1) continue
+                                            }
+                                            var added = false
+                                            for (var j = 0; j < root.currentAssignedStudents.length; j++) {
+                                                if (root.currentAssignedStudents[j].id === st.id) { added = true; break; }
+                                            }
+                                            if (!added) res.push(st)
                                         }
                                         return res
                                     }
@@ -375,7 +440,9 @@ Item {
                                         RowLayout {
                                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
                                             Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
-                                            Text { text: modelData.id; font.pixelSize: 11; color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? Style.errorColor : Style.primary; customTextColor: Style.background; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.categorie; variant: "neutral"; Layout.alignment: Qt.AlignVCenter }
+                                            Text { text: "#" + modelData.id; font.pixelSize: 11; color: Style.textTertiary; Layout.alignment: Qt.AlignVCenter }
                                             IconLabel { iconName: "plus"; iconSize: 14; iconColor: Style.primary; Layout.alignment: Qt.AlignVCenter }
                                         }
                                         MouseArea {
@@ -407,7 +474,7 @@ Item {
                                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
                                             Avatar { initials: modelData.nom.charAt(0); size: 24; Layout.alignment: Qt.AlignVCenter }
                                             Text { text: modelData.prenom + " " + modelData.nom; font.pixelSize: 13; font.bold: true; color: Style.textPrimary; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
-                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? "#DB2777" : Style.primary; customTextColor: "#FFFFFF"; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
+                                            Badge { text: modelData.sexe === "F" ? "F" : "M"; customBgColor: modelData.sexe === "F" ? Style.errorColor : Style.primary; customTextColor: Style.background; customBorderColor: "transparent"; Layout.alignment: Qt.AlignVCenter }
                                             Badge { text: modelData.categorie; variant: "neutral"; Layout.alignment: Qt.AlignVCenter }
                                             IconButton {
                                                 iconName: "close"; iconSize: 14; hoverColor: Style.errorColor; Layout.alignment: Qt.AlignVCenter
@@ -422,7 +489,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             visible: root.currentAssignedStudents.length === 0
-                            text: "Aucun élève affecté au groupe."
+                            text: qsTr("Aucun élève affecté au groupe.")
                             font.pixelSize: 13; color: Style.textTertiary; font.italic: true
                         }
                     }
@@ -432,7 +499,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
                         Item { Layout.fillWidth: true }
-                        OutlineButton { text: "ANNULER"; onClicked: root.closeRequested() }
+                        OutlineButton { text: qsTr("ANNULER"); onClicked: root.closeRequested() }
                         PrimaryButton {
                             text: root.showCreate ? "CRÉER LE GROUPE" : "ENREGISTRER"
                             onClicked: {
@@ -523,7 +590,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Confirmer les modifications"
+                text: qsTr("Confirmer les modifications")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -531,7 +598,7 @@ Item {
 
             Text {
                 width: parent.width - 64
-                text: "Vous avez modifié les informations de ce groupe. Voulez-vous enregistrer ces changements ?"
+                text: qsTr("Vous avez modifié les informations de ce groupe. Voulez-vous enregistrer ces changements ?")
                 font.pixelSize: 14
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -540,8 +607,8 @@ Item {
 
             ModalButtons {
                 width: parent.width - 64
-                cancelText: "ANNULER"
-                confirmText: "CONFIRMER"
+                cancelText: qsTr("ANNULER")
+                confirmText: qsTr("CONFIRMER")
                 confirmColor: Style.primary
                 onCancel: root.showEditConfirm = false
                 onConfirm: {
@@ -587,7 +654,7 @@ Item {
             padding: 28
 
             Text {
-                text: "Supprimer la classe ?"
+                text: qsTr("Supprimer la classe ?")
                 font.pixelSize: 18
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -595,7 +662,7 @@ Item {
 
             Text {
                 width: parent.width - 56
-                text: "Les élèves de cette classe seront retirés de la classe mais resteront dans la base de données."
+                text: qsTr("Les élèves de cette classe seront retirés de la classe mais resteront dans la base de données.")
                 font.pixelSize: 13
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -614,7 +681,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -636,10 +703,10 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "SUPPRIMER"
+                        text: qsTr("SUPPRIMER")
                         font.pixelSize: 11
                         font.weight: Font.Black
-                        color: "#FFFFFF"
+                        color: Style.background
                         font.letterSpacing: 0.5
                     }
 

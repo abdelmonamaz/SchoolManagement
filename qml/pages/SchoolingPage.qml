@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import Qt.labs.settings 1.0
 import UI.Components
 
@@ -26,10 +26,10 @@ Item {
     property bool showDeleteNiveauConfirm: false
     property int deletingNiveauId: 0
     property bool showDeleteMatiereConfirm: false
-    property int deletingMatiereId: 0
+    property var  deletingMatiereIds: []
     property bool showEditMatiereModal: false
-    property int editingMatiereId: 0
-    property var editingMatiere: ({id: 0, nom: "", niveauId: 0, nombreSeances: 0, dureeSeanceMinutes: 60})
+    // Groupe de matière en cours d'édition (1 ou 2 enregistrements pour bi-semestre)
+    property var  editingMatiereGroup: ({ nom: "", ids: [], semestres: [], niveauId: 0, coefficient: 1.0, nombreSeances: 0, dureeSeanceMinutes: 60 })
     property bool showEditRoomModal: false
     property var editingRoom: ({id: 0, nom: "", capaciteChaises: 20, equipement: ""})
     property bool showDeleteRoomConfirm: false
@@ -37,17 +37,32 @@ Item {
     property bool showManageEquipmentsModal: false
 
     Component.onCompleted: {
+        console.log("[SchoolingPage] onCompleted — loadNiveaux")
         schoolingController.loadNiveaux()
         schoolingController.loadSalles()
         schoolingController.loadEquipements()
         studentController.loadStudents()
     }
 
+    // Rechargement des matières du niveau courant quand on revient sur cette page
+    // (un autre onglet, ex. SessionFormModal, peut avoir écrasé schoolingController.matieres)
+    onVisibleChanged: {
+        if (visible && selectedNiveauId > 0)
+            schoolingController.loadMatieresByNiveau(selectedNiveauId)
+    }
+
     Connections {
         target: schoolingController
         function onNiveauxChanged() {
+            var ids = schoolingController.niveaux.map(function(n){ return n.id + "(" + n.nom + ")" })
+            console.log("[SchoolingPage] onNiveauxChanged:", ids.join(", "),
+                        "| selectedNiveauId=", selectedNiveauId)
             if (selectedNiveauId < 0 && schoolingController.niveaux.length > 0)
                 selectNiveau(schoolingController.niveaux[0].id)
+        }
+        function onClassesChanged() {
+            var ids = schoolingController.classes.map(function(c){ return c.id + "(" + c.nom + ",niv=" + c.niveauId + ")" })
+            console.log("[SchoolingPage] onClassesChanged:", ids.join(", "))
         }
         function onOperationSucceeded(msg) {
             console.log("SchoolingPage:", msg)
@@ -62,8 +77,12 @@ Item {
         }
         function onClasseCreated(classeId) {
             if (classModals && classModals.pendingStudentsToAssign && classModals.pendingStudentsToAssign.length > 0) {
-                studentController.assignMultipleStudentsToClasse(classModals.pendingStudentsToAssign, classeId)
+                if (classModals.pendingIsHall)
+                    studentController.assignMultipleStudentsToHallClasse(classModals.pendingStudentsToAssign, classeId)
+                else
+                    studentController.assignMultipleStudentsToClasse(classModals.pendingStudentsToAssign, classeId)
                 classModals.pendingStudentsToAssign = []
+                classModals.pendingIsHall = false
             }
         }
         function onOperationFailed(err) { console.warn("SchoolingPage error:", err) }
@@ -72,6 +91,8 @@ Item {
     Connections {
         target: yearClosureController
         function onClosureSuccess(newYearLabel) {
+            console.log("[SchoolingPage] onClosureSuccess:", newYearLabel, "— reset selectedNiveauId, reload niveaux")
+            selectedNiveauId = -1
             schoolingController.loadNiveaux()
             schoolingController.loadSalles()
             schoolingController.loadEquipements()
@@ -93,6 +114,7 @@ Item {
     }
 
     function selectNiveau(niveauId) {
+        console.log("[SchoolingPage] selectNiveau:", niveauId)
         selectedNiveauId = niveauId
         schoolingController.loadClassesByNiveau(niveauId)
         schoolingController.loadMatieresByNiveau(niveauId)
@@ -118,8 +140,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Architecture Académique"
-                subtitle: "Configuration des niveaux, des matières et de la logistique."
+                title: qsTr("Architecture Académique")
+                subtitle: qsTr("Configuration des niveaux, des matières et de la logistique.")
             }
 
             Rectangle {
@@ -143,10 +165,10 @@ Item {
                         Text {
                             id: levelsTabLabel
                             anchors.centerIn: parent
-                            text: "NIVEAUX & MATIÈRES"
+                            text: qsTr("NIVEAUX & MATIÈRES")
                             font.pixelSize: 10
                             font.weight: Font.Black
-                            color: activeTab === "levels" ? "#FFFFFF" : Style.textTertiary
+                            color: activeTab === "levels" ? Style.background : Style.textTertiary
                             font.letterSpacing: 0.5
                         }
 
@@ -166,10 +188,10 @@ Item {
                         Text {
                             id: roomsTabLabel
                             anchors.centerIn: parent
-                            text: "GESTION DES SALLES"
+                            text: qsTr("GESTION DES SALLES")
                             font.pixelSize: 10
                             font.weight: Font.Black
-                            color: activeTab === "rooms" ? "#FFFFFF" : Style.textTertiary
+                            color: activeTab === "rooms" ? Style.background : Style.textTertiary
                             font.letterSpacing: 0.5
                         }
 
@@ -198,8 +220,8 @@ Item {
                         niveaux: schoolingController.niveaux
                         selectedNiveauId: schoolPage.selectedNiveauId
                         onNiveauSelected: (niveauId) => schoolPage.selectNiveau(niveauId)
-                        onNiveauEditRequested: (id, nom) => {
-                            schoolPage.editingNiveau = {id: id, nom: nom}
+                        onNiveauEditRequested: (id, nom, isFreestyle) => {
+                            schoolPage.editingNiveau = {id: id, nom: nom, isFreestyle: isFreestyle}
                             schoolPage.showEditNiveauModal = true
                         }
                         onNiveauDeleteRequested: (id) => {
@@ -218,22 +240,17 @@ Item {
                             matieres: schoolingController.matieres
                             selectedNiveauNom: schoolPage.selectedNiveauNom()
                             selectedNiveauId: schoolPage.selectedNiveauId
-                            onMatiereCreateRequested: (nom) => schoolingController.createMatiere(nom, selectedNiveauId)
-                            onMatiereDeleteRequested: (id) => {
-                                schoolPage.deletingMatiereId = id
+                            onMatiereCreateRequested: (nom, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes) =>
+                                schoolingController.createMatiere(nom, selectedNiveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes)
+                            onMatiereDeleteRequested: (ids) => {
+                                schoolPage.deletingMatiereIds = ids
                                 schoolPage.showDeleteMatiereConfirm = true
                             }
-                            onMatiereEditRequested: (id) => {
-                                // Trouver la matière dans la liste pour pré-remplir le modal
-                                var mats = schoolingController.matieres
-                                for (var i = 0; i < mats.length; i++) {
-                                    if (mats[i].id === id) {
-                                        schoolPage.editingMatiere = mats[i]
-                                        break
-                                    }
-                                }
-                                schoolPage.editingMatiereId = id
-                                schoolingController.loadMatiereExamens(id)
+                            onMatiereEditRequested: (group) => {
+                                schoolPage.editingMatiereGroup = group
+                                // Charge les examens du premier enregistrement du groupe
+                                if (group.ids && group.ids.length > 0)
+                                    schoolingController.loadMatiereExamens(group.ids[0])
                                 schoolPage.showEditMatiereModal = true
                             }
                         }
@@ -305,8 +322,8 @@ Item {
             schoolingController.createNiveau(nom)
             showNiveauModal = false
         }
-        onEditRequested: (id, nom) => {
-            schoolingController.updateNiveau(id, nom)
+        onEditRequested: (id, nom, parentLevelId, isFreestyle) => {
+            schoolingController.updateNiveau(id, nom, parentLevelId, isFreestyle)
             showEditNiveauModal = false
         }
         onDeleteRequested: (id) => {
@@ -322,31 +339,78 @@ Item {
 
     MatiereDeleteModal {
         show: showDeleteMatiereConfirm
-        deletingMatiereId: schoolPage.deletingMatiereId
+        deletingMatiereIds: schoolPage.deletingMatiereIds
 
-        onDeleteRequested: (id) => {
-            schoolingController.deleteMatiere(id)
+        onDeleteRequested: (ids) => {
+            schoolingController.deleteMatieres(ids)
             showDeleteMatiereConfirm = false
         }
         onCloseRequested: showDeleteMatiereConfirm = false
     }
 
     MatiereEditModal {
-        show:             showEditMatiereModal
-        editingMatiereId: schoolPage.editingMatiereId
-        editingNiveauId:  schoolPage.editingMatiere.niveauId || schoolPage.selectedNiveauId
-        initialNom:              schoolPage.editingMatiere.nom             || ""
-        initialNombreSeances:    schoolPage.editingMatiere.nombreSeances   || 0
-        initialDureeMinutes:     schoolPage.editingMatiere.dureeSeanceMinutes > 0
-                                     ? schoolPage.editingMatiere.dureeSeanceMinutes : 60
+        show:              showEditMatiereModal
+        // ID principal = premier id du groupe (utilisé pour le chargement des examens)
+        editingMatiereId:  schoolPage.editingMatiereGroup.ids && schoolPage.editingMatiereGroup.ids.length > 0
+                               ? schoolPage.editingMatiereGroup.ids[0] : 0
+        // Tous les IDs et semestres du groupe
+        initialMatiereIds: schoolPage.editingMatiereGroup.ids    || []
+        initialSemestres:  schoolPage.editingMatiereGroup.semestres || [1]
+        editingNiveauId:   schoolPage.editingMatiereGroup.niveauId || schoolPage.selectedNiveauId
+        initialNom:             schoolPage.editingMatiereGroup.nom             || ""
+        initialNombreSeances:   schoolPage.editingMatiereGroup.nombreSeances   || 0
+        initialDureeMinutes:    schoolPage.editingMatiereGroup.dureeSeanceMinutes > 0
+                                    ? schoolPage.editingMatiereGroup.dureeSeanceMinutes : 60
+        initialCoefficient:     schoolPage.editingMatiereGroup.coefficient > 0
+                                    ? schoolPage.editingMatiereGroup.coefficient : 1.0
 
         onSaveRequested: (data) => {
-            schoolingController.updateMatiere(data.id, {
+            // data.allIds          : IDs initiaux du groupe
+            // data.initialSemestres: semestres correspondants aux IDs initiaux
+            // data.selectedSemestres: semestres souhaités après modification
+            var allIds         = data.allIds         || []
+            var initSems       = data.initialSemestres || []
+            var selectedSems   = data.selectedSemestres || [1]
+
+            // Construire une map semestreNumero → id existant
+            var idBySem = {}
+            for (var i = 0; i < allIds.length; i++)
+                idBySem[initSems[i]] = allIds[i]
+
+            var updateData = {
                 nom:                data.nom,
                 niveauId:           data.niveauId,
                 nombreSeances:      data.nombreSeances,
-                dureeSeanceMinutes: data.dureeSeanceMinutes
-            })
+                dureeSeanceMinutes: data.dureeSeanceMinutes,
+                coefficient:        data.coefficient
+            }
+
+            // Semestres conservés → mettre à jour l'enregistrement existant
+            for (var j = 0; j < initSems.length; j++) {
+                var s = initSems[j]
+                if (selectedSems.indexOf(s) >= 0)
+                    schoolingController.updateMatiere(idBySem[s], updateData)
+                else
+                    // Semestre supprimé → supprimer l'enregistrement
+                    schoolingController.deleteMatiere(idBySem[s])
+            }
+
+            // Nouveaux semestres → cloner depuis un enregistrement existant (copie les épreuves)
+            var sourceId = allIds.length > 0 ? allIds[0] : -1
+            for (var k = 0; k < selectedSems.length; k++) {
+                var ns = selectedSems[k]
+                if (initSems.indexOf(ns) < 0) {
+                    if (sourceId >= 0)
+                        schoolingController.cloneMatiereForSemestre(
+                            sourceId, data.nom, data.niveauId, ns,
+                            data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+                    else
+                        schoolingController.createMatiere(
+                            data.nom, data.niveauId, ns,
+                            data.coefficient, data.nombreSeances, data.dureeSeanceMinutes)
+                }
+            }
+
             showEditMatiereModal = false
         }
         onCloseRequested: showEditMatiereModal = false
@@ -362,26 +426,36 @@ Item {
         selectedNiveauNom: schoolPage.selectedNiveauNom()
         selectedNiveauId: schoolPage.selectedNiveauId
         activeAnneeScolaire: setupController.activeTarifs ? (setupController.activeTarifs.libelle || "") : ""
+        niveaux: schoolingController.niveaux
 
         property var pendingStudentsToAssign: []
+        property bool pendingIsHall: false
 
         onCreateRequested: (nom, niveauId, studentIdsToAssign) => {
             pendingStudentsToAssign = studentIdsToAssign || []
+            pendingIsHall = classModals.selectedNiveauIsFreestyle
             schoolingController.createClasse(nom, niveauId)
             showClassModal = false
         }
         onEditRequested: (id, nom, niveauId, studentIdsToAdd, studentIdsToRemove) => {
             schoolingController.updateClasse(id, nom, niveauId)
-            
+
+            var isHall = classModals.selectedNiveauIsFreestyle
             if (studentIdsToRemove && studentIdsToRemove.length > 0) {
                 for (var j = 0; j < studentIdsToRemove.length; j++) {
-                    studentController.removeStudentFromClasse(studentIdsToRemove[j])
+                    if (isHall)
+                        studentController.removeStudentFromHallClasse(studentIdsToRemove[j])
+                    else
+                        studentController.removeStudentFromClasse(studentIdsToRemove[j])
                 }
             }
             if (studentIdsToAdd && studentIdsToAdd.length > 0) {
-                studentController.assignMultipleStudentsToClasse(studentIdsToAdd, id)
+                if (isHall)
+                    studentController.assignMultipleStudentsToHallClasse(studentIdsToAdd, id)
+                else
+                    studentController.assignMultipleStudentsToClasse(studentIdsToAdd, id)
             }
-            
+
             showEditClassModal = false
         }
         onDeleteRequested: (id) => {

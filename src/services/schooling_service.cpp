@@ -24,7 +24,12 @@ Result<QList<Niveau>> SchoolingService::getAllNiveaux()
     return m_niveauRepo->getAll();
 }
 
-Result<int> SchoolingService::createNiveau(const QString& nom, int parentLevelId)
+Result<QList<Niveau>> SchoolingService::getAllNiveauxGlobal()
+{
+    return m_niveauRepo->getAllGlobal();
+}
+
+Result<int> SchoolingService::createNiveau(const QString& nom, int parentLevelId, bool isFreestyle)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom du niveau ne peut pas etre vide.");
@@ -32,11 +37,12 @@ Result<int> SchoolingService::createNiveau(const QString& nom, int parentLevelId
 
     Niveau n;
     n.nom = nom.trimmed();
-    n.parentLevelId = parentLevelId;
+    n.parentLevelId = isFreestyle ? 0 : parentLevelId;
+    n.isFreestyle = isFreestyle;
     return m_niveauRepo->create(n);
 }
 
-Result<bool> SchoolingService::updateNiveau(int id, const QString& nom, int parentLevelId)
+Result<bool> SchoolingService::updateNiveau(int id, const QString& nom, int parentLevelId, bool isFreestyle)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<bool>::error("Le nom du niveau ne peut pas etre vide.");
@@ -45,7 +51,8 @@ Result<bool> SchoolingService::updateNiveau(int id, const QString& nom, int pare
     Niveau n;
     n.id = id;
     n.nom = nom.trimmed();
-    n.parentLevelId = parentLevelId;
+    n.parentLevelId = isFreestyle ? 0 : parentLevelId;
+    n.isFreestyle = isFreestyle;
     return m_niveauRepo->update(n);
 }
 
@@ -108,7 +115,7 @@ Result<QList<Matiere>> SchoolingService::getMatieresByNiveau(int niveauId)
     return m_matiereRepo->getByNiveauId(niveauId);
 }
 
-Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId)
+Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes)
 {
     if (nom.trimmed().isEmpty()) {
         return Result<int>::error("Le nom de la matiere ne peut pas etre vide.");
@@ -117,11 +124,38 @@ Result<int> SchoolingService::createMatiere(const QString& nom, int niveauId)
     Matiere m;
     m.nom = nom.trimmed();
     m.niveauId = niveauId;
-    return m_matiereRepo->create(m);
+    m.coefficient = coefficient > 0 ? coefficient : 1.0;
+    m.nombreSeances = nombreSeances >= 0 ? nombreSeances : 0;
+    m.dureeSeanceMinutes = dureeSeanceMinutes > 0 ? dureeSeanceMinutes : 60;
+    auto res = m_matiereRepo->create(m);
+    if (res.isOk() && semestreNumero > 0)
+        m_matiereRepo->setMatiereSemestre(res.value(), semestreNumero);
+    return res;
+}
+
+Result<int> SchoolingService::cloneMatiereForSemestre(int sourceMatiereId, const QString& nom,
+                                                        int niveauId, int semestreNumero,
+                                                        double coefficient, int nombreSeances,
+                                                        int dureeSeanceMinutes)
+{
+    auto newId = createMatiere(nom, niveauId, semestreNumero, coefficient, nombreSeances, dureeSeanceMinutes);
+    if (!newId.isOk()) return newId;
+
+    auto examens = m_matiereExamenRepo->getByMatiereId(sourceMatiereId);
+    if (examens.isOk()) {
+        for (const auto& e : examens.value()) {
+            MatiereExamen copy;
+            copy.matiereId    = newId.value();
+            copy.typeExamenId = e.typeExamenId;
+            m_matiereExamenRepo->create(copy);
+        }
+    }
+    return newId;
 }
 
 Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niveauId,
-                                              int nombreSeances, int dureeSeanceMinutes)
+                                              int nombreSeances, int dureeSeanceMinutes,
+                                              double coefficient)
 {
     if (nom.trimmed().isEmpty())
         return Result<bool>::error("Le nom de la matiere ne peut pas etre vide.");
@@ -131,7 +165,13 @@ Result<bool> SchoolingService::updateMatiere(int id, const QString& nom, int niv
     m.niveauId = niveauId;
     m.nombreSeances = nombreSeances;
     m.dureeSeanceMinutes = dureeSeanceMinutes > 0 ? dureeSeanceMinutes : 60;
+    m.coefficient = coefficient > 0 ? coefficient : 1.0;
     return m_matiereRepo->update(m);
+}
+
+Result<bool> SchoolingService::setMatiereSemestre(int matiereId, int semestreNumero)
+{
+    return m_matiereRepo->setMatiereSemestre(matiereId, semestreNumero);
 }
 
 Result<bool> SchoolingService::deleteMatiere(int id)
@@ -155,6 +195,31 @@ Result<int> SchoolingService::createMatiereExamen(int matiereId, int typeExamenI
     me.matiereId = matiereId;
     me.typeExamenId = typeExamenId;
     return m_matiereExamenRepo->create(me);
+}
+
+Result<bool> SchoolingService::createMatiereExamenForGroup(const QList<int>& matiereIds, int typeExamenId)
+{
+    for (int matiereId : matiereIds) {
+        MatiereExamen me;
+        me.matiereId    = matiereId;
+        me.typeExamenId = typeExamenId;
+        auto r = m_matiereExamenRepo->create(me);
+        if (!r.isOk()) return Result<bool>::error(r.errorMessage());
+    }
+    return Result<bool>::success(true);
+}
+
+Result<bool> SchoolingService::deleteMatiereExamenByTypeForGroup(const QList<int>& matiereIds, int typeExamenId)
+{
+    for (int matiereId : matiereIds) {
+        auto examens = m_matiereExamenRepo->getByMatiereId(matiereId);
+        if (!examens.isOk()) continue;
+        for (const auto& e : examens.value()) {
+            if (e.typeExamenId == typeExamenId)
+                m_matiereExamenRepo->remove(e.id);
+        }
+    }
+    return Result<bool>::success(true);
 }
 
 Result<bool> SchoolingService::updateMatiereExamen(int id, int typeExamenId)

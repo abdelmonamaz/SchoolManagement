@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
-import Qt.labs.platform 1.1 as Platform
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform as Platform
 import UI.Components
 
 Item {
@@ -11,8 +11,9 @@ Item {
     // ── Helpers exercice comptable ─────────────────────────────────────────
     property bool updatingDate: false
     property bool tarifsSaved: false
-    property bool associationSaved: false
-    property int loadedAgePassage: setupController.associationData.agePassageAdulte || 12
+    property bool associationSaved: true
+    property bool initializing: true
+    property int loadedAgePassage: setupController.associationData.agePassageAdulte || 16
 
     function isoToLocalDate(iso) {
         var p = iso.split("-")
@@ -27,6 +28,7 @@ Item {
     function _doSaveAssociation(agePassage) {
         associationSaved = true
         loadedAgePassage = agePassage
+        var langue = langueCombo.currentValue || "français"
         setupController.saveAssociation({
             nomAssociation:   nomEcoleField.text.trim(),
             adresse:          adresseEdit.text.trim(),
@@ -34,8 +36,14 @@ Item {
                                                    : (setupController.associationData.exerciceDebut || "01-01"),
             exerciceFin:      exFinField.isValid   ? exFinField.dateString
                                                    : (setupController.associationData.exerciceFin   || "12-31"),
-            agePassageAdulte: agePassage
+            agePassageAdulte: agePassage,
+            langue:           langue
         })
+        appController.applyLanguage(langue)
+    }
+
+    Component.onCompleted: {
+        initializing = false
     }
 
     ColumnLayout {
@@ -47,8 +55,8 @@ Item {
         PageHeader {
             Layout.fillWidth: true
             Layout.bottomMargin: 28
-            title: "Paramètres du Système"
-            subtitle: "Configurez l'environnement Ez-Zaytouna selon vos besoins."
+            title: qsTr("Paramètres du Système")
+            subtitle: qsTr("Configurez l'environnement Ez-Zaytouna selon vos besoins.")
         }
 
         // ─── Cards ───
@@ -64,8 +72,8 @@ Item {
             AppCard {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop
-            title: "Configuration des Tarifs"
-            subtitle: "Tarifs mensuels et frais d'inscription de l'année scolaire active."
+            title: qsTr("Configuration des Tarifs")
+            subtitle: qsTr("Tarifs mensuels et frais d'inscription de l'année scolaire active.")
 
             Column {
                 width: parent.width
@@ -73,7 +81,7 @@ Item {
 
                 // ── Mensualités ──
                 Text {
-                    text: "MENSUALITÉS"
+                    text: qsTr("MENSUALITÉS")
                     font.pixelSize: 10; font.weight: Font.Black
                     color: Style.textTertiary; font.letterSpacing: 1
                 }
@@ -90,7 +98,7 @@ Item {
                         implicitHeight: childCol.implicitHeight + 48
                         radius: 24
                         color: Style.chartBlueLight
-                        border.color: "#BFDBFE"; border.width: 1
+                        border.color: Style.chart3; border.width: 1
 
                         Column {
                             id: childCol
@@ -98,7 +106,7 @@ Item {
                             spacing: 12
 
                             Text {
-                                text: "TARIF JEUNE (mensuel)"
+                                text: qsTr("TARIF JEUNE (mensuel)")
                                 font.pixelSize: 10; font.weight: Font.Black
                                 color: Style.chartBlue; font.letterSpacing: 2
                             }
@@ -110,7 +118,7 @@ Item {
                                     id: tarifJeuneInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.tarifJeune || 150).toString()
+                                    text: (setupController.activeTarifs.tarifJeune || 10).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.chartBlue
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -121,15 +129,15 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#93C5FD" : "#BFDBFE"
+                                                    : parent.hovered ? Style.chart3 : Style.chart3
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: Style.chartBlue }
+                                Text { text: qsTr("DT/mois"); font.pixelSize: 13; font.weight: Font.Black; color: Style.chartBlue }
                             }
                         }
                     }
@@ -139,7 +147,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: adultCol.implicitHeight + 48
                         radius: 24
-                        color: "#FEF3C7"; border.color: "#FCD34D"; border.width: 1
+                        color: Style.warningBorder; border.color: Style.warningBorder; border.width: 1
 
                         Column {
                             id: adultCol
@@ -147,9 +155,9 @@ Item {
                             spacing: 12
 
                             Text {
-                                text: "TARIF ADULTE (mensuel)"
+                                text: qsTr("TARIF ADULTE (mensuel)")
                                 font.pixelSize: 10; font.weight: Font.Black
-                                color: "#D97706"; font.letterSpacing: 2
+                                color: Style.warningColor; font.letterSpacing: 2
                             }
 
                             RowLayout {
@@ -159,8 +167,8 @@ Item {
                                     id: tarifAdulteInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.tarifAdulte || 250).toString()
-                                    font.pixelSize: 16; font.weight: Font.Black; color: "#D97706"
+                                    text: (setupController.activeTarifs.tarifAdulte || 20).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.warningColor
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
@@ -170,15 +178,15 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#FDE68A" : "#FCD34D"
+                                                    : parent.hovered ? Style.warningBorder : Style.warningBorder
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text { text: "DT/mois"; font.pixelSize: 13; font.weight: Font.Black; color: "#D97706" }
+                                Text { text: qsTr("DT/mois"); font.pixelSize: 13; font.weight: Font.Black; color: Style.warningColor }
                             }
                         }
                     }
@@ -186,7 +194,7 @@ Item {
 
                 // ── Frais d'inscription ──
                 Text {
-                    text: "FRAIS D'INSCRIPTION (unique)"
+                    text: qsTr("FRAIS D'INSCRIPTION (unique)")
                     font.pixelSize: 10; font.weight: Font.Black
                     color: Style.textTertiary; font.letterSpacing: 1
                 }
@@ -210,7 +218,7 @@ Item {
                             spacing: 12
 
                             Text {
-                                text: "FRAIS JEUNE"
+                                text: qsTr("FRAIS JEUNE")
                                 font.pixelSize: 10; font.weight: Font.Black
                                 color: Style.successColor; font.letterSpacing: 2
                             }
@@ -222,7 +230,7 @@ Item {
                                     id: fraisJeuneInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.fraisInscriptionJeune || 50).toString()
+                                    text: (setupController.activeTarifs.fraisInscriptionJeune || 0).toString()
                                     font.pixelSize: 16; font.weight: Font.Black; color: Style.successColor
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
@@ -233,7 +241,7 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
                                                     : parent.hovered ? Style.successColor : Style.successBorder
@@ -241,7 +249,7 @@ Item {
                                     }
                                 }
 
-                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: Style.successColor }
+                                Text { text: qsTr("DT"); font.pixelSize: 13; font.weight: Font.Black; color: Style.successColor }
                             }
                         }
                     }
@@ -251,7 +259,7 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: fraisACol.implicitHeight + 48
                         radius: 24
-                        color: "#FDF4FF"; border.color: "#E9D5FF"; border.width: 1
+                        color: Style.background; border.color: Style.border; border.width: 1
 
                         Column {
                             id: fraisACol
@@ -259,9 +267,9 @@ Item {
                             spacing: 12
 
                             Text {
-                                text: "FRAIS ADULTE"
+                                text: qsTr("FRAIS ADULTE")
                                 font.pixelSize: 10; font.weight: Font.Black
-                                color: "#7C3AED"; font.letterSpacing: 2
+                                color: Style.chart3; font.letterSpacing: 2
                             }
 
                             RowLayout {
@@ -271,8 +279,8 @@ Item {
                                     id: fraisAdulteInput
                                     Layout.fillWidth: true
                                     height: 48
-                                    text: (setupController.activeTarifs.fraisInscriptionAdulte || 50).toString()
-                                    font.pixelSize: 16; font.weight: Font.Black; color: "#7C3AED"
+                                    text: (setupController.activeTarifs.fraisInscriptionAdulte || 30).toString()
+                                    font.pixelSize: 16; font.weight: Font.Black; color: Style.chart3
                                     selectByMouse: true
                                     leftPadding: 16; rightPadding: 8
                                     topPadding: 0; bottomPadding: 0
@@ -282,15 +290,15 @@ Item {
                                         regularExpression: /^\d{0,5}(\.\d{0,2})?$/
                                     }
                                     background: Rectangle {
-                                        radius: 12; color: "#FFFFFF"
+                                        radius: 12; color: Style.background
                                         border.width: parent.activeFocus ? 2 : 1
                                         border.color: parent.activeFocus ? Style.primary
-                                                    : parent.hovered ? "#C4B5FD" : "#E9D5FF"
+                                                    : parent.hovered ? Style.chart3 : Style.border
                                         Behavior on border.color { ColorAnimation { duration: 120 } }
                                     }
                                 }
 
-                                Text { text: "DT"; font.pixelSize: 13; font.weight: Font.Black; color: "#7C3AED" }
+                                Text { text: qsTr("DT"); font.pixelSize: 13; font.weight: Font.Black; color: Style.chart3 }
                             }
                         }
                     }
@@ -314,7 +322,7 @@ Item {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: "Ces tarifs s'appliquent lors de la génération du grand livre mensuel et sont pré-remplis à l'inscription."
+                                text: qsTr("Ces tarifs s'appliquent lors de la génération du grand livre mensuel et sont pré-remplis à l'inscription.")
                                 font.pixelSize: 10; font.weight: Font.Bold
                                 color: Style.textSecondary; wrapMode: Text.WordWrap; lineHeight: 1.5
                             }
@@ -322,7 +330,7 @@ Item {
                     }
 
                     PrimaryButton {
-                        text: "Enregistrer les tarifs"
+                        text: qsTr("Enregistrer les tarifs")
                         enabled: !settingsPage.tarifsSaved
                         onClicked: {
                             settingsPage.tarifsSaved = true
@@ -341,7 +349,7 @@ Item {
             // School Info Form
             AppCard {
                 Layout.fillWidth: true
-                title: "Informations de l'Établissement"
+                title: qsTr("Informations de l'Établissement")
 
                 Column {
                     width: parent.width
@@ -350,15 +358,15 @@ Item {
                     FormField {
                         id: nomEcoleField
                         width: parent.width
-                        label: "NOM DE L'ASSOCIATION"
-                        placeholder: "ex: Ez-Zaytouna"
+                        label: qsTr("NOM DE L'ASSOCIATION")
+                        placeholder: qsTr("ex: Ez-Zaytouna")
                         text: setupController.associationData.nomAssociation || ""
-                        onTextChanged: settingsPage.associationSaved = false
+                        onTextChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
                     }
 
                     Column {
                         width: parent.width; spacing: 6
-                        SectionLabel { text: "ADRESSE" }
+                        SectionLabel { text: qsTr("ADRESSE") }
                         Rectangle {
                             width: parent.width; height: 80; radius: 12
                             color: Style.bgPage; border.color: Style.borderLight
@@ -369,14 +377,40 @@ Item {
                                 font.pixelSize: 13; font.bold: true
                                 color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
-                                onTextChanged: settingsPage.associationSaved = false
+                                onTextChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
+                            }
+                        }
+                    }
+
+                    // ── Langue de l'application ──
+                    Column {
+                        width: parent.width; spacing: 6
+                        SectionLabel { text: qsTr("LANGUE DE L'APPLICATION") }
+                        Rectangle {
+                            width: parent.width; height: 40; radius: 10
+                            color: Style.bgPage; border.color: Style.borderLight
+                            ComboBox {
+                                id: langueCombo
+                                anchors.fill: parent; anchors.margins: 2
+                                model: ["français", "anglais", "arabe"]
+                                background: Rectangle { color: "transparent" }
+                                contentItem: Text {
+                                    text: langueCombo.displayText
+                                    font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                    verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                                }
+                                Component.onCompleted: {
+                                    var l = setupController.associationData.langue || "français"
+                                    currentIndex = indexOfValue(l) !== -1 ? indexOfValue(l) : 0
+                                }
+                                onCurrentIndexChanged: if (!settingsPage.initializing) settingsPage.associationSaved = false
                             }
                         }
                     }
 
                     // ── Exercice comptable ──
                     Text {
-                        text: "EXERCICE COMPTABLE"
+                        text: qsTr("EXERCICE COMPTABLE")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -389,13 +423,9 @@ Item {
                             id: exDebutField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
-                            label: "DATE DE DÉBUT"
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceDebut || ""
-                                if (v) setDate(v)
-                            }
+                            label: qsTr("DATE DE DÉBUT")
                             onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
+                                if (!settingsPage.initializing && !settingsPage.updatingDate && isValid)
                                     settingsPage.associationSaved = false
                                 if (settingsPage.updatingDate || !isValid) return
                                 settingsPage.updatingDate = true
@@ -411,13 +441,9 @@ Item {
                             id: exFinField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 0
-                            label: "DATE DE FIN"
-                            Component.onCompleted: {
-                                var v = setupController.associationData.exerciceFin || ""
-                                if (v) setDate(v)
-                            }
+                            label: qsTr("DATE DE FIN")
                             onDateStringChanged: {
-                                if (!settingsPage.updatingDate && isValid)
+                                if (!settingsPage.initializing && !settingsPage.updatingDate && isValid)
                                     settingsPage.associationSaved = false
                                 if (settingsPage.updatingDate || !isValid) return
                                 settingsPage.updatingDate = true
@@ -430,9 +456,22 @@ Item {
                         }
                     }
 
+                    Connections {
+                        target: setupController
+                        function onAssociationDataChanged() {
+                            var d = setupController.associationData.exerciceDebut || ""
+                            var f = setupController.associationData.exerciceFin   || ""
+                            if (!d && !f) return
+                            settingsPage.updatingDate = true
+                            if (d && !exDebutField.isValid) exDebutField.setDate(d)
+                            if (f && !exFinField.isValid)   exFinField.setDate(f)
+                            settingsPage.updatingDate = false
+                        }
+                    }
+
                     // ── Âge de passage adulte ──
                     Text {
-                        text: "CATÉGORISATION"
+                        text: qsTr("CATÉGORISATION")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.primary; font.letterSpacing: 1
                     }
@@ -440,14 +479,14 @@ Item {
                     RowLayout {
                         width: parent.width; spacing: 12
                         Text {
-                            text: "Âge de passage Adulte :"
+                            text: qsTr("Âge de passage Adulte :")
                             font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                             Layout.alignment: Qt.AlignVCenter
                         }
                         TextField {
                             id: agePassageField
                             Layout.preferredWidth: 72; height: 40
-                            text: (setupController.associationData.agePassageAdulte || 12).toString()
+                            text: (setupController.associationData.agePassageAdulte || 16).toString()
                             font.pixelSize: 14; font.bold: true; color: Style.textPrimary
                             horizontalAlignment: TextInput.AlignHCenter
                             selectByMouse: true
@@ -460,7 +499,7 @@ Item {
                             }
                         }
                         Text {
-                            text: "ans"
+                            text: qsTr("ans")
                             font.pixelSize: 13; font.bold: true; color: Style.textSecondary
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -468,7 +507,7 @@ Item {
                     }
 
                     PrimaryButton {
-                        text: "Enregistrer les modifications"
+                        text: qsTr("Enregistrer les modifications")
                         enabled: !settingsPage.associationSaved
                         onClicked: {
                             var newAge = parseInt(agePassageField.text) || 12
@@ -488,14 +527,15 @@ Item {
             // ── Right column ──
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
                 spacing: 10
 
             // ─── Sauvegarde & Restauration ───
             AppCard {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignTop
-                title: "Sauvegarde & Restauration"
-                subtitle: "Gérez les sauvegardes de votre base de données."
+                title: qsTr("Sauvegarde & Restauration")
+                subtitle: qsTr("Gérez les sauvegardes de votre base de données.")
 
                 Column {
                     width: parent.width
@@ -503,7 +543,7 @@ Item {
 
                     // ── Sauvegarde automatique ──
                     Text {
-                        text: "SAUVEGARDE AUTOMATIQUE"
+                        text: qsTr("SAUVEGARDE AUTOMATIQUE")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textTertiary; font.letterSpacing: 1
                     }
@@ -525,7 +565,7 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
                                 verticalAlignment: Text.AlignVCenter
-                                text: "Activer la sauvegarde automatique"
+                                text: qsTr("Activer la sauvegarde automatique")
                                 font.pixelSize: 13; font.bold: true
                                 color: backupController.autoBackupEnabled ? Style.primary : Style.textPrimary
                             }
@@ -563,16 +603,16 @@ Item {
                         Column {
                             width: parent.width; spacing: 6
 
-                            SectionLabel { text: "FRÉQUENCE" }
+                            SectionLabel { text: qsTr("FRÉQUENCE") }
 
                             RowLayout {
                                 width: parent.width; spacing: 8
 
                                 Repeater {
                                     model: [
-                                        { label: "Quotidien",  days: 1  },
-                                        { label: "Hebdo",      days: 7  },
-                                        { label: "Mensuel",    days: 30 }
+                                        { label: qsTr("Quotidien"),  days: 1  },
+                                        { label: qsTr("Hebdo"),      days: 7  },
+                                        { label: qsTr("Mensuel"),    days: 30 }
                                     ]
                                     delegate: Rectangle {
                                         Layout.fillWidth: true; height: 40; radius: 10
@@ -586,7 +626,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: modelData.label
                                             font.pixelSize: 12; font.bold: true
-                                            color: sel ? "#FFFFFF" : Style.textSecondary
+                                            color: sel ? Style.background : Style.textSecondary
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -600,7 +640,7 @@ Item {
                         // Last auto-backup info
                         Text {
                             visible: backupController.lastAutoBackupDate.length > 0
-                            text: "Dernière sauvegarde auto : " + backupController.lastAutoBackupDate
+                            text: qsTr("Dernière sauvegarde auto : ") + backupController.lastAutoBackupDate
                             font.pixelSize: 10; font.weight: Font.Bold
                             color: Style.textTertiary
                         }
@@ -609,7 +649,7 @@ Item {
                         Column {
                             width: parent.width; spacing: 6
 
-                            SectionLabel { text: "DOSSIER DE DESTINATION" }
+                            SectionLabel { text: qsTr("DOSSIER DE DESTINATION") }
 
                             RowLayout {
                                 width: parent.width; spacing: 8
@@ -626,7 +666,7 @@ Item {
                                         anchors.right: parent.right; anchors.rightMargin: 14
                                         text: backupController.autoBackupPath.length > 0
                                               ? backupController.autoBackupPath
-                                              : "Aucun dossier sélectionné"
+                                              : qsTr("Aucun dossier sélectionné")
                                         font.pixelSize: 12; font.bold: true
                                         color: backupController.autoBackupPath.length > 0
                                                ? Style.textPrimary : Style.textTertiary
@@ -635,7 +675,7 @@ Item {
                                 }
 
                                 OutlineButton {
-                                    text: "Parcourir"
+                                    text: qsTr("Parcourir")
                                     onClicked: folderDialog.open()
                                 }
                             }
@@ -644,7 +684,7 @@ Item {
 
                     PrimaryButton {
                         width: parent.width
-                        text: "Sauvegarder maintenant"
+                        text: qsTr("Sauvegarder maintenant")
                         onClicked: saveFileDialog.open()
                     }
 
@@ -656,7 +696,7 @@ Item {
 
                     // ── Restauration ──
                     Text {
-                        text: "RESTAURATION"
+                        text: qsTr("RESTAURATION")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textTertiary; font.letterSpacing: 1
                     }
@@ -664,20 +704,20 @@ Item {
                     Rectangle {
                         width: parent.width
                         implicitHeight: warnRow.implicitHeight + 24
-                        radius: 14; color: "#FEF3C7"
-                        border.color: "#FCD34D"; border.width: 1
+                        radius: 14; color: Style.warningBorder
+                        border.color: Style.warningBorder; border.width: 1
 
                         RowLayout {
                             id: warnRow
                             anchors.fill: parent; anchors.margins: 14; spacing: 10
 
-                            Text { text: "⚠"; font.pixelSize: 16 }
+                            Text { text: qsTr("⚠"); font.pixelSize: 16 }
 
                             Text {
                                 Layout.fillWidth: true
-                                text: "Charger une base de données remplacera toutes les données actuelles. L'application devra redémarrer."
+                                text: qsTr("Charger une base de données remplacera toutes les données actuelles. L'application devra redémarrer.")
                                 font.pixelSize: 11; font.weight: Font.Bold
-                                color: "#D97706"; wrapMode: Text.WordWrap; lineHeight: 1.4
+                                color: Style.warningColor; wrapMode: Text.WordWrap; lineHeight: 1.4
                             }
                         }
                     }
@@ -686,7 +726,7 @@ Item {
                         id: loadDbButton
                         width: parent.width; height: 42; radius: 10
                         property bool loading: false
-                        color: loadDbMa.containsMouse ? "#D97706" : "#F59E0B"
+                        color: loadDbMa.containsMouse ? Style.warningColor : Style.warningColor
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Row {
@@ -697,7 +737,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
-                                text: loadDbButton.loading ? "Chargement en cours…" : "Charger une base de données"
+                                text: loadDbButton.loading ? qsTr("Chargement en cours…") : qsTr("Charger une base de données")
                                 font.pixelSize: 12; font.bold: true; color: "white"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -723,8 +763,8 @@ Item {
                         height: feedbackText.implicitHeight + 16
                         radius: 10
                         visible: feedbackText.text.length > 0
-                        color: feedbackIsError ? "#FEE2E2" : Style.successBg
-                        border.color: feedbackIsError ? "#FCA5A5" : Style.successBorder
+                        color: feedbackIsError ? Style.errorBorder : Style.successBg
+                        border.color: feedbackIsError ? Style.errorBorder : Style.successBorder
 
                         property bool feedbackIsError: false
 
@@ -733,7 +773,7 @@ Item {
                             anchors.fill: parent; anchors.margins: 10
                             font.pixelSize: 11; font.weight: Font.Bold
                             wrapMode: Text.WordWrap; lineHeight: 1.4
-                            color: feedbackBar.feedbackIsError ? "#DC2626" : Style.successColor
+                            color: feedbackBar.feedbackIsError ? Style.errorColor : Style.successColor
                         }
 
                         Timer {
@@ -745,72 +785,6 @@ Item {
                 }
             }
 
-            // System Status
-            AppCard {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
-                title: "État du Système"
-
-                Column {
-                    width: parent.width
-                    spacing: 20
-
-                    // Cloud status
-                    Rectangle {
-                        width: parent.width; height: 64; radius: 16
-                        color: Style.successBg; border.color: Style.successBorder
-
-                        RowLayout {
-                            anchors.fill: parent; anchors.margins: 14; spacing: 14
-
-                            Rectangle {
-                                width: 40; height: 40; radius: 12
-                                color: Style.successBorder
-
-                                Text { anchors.centerIn: parent; text: "☁"; font.pixelSize: 18; color: Style.successColor }
-                            }
-
-                            Column {
-                                Layout.fillWidth: true; spacing: 2
-                                Text { text: "Stockage Cloud"; font.pixelSize: 13; font.bold: true; color: Style.successColor }
-                                Text { text: "CONNECTÉ & SYNCHRONISÉ"; font.pixelSize: 9; font.weight: Font.Bold; color: Style.successColor }
-                            }
-
-                            Text { text: "8.4 GB / 20 GB"; font.pixelSize: 13; font.weight: Font.Black; color: Style.successColor }
-                        }
-                    }
-
-                    // Updates section
-                    Column {
-                        width: parent.width; spacing: 12
-                        Text { text: "MISES À JOUR"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-
-                        Column {
-                            width: parent.width; spacing: 0
-
-                            RowLayout {
-                                width: parent.width; height: 52
-                                Column { Layout.fillWidth: true; spacing: 2
-                                    Text { text: "Version du Logiciel"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { text: "Dernière vérification: Aujourd'hui 08:00"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-                                }
-                                Badge { text: "v2.4.8 (Stable)" }
-                            }
-
-                            Separator { width: parent.width }
-
-                            RowLayout {
-                                width: parent.width; height: 52
-                                Column { Layout.fillWidth: true; spacing: 2
-                                    Text { text: "Base de données"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                                    Text { text: "Prochaine sauvegarde: Demain 02:00"; font.pixelSize: 10; font.weight: Font.Bold; color: Style.textTertiary }
-                                }
-                                Badge { text: "Optimisée"; variant: "success" }
-                            }
-                        }
-                    }
-                }
-            }
             } // end right ColumnLayout
         } // end RowLayout
 
@@ -823,10 +797,10 @@ Item {
             radius: 20
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#FFF1F2" }
-                GradientStop { position: 1.0; color: "#FFE4E6" }
+                GradientStop { position: 0.0; color: Style.errorBg }
+                GradientStop { position: 1.0; color: Style.errorBg }
             }
-            border.color: "#FECDD3"; border.width: 1
+            border.color: Style.errorBorder; border.width: 1
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 20; spacing: 16
@@ -834,33 +808,33 @@ Item {
                 // Lock icon
                 Rectangle {
                     width: 52; height: 52; radius: 14
-                    color: "#E11D48"
-                    Text { anchors.centerIn: parent; text: "🔒"; font.pixelSize: 22 }
+                    color: Style.errorColor
+                    Text { anchors.centerIn: parent; text: qsTr("🔒"); font.pixelSize: 22 }
                 }
 
                 // Text
                 Column {
                     Layout.fillWidth: true; spacing: 4
                     Text {
-                        text: "Clôture d'Année Scolaire"
-                        font.pixelSize: 16; font.bold: true; color: "#881337"
+                        text: qsTr("Clôture d'Année Scolaire")
+                        font.pixelSize: 16; font.bold: true; color: Style.errorColor
                     }
                     Text {
-                        text: "Archivez l'année " + (setupController.activeTarifs.libelle || "en cours")
-                              + ", faites passer les étudiants au niveau supérieur et générez les rapports finaux."
-                        font.pixelSize: 12; color: "#BE123C"
+                        text: qsTr("Archivez l'année ") + (setupController.activeTarifs.libelle || qsTr("en cours"))
+                              + qsTr(", faites passer les étudiants au niveau supérieur et générez les rapports finaux.")
+                        font.pixelSize: 12; color: Style.errorColor
                         wrapMode: Text.WordWrap; width: parent.width
                     }
                     Row {
                         spacing: 16
                         Row {
                             spacing: 5
-                            Rectangle { width: 7; height: 7; radius: 4; color: "#E11D48"; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "ACTION IRRÉVERSIBLE"; font.pixelSize: 10; font.bold: true; color: "#E11D48"; font.letterSpacing: 0.5 }
+                            Rectangle { width: 7; height: 7; radius: 4; color: Style.errorColor; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: qsTr("ACTION IRRÉVERSIBLE"); font.pixelSize: 10; font.bold: true; color: Style.errorColor; font.letterSpacing: 0.5 }
                         }
                         Text {
-                            text: "Année en cours : " + (setupController.activeTarifs.libelle || "-")
-                            font.pixelSize: 11; font.bold: true; color: "#9F1239"
+                            text: qsTr("Année en cours : ") + (setupController.activeTarifs.libelle || "-")
+                            font.pixelSize: 11; font.bold: true; color: Style.errorColor
                         }
                     }
                 }
@@ -868,26 +842,26 @@ Item {
                 // Button
                 Rectangle {
                     width: 180; height: 44; radius: 12
-                    color: "#E11D48"
+                    color: Style.errorColor
 
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Row {
                         anchors.centerIn: parent; spacing: 8
                         Text {
-                            text: "🔒"; font.pixelSize: 14; color: "white"
+                            text: qsTr("🔒"); font.pixelSize: 14; color: "white"
                             height: 20; verticalAlignment: Text.AlignVCenter
                         }
                         Text {
-                            text: "DÉMARRER LA CLÔTURE"
+                            text: qsTr("DÉMARRER LA CLÔTURE")
                             font.pixelSize: 11; font.bold: true; color: "white"; font.letterSpacing: 0.5
                             height: 20; verticalAlignment: Text.AlignVCenter
                         }
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onEntered: parent.color = "#BE123C"
-                        onExited:  parent.color = "#E11D48"
+                        onEntered: parent.color = Style.errorColor
+                        onExited:  parent.color = Style.errorColor
                         onClicked: {
                             yearClosureController.loadStats()
                             yearClosureController.loadStudentProgressions()
@@ -907,13 +881,13 @@ Item {
     // ── Dialogs sauvegarde / restauration ─────────────────────────────────
     Platform.FolderDialog {
         id: folderDialog
-        title: "Choisir le dossier de sauvegarde automatique"
+        title: qsTr("Choisir le dossier de sauvegarde automatique")
         onAccepted: backupController.autoBackupPath = folder.toString()
     }
 
     Platform.FileDialog {
         id: saveFileDialog
-        title: "Enregistrer une copie de la base de données"
+        title: qsTr("Enregistrer une copie de la base de données")
         fileMode: Platform.FileDialog.SaveFile
         nameFilters: ["Archive ZIP (*.zip)", "Tous les fichiers (*)"]
         defaultSuffix: "zip"
@@ -925,7 +899,7 @@ Item {
 
     Platform.FileDialog {
         id: loadFileDialog
-        title: "Charger une base de données"
+        title: qsTr("Charger une base de données")
         fileMode: Platform.FileDialog.OpenFile
         nameFilters: ["Archive ZIP (*.zip)", "Base de données (*.db)", "Tous les fichiers (*)"]
         onAccepted: backupController.loadDatabase(file.toString())
@@ -938,7 +912,7 @@ Item {
 
         function onBackupSuccess(path) {
             feedbackBar.feedbackIsError = false
-            feedbackText.text = "Sauvegarde créée avec succès :\n" + path
+            feedbackText.text = qsTr("Sauvegarde créée avec succès :\n") + path
             feedbackTimer.restart()
         }
         function onBackupError(message) {
@@ -966,7 +940,7 @@ Item {
         width: 480; padding: 0
         modal: true
         closePolicy: Popup.NoAutoClose
-        Overlay.modal: Rectangle { color: "#0F172A99" }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
         background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
 
         contentItem: Column {
@@ -974,13 +948,13 @@ Item {
             padding: 28; spacing: 20
 
             Text {
-                text: "Redémarrage requis"
+                text: qsTr("Redémarrage requis")
                 font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
                 width: restartPopup.width - 56
             }
 
             Text {
-                text: "La nouvelle base de données sera appliquée au prochain démarrage.\nFermez l'application et relancez-la pour prendre en compte les nouvelles données."
+                text: qsTr("La nouvelle base de données sera appliquée au prochain démarrage.\nFermez l'application et relancez-la pour prendre en compte les nouvelles données.")
                 font.pixelSize: 13; color: Style.textSecondary
                 width: restartPopup.width - 56
                 wrapMode: Text.WordWrap; lineHeight: 1.5
@@ -994,7 +968,7 @@ Item {
                     color: Style.bgPage; border.color: Style.borderMedium; border.width: 1
                     Text {
                         anchors.centerIn: parent
-                        text: "Plus tard"
+                        text: qsTr("Plus tard")
                         font.pixelSize: 12; font.bold: true; color: Style.textSecondary
                     }
                     MouseArea {
@@ -1008,8 +982,8 @@ Item {
                     color: Style.primary
                     Text {
                         anchors.centerIn: parent
-                        text: "Quitter l'application"
-                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                        text: qsTr("Quitter l'application")
+                        font.pixelSize: 12; font.bold: true; color: Style.background
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -1029,7 +1003,7 @@ Item {
         width: 540; padding: 0
         modal: true
         closePolicy: Popup.CloseOnEscape
-        Overlay.modal: Rectangle { color: "#0F172A99" }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.60) }
         background: Rectangle { radius: 20; color: Style.bgWhite; border.color: Style.borderLight; border.width: 1 }
 
         contentItem: Column {
@@ -1037,12 +1011,12 @@ Item {
             padding: 28; spacing: 20
 
             Text {
-                text: "Recalculer les catégories ?"
+                text: qsTr("Recalculer les catégories ?")
                 font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary
                 width: confirmAgePopup.width - 56
             }
             Text {
-                text: "L'âge de passage adulte a changé à <b>" + confirmAgePopup.pendingAge + " ans</b>.\nVoulez-vous recalculer la catégorie (Jeune / Adulte) des élèves existants ?"
+                text: qsTr("L'âge de passage adulte a changé à <b>") + confirmAgePopup.pendingAge + qsTr(" ans</b>.\nVoulez-vous recalculer la catégorie (Jeune / Adulte) des élèves existants ?")
                 font.pixelSize: 13; color: Style.textSecondary
                 width: confirmAgePopup.width - 56
                 wrapMode: Text.WordWrap; lineHeight: 1.5
@@ -1056,7 +1030,7 @@ Item {
                     color: Style.bgPage; border.color: Style.borderMedium; border.width: 1
                     Text {
                         anchors.centerIn: parent
-                        text: "Non, nouveaux élèves seulement"
+                        text: qsTr("Non, nouveaux élèves seulement")
                         font.pixelSize: 12; font.bold: true; color: Style.textSecondary
                     }
                     MouseArea {
@@ -1073,8 +1047,8 @@ Item {
                     color: Style.primary
                     Text {
                         anchors.centerIn: parent
-                        text: "Oui, recalculer tout"
-                        font.pixelSize: 12; font.bold: true; color: "#FFFFFF"
+                        text: qsTr("Oui, recalculer tout")
+                        font.pixelSize: 12; font.bold: true; color: Style.background
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor

@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
 // 2. Import du module de vos composants (Style, boutons, badges, etc.)
 import UI.Components 1.0
 
@@ -11,16 +11,31 @@ import UI.Pages 1.0
 ApplicationWindow {
     id: root
     visible: true
+    visibility: Window.FullScreen
     width: 1440
     height: 900
     minimumWidth: 1024
     minimumHeight: 700
-    title: "Ez-Zaytouna — Gestion Scolaire"
+    title: qsTr("Ez-Zaytouna — Gestion Scolaire")
     color: Style.bgPage
 
+    // Activation du mode RTL global
+    LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
+    LayoutMirroring.childrenInherit: true
+
     property string currentPage: "dashboard"
-    property bool showNotifications: false
     property int pendingStudentId: 0
+
+    // ─── Bascule plein écran Alt+Entrée ───
+    Shortcut {
+        sequence: "Alt+Return"
+        onActivated: {
+            if (root.visibility === Window.FullScreen)
+                root.visibility = Window.Maximized
+            else
+                root.visibility = Window.FullScreen
+        }
+    }
 
     // ─── Wizard de Mise en Marche ───
     SetupWizardModal {
@@ -35,8 +50,8 @@ ApplicationWindow {
         width: 460; padding: 0
         modal: true
         closePolicy: Popup.NoAutoClose
-        Overlay.modal: Rectangle { color: "#0F172ACC" }
-        background: Rectangle { radius: 16; color: Style.bgWhite; border.color: "#FCA5A5"; border.width: 2 }
+        Overlay.modal: Rectangle { color: Qt.alpha(Style.foreground, 0.80) }
+        background: Rectangle { radius: 16; color: Style.bgWhite; border.color: Style.errorBorder; border.width: 2 }
 
         Column {
             width: dbErrorPopup.width
@@ -44,10 +59,10 @@ ApplicationWindow {
 
             Row {
                 spacing: 12
-                Text { text: "🚫"; font.pixelSize: 24 }
+                Text { text: qsTr("🚫"); font.pixelSize: 24 }
                 Text {
-                    text: "Erreur d'initialisation"
-                    font.pixelSize: 17; font.weight: Font.Black; color: "#DC2626"
+                    text: qsTr("Erreur d'initialisation")
+                    font.pixelSize: 17; font.weight: Font.Black; color: Style.errorColor
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
@@ -59,8 +74,8 @@ ApplicationWindow {
             }
             Rectangle {
                 width: dbErrorPopup.width - 56; height: 42; radius: 10
-                color: "#DC2626"
-                Text { anchors.centerIn: parent; text: "Fermer l'application"; font.pixelSize: 13; font.bold: true; color: "white" }
+                color: Style.errorColor
+                Text { anchors.centerIn: parent; text: qsTr("Fermer l'application"); font.pixelSize: 13; font.bold: true; color: "white" }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: Qt.quit()
@@ -78,10 +93,25 @@ ApplicationWindow {
 
     Connections {
         target: setupController
+
+        // Fired once the async checkInitialized() result returns.
+        // At this point isInitialized has its real value.
+        function onIsCheckingChanged() {
+            if (!setupController.isChecking) {
+                if (!setupController.isInitialized) {
+                    setupWizard.open()
+                } else {
+                    schoolingController.loadNiveaux()
+                    schoolingController.loadSalles()
+                    schoolingController.loadEquipements()
+                }
+            }
+        }
+
+        // Fired when the wizard completes (isInitialized goes true after setup).
         function onIsInitializedChanged() {
-            if (!setupController.isInitialized) {
-                setupWizard.open()
-            } else {
+            if (setupController.isChecking) return   // still in initial check — ignore
+            if (setupController.isInitialized) {
                 // Wizard vient de se terminer — recharger les données académiques
                 schoolingController.loadNiveaux()
                 schoolingController.loadSalles()
@@ -91,9 +121,8 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        if (!setupController.isInitialized) {
-            setupWizard.open()
-        }
+        // Do NOT open the wizard here: isInitialized is false by default while
+        // the async check is in flight. onIsCheckingChanged() handles this.
     }
 
     // ─── Font Loading ───
@@ -112,7 +141,7 @@ ApplicationWindow {
         Rectangle {
             Layout.preferredWidth: 280
             Layout.fillHeight: true
-            color: "#FFFFFF"
+            color: Style.sidebar
             border.color: Style.borderLight
             border.width: 1
 
@@ -133,23 +162,23 @@ ApplicationWindow {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Z"
+                            text: qsTr("Z")
                             font.pixelSize: 18
                             font.bold: true
-                            color: "#FFFFFF"
+                            color: Style.background
                         }
                     }
 
                     Column {
                         spacing: 2
                         Text {
-                            text: "Ez-Zaytouna"
+                            text: qsTr("Ez-Zaytouna")
                             font.pixelSize: 16
                             font.bold: true
                             color: Style.textPrimary
                         }
                         Text {
-                            text: "GESTION SCOLAIRE"
+                            text: qsTr("GESTION SCOLAIRE")
                             font.pixelSize: 10
                             font.weight: Font.Medium
                             color: Style.textTertiary
@@ -169,15 +198,15 @@ ApplicationWindow {
 
                     Repeater {
                         model: ListModel {
-                            ListElement { pageId: "dashboard"; label: "Tableau de Bord"; iconName: "dashboard" }
-                            ListElement { pageId: "schooling"; label: "Architecture Académique"; iconName: "book" }
-                            ListElement { pageId: "attendance"; label: "Présences"; iconName: "clipboard" }
-                            ListElement { pageId: "students"; label: "Étudiants"; iconName: "users" }
-                            ListElement { pageId: "staff"; label: "Personnel"; iconName: "contact" }
-                            ListElement { pageId: "exams"; label: "Examens & Planning"; iconName: "calendar" }
-                            ListElement { pageId: "grades"; label: "Notes & Bulletins"; iconName: "graduation" }
-                            ListElement { pageId: "finance"; label: "Finance & Trésorerie"; iconName: "wallet" }
-                            ListElement { pageId: "settings"; label: "Paramètres"; iconName: "settings" }
+                            ListElement { pageId: "dashboard"; label: qsTr("Tableau de Bord"); iconName: "dashboard" }
+                            ListElement { pageId: "schooling"; label: qsTr("Architecture Académique"); iconName: "book" }
+                            ListElement { pageId: "attendance"; label: qsTr("Présences"); iconName: "clipboard" }
+                            ListElement { pageId: "students"; label: qsTr("Étudiants"); iconName: "users" }
+                            ListElement { pageId: "staff"; label: qsTr("Personnel"); iconName: "contact" }
+                            ListElement { pageId: "exams"; label: qsTr("Examens & Planning"); iconName: "calendar" }
+                            ListElement { pageId: "grades"; label: qsTr("Notes & Bulletins"); iconName: "graduation" }
+                            ListElement { pageId: "finance"; label: qsTr("Finance & Trésorerie"); iconName: "wallet" }
+                            ListElement { pageId: "settings"; label: qsTr("Paramètres"); iconName: "settings" }
                         }
 
                         delegate: SidebarButton {
@@ -205,14 +234,6 @@ ApplicationWindow {
                         color: "transparent"
 
                         Rectangle {
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            height: 1
-                            color: Style.borderLight
-                        }
-
-                        Rectangle {
                             anchors.fill: parent
                             anchors.topMargin: 12
                             radius: 16
@@ -220,19 +241,20 @@ ApplicationWindow {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
+                                anchors.margins: 3
+                                anchors.centerIn: parent;
                                 spacing: 10
 
                                 Rectangle {
                                     width: 40; height: 40
                                     radius: 20
                                     color: Style.bgSecondary
-                                    border.color: "#FFFFFF"
+                                    border.color: Style.background
                                     border.width: 2
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "A"
+                                        text: qsTr("A")
                                         font.pixelSize: 14
                                         font.bold: true
                                         color: Style.textSecondary
@@ -243,7 +265,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     spacing: 2
                                     Text {
-                                        text: "Admin Principal"
+                                        text: qsTr("Admin Principal")
                                         font.pixelSize: 13
                                         font.weight: Font.DemiBold
                                         color: Style.textPrimary
@@ -251,7 +273,7 @@ ApplicationWindow {
                                         width: parent.width
                                     }
                                     Text {
-                                        text: "Scolarité v2.0"
+                                        text: qsTr("Scolarité ") + appVersion
                                         font.pixelSize: 11
                                         color: Style.textTertiary
                                         elide: Text.ElideRight
@@ -262,7 +284,10 @@ ApplicationWindow {
                                 IconButton {
                                     iconName: "logout"
                                     iconSize: 18
-                                    hoverColor: Style.errorColor
+                                    baseColor: Style.errorColor
+                                    baseIconColor: "white"
+                                    hoverColor: "white"
+                                    onClicked: Qt.quit()
                                 }
                             }
                         }
@@ -283,7 +308,7 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
-                color: "#FFFFFF"
+                color: Style.background
 
                 Rectangle {
                     anchors.bottom: parent.bottom
@@ -306,7 +331,7 @@ ApplicationWindow {
                         spacing: 2
                         Layout.rightMargin: 8
                         Text {
-                            text: "Année Scolaire"
+                            text: qsTr("Année Scolaire")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Style.textTertiary
@@ -323,45 +348,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // Notification Bell
-                    Rectangle {
-                        width: 42
-                        height: 42
-                        radius: 12
-                        color: notifMa.containsMouse || showNotifications ? Style.bgPage : "transparent"
-                        border.color: Style.borderLight
-                        border.width: 1
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-
-                        IconLabel {
-                            anchors.centerIn: parent
-                            iconName: "bell"
-                            iconSize: 20
-                            iconColor: Style.textSecondary
-                        }
-
-                        Rectangle {
-                            x: parent.width - 14
-                            y: 8
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: Style.errorColor
-                            border.color: "#FFFFFF"
-                            border.width: 2
-                        }
-
-                        MouseArea {
-                            id: notifMa
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            hoverEnabled: true
-                            onClicked: showNotifications = !showNotifications
-                        }
-                    }
                 }
             }
 
@@ -422,204 +408,6 @@ ApplicationWindow {
                     GradesPage     { id: gradesPage;     width: parent.width; opacity: root.currentPage === "grades"     ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     FinancePage    { id: financePage;    width: parent.width; opacity: root.currentPage === "finance"    ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
                     SettingsPage   { id: settingsPage;   width: parent.width; opacity: root.currentPage === "settings"   ? 1.0 : 0.0; visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } } }
-                }
-            }
-        }
-    }
-
-    // ─── Notifications Panel ───
-    Rectangle {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: 90
-        anchors.rightMargin: 32
-        width: 360
-        implicitHeight: notifCol.implicitHeight
-        radius: 20
-        color: "#FFFFFF"
-        border.color: Style.borderLight
-        visible: showNotifications
-        opacity: showNotifications ? 1.0 : 0.0
-        scale: showNotifications ? 1.0 : 0.95
-
-        Behavior on opacity {
-            NumberAnimation { duration: 200 }
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        layer.enabled: true
-
-        Column {
-            id: notifCol
-            width: parent.width
-            spacing: 0
-
-            Rectangle {
-                width: parent.width
-                height: 56
-                color: "transparent"
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: "Notifications"
-                        font.pixelSize: 16
-                        font.weight: Font.Black
-                        color: Style.textPrimary
-                    }
-
-                    Rectangle {
-                        width: 24
-                        height: 24
-                        radius: 8
-                        color: Style.errorBg
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "3"
-                            font.pixelSize: 10
-                            font.weight: Font.Black
-                            color: Style.errorColor
-                        }
-                    }
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 1
-                    color: Style.borderLight
-                }
-            }
-
-            Repeater {
-                model: ListModel {
-                    ListElement {
-                        title: "Nouveau paiement reçu"
-                        message: "Sara Khalil - 150 DT"
-                        time: "Il y a 5 min"
-                        type_: "success"
-                    }
-                    ListElement {
-                        title: "Absence non justifiée"
-                        message: "Amine Ben Salem - Cours d'Arabe"
-                        time: "Il y a 1 heure"
-                        type_: "warning"
-                    }
-                    ListElement {
-                        title: "Nouvel examen planifié"
-                        message: "Coran - Niveau 3 - 15/02"
-                        time: "Il y a 2 heures"
-                        type_: "info"
-                    }
-                }
-
-                delegate: Column {
-                    width: parent.width
-
-                    Rectangle {
-                        width: parent.width
-                        height: 80
-                        color: notifItemMa.containsMouse ? Style.bgPage : "transparent"
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 16
-                            spacing: 12
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 12
-                                color: model.type_ === "success" ? Style.successBg :
-                                       model.type_ === "warning" ? Style.warningBg : Style.primaryBg
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: model.type_ === "success" ? "✓" :
-                                          model.type_ === "warning" ? "⚠" : "📅"
-                                    font.pixelSize: 16
-                                }
-                            }
-
-                            Column {
-                                Layout.fillWidth: true
-                                spacing: 3
-
-                                Text {
-                                    width: parent.width
-                                    text: model.title
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                    color: Style.textPrimary
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    width: parent.width
-                                    text: model.message
-                                    font.pixelSize: 11
-                                    color: Style.textSecondary
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    text: model.time
-                                    font.pixelSize: 9
-                                    font.weight: Font.Bold
-                                    color: Style.textTertiary
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: notifItemMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: Style.borderLight
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 48
-                color: "transparent"
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "TOUT MARQUER COMME LU"
-                    font.pixelSize: 10
-                    font.weight: Font.Black
-                    color: Style.primary
-                    font.letterSpacing: 1
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: showNotifications = false
                 }
             }
         }

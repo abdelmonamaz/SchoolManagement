@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Item {
@@ -33,7 +33,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Nouvelle Salle"
+                text: qsTr("Nouvelle Salle")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -45,8 +45,8 @@ Item {
                 width: parent.width - 64
                 spacing: 18
 
-                FormField { id: roomNameField; width: parent.width; label: "NOM DE LA SALLE"; placeholder: "ex: Salle B1" }
-                FormField { id: capacityField; width: parent.width; label: "CAPACITÉ"; text: "20" }
+                FormField { id: roomNameField; width: parent.width; label: qsTr("NOM DE LA SALLE"); placeholder: qsTr("ex: Salle B1") }
+                FormField { id: capacityField; width: parent.width; label: qsTr("CAPACITÉ"); text: qsTr("20") }
 
                 Column {
                     width: parent.width
@@ -54,7 +54,7 @@ Item {
 
                     RowLayout {
                         width: parent.width
-                        SectionLabel { text: "ÉQUIPEMENTS"; Layout.fillWidth: true }
+                        SectionLabel { text: qsTr("ÉQUIPEMENTS"); Layout.fillWidth: true }
                         IconButton {
                             iconName: "settings"
                             iconSize: 14
@@ -82,7 +82,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.equipName; font.pixelSize: 11; font.bold: true
-                                    color: parent.selected ? "#FFFFFF" : Style.textSecondary
+                                    color: parent.selected ? Style.background : Style.textSecondary
                                 }
 
                                 MouseArea {
@@ -106,7 +106,7 @@ Item {
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "ENREGISTRER"
+                confirmText: qsTr("ENREGISTRER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (roomNameField.text.trim() !== "") {
@@ -146,7 +146,7 @@ Item {
             padding: 32
 
             Text {
-                text: "Modifier la Salle"
+                text: qsTr("Modifier la Salle")
                 font.pixelSize: 22
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -158,8 +158,8 @@ Item {
                 width: parent.width - 64
                 spacing: 18
 
-                FormField { id: editRoomNameField; width: parent.width; label: "NOM DE LA SALLE"; placeholder: "ex: Salle B1" }
-                FormField { id: editCapacityField; width: parent.width; label: "CAPACITÉ"; text: "20" }
+                FormField { id: editRoomNameField; width: parent.width; label: qsTr("NOM DE LA SALLE"); placeholder: qsTr("ex: Salle B1") }
+                FormField { id: editCapacityField; width: parent.width; label: qsTr("CAPACITÉ"); text: qsTr("20") }
 
                 Column {
                     width: parent.width
@@ -167,7 +167,7 @@ Item {
 
                     RowLayout {
                         width: parent.width
-                        SectionLabel { text: "ÉQUIPEMENTS"; Layout.fillWidth: true }
+                        SectionLabel { text: qsTr("ÉQUIPEMENTS"); Layout.fillWidth: true }
                         IconButton {
                             iconName: "settings"
                             iconSize: 14
@@ -196,7 +196,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.equipName; font.pixelSize: 11; font.bold: true
-                                    color: parent.selected ? "#FFFFFF" : Style.textSecondary
+                                    color: parent.selected ? Style.background : Style.textSecondary
                                 }
 
                                 MouseArea {
@@ -222,7 +222,7 @@ Item {
 
             ModalButtons {
                 width: parent.width - 64
-                confirmText: "MODIFIER"
+                confirmText: qsTr("MODIFIER")
                 onCancel: root.closeRequested()
                 onConfirm: {
                     if (editRoomNameField.text.trim() !== "" && root.editingRoom.id > 0) {
@@ -264,7 +264,7 @@ Item {
             padding: 28
 
             Text {
-                text: "Supprimer la salle ?"
+                text: qsTr("Supprimer la salle ?")
                 font.pixelSize: 18
                 font.weight: Font.Black
                 color: Style.textPrimary
@@ -272,7 +272,7 @@ Item {
 
             Text {
                 width: parent.width - 56
-                text: "Cette salle sera définitivement supprimée."
+                text: qsTr("Cette salle sera définitivement supprimée.")
                 font.pixelSize: 13
                 color: Style.textSecondary
                 wrapMode: Text.WordWrap
@@ -291,7 +291,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 11
                         font.weight: Font.Black
                         color: Style.textSecondary
@@ -313,10 +313,10 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "SUPPRIMER"
+                        text: qsTr("SUPPRIMER")
                         font.pixelSize: 11
                         font.weight: Font.Black
-                        color: "#FFFFFF"
+                        color: Style.background
                         font.letterSpacing: 0.5
                     }
 

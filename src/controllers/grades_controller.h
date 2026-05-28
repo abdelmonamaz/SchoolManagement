@@ -28,14 +28,34 @@ public:
     Q_INVOKABLE void saveGrades(const QVariantList& grades);
     Q_INVOKABLE void loadClassAverage(int seanceId);
 
-    // Bulletin
-    Q_INVOKABLE void loadBulletinData(int eleveId, int classeId);
+    // Bulletin (legacy: for any remaining internal use)
+    Q_INVOKABLE void loadBulletinData(int eleveId, int classeId, int anneeId);
     Q_INVOKABLE QString exportBulletinPdf(const QVariantMap& bulletinData,
                                           const QString& studentName,
                                           const QString& studentMatricule,
                                           const QString& niveauNom,
                                           const QString& classeNom,
-                                          const QString& anneeScolaire);
+                                          const QString& anneeScolaire,
+                                          const QString& targetPath = QString());
+    Q_INVOKABLE QString exportBulletinCsv(const QVariantMap& bulletinData,
+                                          const QString& studentName,
+                                          const QString& niveauNom,
+                                          const QString& classeNom,
+                                          const QString& anneeScolaire,
+                                          const QString& targetPath = QString());
+
+    // DOCX bulletin
+    Q_INVOKABLE void loadBulletinDocxData(int eleveId, int classeId, int anneeId, int semestre);
+    Q_INVOKABLE QString exportBulletinDocx(const QVariantMap& docxData,
+                                            const QString& studentName,
+                                            const QString& studentMatricule,
+                                            const QString& niveauNom,
+                                            const QString& classeNom,
+                                            const QString& anneeScolaire,
+                                            const QString& president,
+                                            bool estFeminin,
+                                            int semestre,
+                                            const QString& targetPath = QString());
 
 signals:
     void gradesChanged();
@@ -45,6 +65,7 @@ signals:
     void operationSucceeded(const QString& message);
     void operationFailed(const QString& error);
     void bulletinDataLoaded(const QVariantMap& data);
+    void bulletinDocxDataLoaded(const QVariantMap& data);
 
 private slots:
     void onQueryCompleted(const QString& queryId, const QVariant& result);

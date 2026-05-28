@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QTranslator>
 #include <memory>
 
 class DatabaseWorker;
@@ -45,6 +46,10 @@ class IDonRepository;
 class IPaiementPersonnelRepository;
 class ITarifMensualiteRepository;
 class IDepenseRepository;
+class IFinanceBalanceRepository;
+class IAssociationRepository;
+class ISetupSchoolYearRepository;
+class IYearClosureRepository;
 
 class AppController : public QObject {
     Q_OBJECT
@@ -55,6 +60,8 @@ public:
     ~AppController() override;
 
     QString dbInitError() const { return m_dbInitError; }
+    QString getLanguage() const;
+    Q_INVOKABLE void applyLanguage(const QString& lang);
 
 signals:
     void dbInitErrorChanged();
@@ -65,6 +72,10 @@ private:
     void createServices();
     void createControllers();
     void registerWithQml(QQmlApplicationEngine& engine);
+
+    // Language
+    QQmlApplicationEngine* m_engine = nullptr;
+    QTranslator* m_translator = nullptr;
 
     // Database
     QString m_dbPath;
@@ -89,8 +100,12 @@ private:
     std::unique_ptr<IDonateurRepository> m_donateurRepo;
     std::unique_ptr<IDonRepository> m_donRepo;
     std::unique_ptr<IPaiementPersonnelRepository> m_paiementPersonnelRepo;
-    std::unique_ptr<ITarifMensualiteRepository>   m_tarifRepo;
-    std::unique_ptr<IDepenseRepository>           m_depenseRepo;
+    std::unique_ptr<ITarifMensualiteRepository>    m_tarifRepo;
+    std::unique_ptr<IDepenseRepository>            m_depenseRepo;
+    std::unique_ptr<IFinanceBalanceRepository>     m_balanceRepo;
+    std::unique_ptr<IAssociationRepository>        m_assocRepo;
+    std::unique_ptr<ISetupSchoolYearRepository>    m_setupSchoolYearRepo;
+    std::unique_ptr<IYearClosureRepository>        m_yearClosureRepo;
 
     // Services (owned)
     std::unique_ptr<SchoolingService> m_schoolingService;

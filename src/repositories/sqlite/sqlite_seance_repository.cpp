@@ -208,16 +208,18 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
     QSqlQuery sub(db);
     switch (entity.typeSeance) {
         case GS::CategorieSeance::Cours:
+            // cours n'a pas de colonne date_modification
             sub.prepare(QStringLiteral(
-                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE cours SET matiere_id=?, prof_id=?, classe_id=? WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.profId);
             sub.addBindValue(entity.classeId);
             sub.addBindValue(entity.id);
             break;
         case GS::CategorieSeance::Examen:
+            // examens n'a pas de colonne date_modification
             sub.prepare(QStringLiteral(
-                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE examens SET matiere_id=?, classe_id=?, titre=?, prof_id=? WHERE seance_id=?"));
             sub.addBindValue(entity.matiereId);
             sub.addBindValue(entity.classeId);
             sub.addBindValue(entity.titre);
@@ -226,7 +228,7 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
             break;
         case GS::CategorieSeance::Evenement:
             sub.prepare(QStringLiteral(
-                "UPDATE events SET titre=?, salle_id=?, descriptif=? , date_modification = datetime('now') WHERE seance_id=?"));
+                "UPDATE events SET titre=?, salle_id=?, descriptif=?, date_modification = datetime('now') WHERE seance_id=?"));
             sub.addBindValue(entity.titre);
             sub.addBindValue(entity.salleId > 0 ? entity.salleId : QVariant());
             sub.addBindValue(entity.descriptif.isEmpty() ? QVariant() : entity.descriptif);
@@ -247,11 +249,21 @@ Result<bool> SqliteSeanceRepository::update(const Seance& entity) {
 
 Result<bool> SqliteSeanceRepository::remove(int id) {
     auto db = QSqlDatabase::database(m_connectionName);
+
+    // Soft-delete des participations liées à cette séance
+    QSqlQuery qPart(db);
+    qPart.prepare(QStringLiteral(
+        "UPDATE participations SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE seance_id = ?"));
+    qPart.addBindValue(id);
+    if (!qPart.exec()) return Result<bool>::error(qPart.lastError().text());
+
+    // Soft-delete de la séance elle-même
     QSqlQuery query(db);
-    // CASCADE deletes the sub-table row automatically
-    query.prepare(QStringLiteral("UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
+    query.prepare(QStringLiteral(
+        "UPDATE seances SET valide = 0, date_invalidation = datetime('now'), date_modification = datetime('now') WHERE id = ?"));
     query.addBindValue(id);
     if (!query.exec()) return Result<bool>::error(query.lastError().text());
+
     return Result<bool>::success(true);
 }
 
@@ -276,7 +288,7 @@ static const auto kActiveYearFilter = QStringLiteral(
 Result<QList<Seance>> SqliteSeanceRepository::getByDateRange(const QDateTime& from, const QDateTime& to) {
     auto db = QSqlDatabase::database(m_connectionName);
     QSqlQuery query(db);
-    query.prepare(kSeanceSelect + kActiveYearFilter
+    query.prepare(kSeanceSelect
                   + QStringLiteral(" AND s.date_heure_debut BETWEEN ? AND ? ORDER BY s.date_heure_debut ASC"));
     query.addBindValue(from.toString(Qt::ISODate));
     query.addBindValue(to.toString(Qt::ISODate));
@@ -293,6 +305,22 @@ Result<QList<Seance>> SqliteSeanceRepository::getByClasseId(int classeId) {
                   + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"));
     query.addBindValue(classeId);
     query.addBindValue(classeId);
+    if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
+    QList<Seance> list;
+    while (query.next()) list.append(rowToSeance(query));
+    return Result<QList<Seance>>::success(list);
+}
+
+Result<QList<Seance>> SqliteSeanceRepository::getByClasseIdAndYear(int classeId, int anneeId) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery query(db);
+    // No kActiveYearFilter: filter by the explicit anneeId OR NULL (seances created before migration 36)
+    query.prepare(kSeanceSelect
+        + QStringLiteral(" AND (c.classe_id = ? OR e.classe_id = ?)"
+                         " AND (s.annee_scolaire_id = ? OR s.annee_scolaire_id IS NULL)"));
+    query.addBindValue(classeId);
+    query.addBindValue(classeId);
+    query.addBindValue(anneeId);
     if (!query.exec()) return Result<QList<Seance>>::error(query.lastError().text());
     QList<Seance> list;
     while (query.next()) list.append(rowToSeance(query));
@@ -322,6 +350,29 @@ Result<int> SqliteSeanceRepository::getTotalMinutesByProf(int profId, const QDat
 Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance, int excludeSeanceId) {
     auto db = QSqlDatabase::database(m_connectionName);
     QStringList conflicts;
+
+    // Check that Cours/Examen falls within the active school year date range
+    if (seance.typeSeance == GS::CategorieSeance::Cours ||
+        seance.typeSeance == GS::CategorieSeance::Examen)
+    {
+        QSqlQuery qYear(db);
+        qYear.prepare(QStringLiteral(
+            "SELECT date_debut, date_fin FROM annees_scolaires "
+            "WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+        if (qYear.exec() && qYear.next()) {
+            const QDate dateDebut  = QDate::fromString(qYear.value(0).toString(), Qt::ISODate);
+            const QDate dateFin    = QDate::fromString(qYear.value(1).toString(), Qt::ISODate);
+            const QDate dateSeance = seance.dateHeureDebut.date();
+            if (dateSeance < dateDebut || dateSeance > dateFin) {
+                conflicts.append(
+                    QStringLiteral("La date de la séance (%1) est hors de la période de l'année scolaire active (%2 – %3).")
+                        .arg(dateSeance.toString(QStringLiteral("dd/MM/yyyy")),
+                             dateDebut.toString(QStringLiteral("dd/MM/yyyy")),
+                             dateFin.toString(QStringLiteral("dd/MM/yyyy"))));
+                return Result<QStringList>::success(conflicts);
+            }
+        }
+    }
 
     // Compute new session time range in SQLite datetime format (space separator, not T)
     QString newStart = seance.dateHeureDebut.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
@@ -419,6 +470,52 @@ Result<QStringList> SqliteSeanceRepository::checkConflicts(const Seance& seance,
     }
 
     return Result<QStringList>::success(conflicts);
+}
+
+int SqliteSeanceRepository::findAnneeScolaireIdForDate(const QString& isoDate) {
+    auto db = QSqlDatabase::database(m_connectionName);
+    // 1. Priorité : année scolaire Active dont la plage englobe la date
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires "
+        "WHERE statut = 'Active' AND date_debut <= ? AND date_fin >= ? AND valide = 1 LIMIT 1"));
+    q.addBindValue(isoDate);
+    q.addBindValue(isoDate);
+    if (q.exec() && q.next()) return q.value(0).toInt();
+    // 2. Fallback : n'importe quelle année couvrant la date (la plus récente en premier)
+    QSqlQuery q2(db);
+    q2.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires "
+        "WHERE date_debut <= ? AND date_fin >= ? AND valide = 1 ORDER BY date_debut DESC LIMIT 1"));
+    q2.addBindValue(isoDate);
+    q2.addBindValue(isoDate);
+    if (q2.exec() && q2.next()) return q2.value(0).toInt();
+    // 3. Fallback final : année scolaire active (peu importe la plage de dates)
+    QSqlQuery q3(db);
+    q3.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+    if (q3.exec() && q3.next()) return q3.value(0).toInt();
+    return 0;
+}
+
+int SqliteSeanceRepository::getActiveSchoolYearId() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires WHERE statut = 'Active' AND valide = 1 LIMIT 1"));
+    if (q.exec() && q.next()) return q.value(0).toInt();
+    return 0;
+}
+
+int SqliteSeanceRepository::getPreviousClosedSchoolYearId() {
+    auto db = QSqlDatabase::database(m_connectionName);
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT id FROM annees_scolaires "
+        "WHERE statut != 'Active' AND valide = 1 "
+        "ORDER BY date_fin DESC LIMIT 1"));
+    if (q.exec() && q.next()) return q.value(0).toInt();
+    return 0;
 }
 
 // ═══════════════════════════════════════════════════════════════

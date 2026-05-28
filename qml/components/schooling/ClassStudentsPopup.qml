@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 Item {
@@ -21,7 +21,7 @@ Item {
     // Dimmer
     Rectangle {
         anchors.fill: parent
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
         MouseArea {
             anchors.fill: parent
             onClicked: classStudentsOverlay.closeRequested()
@@ -58,7 +58,7 @@ Item {
                     Column {
                         spacing: 4
                         Text {
-                            text: "Classe " + classStudentsOverlay.classeNom
+                            text: qsTr("Classe ") + classStudentsOverlay.classeNom
                             font.pixelSize: 20
                             font.weight: Font.Black
                             color: Style.textPrimary
@@ -164,7 +164,7 @@ Item {
                             if (classStudentsOverlay.students[i].classeId === classStudentsOverlay.classeId) c++
                         return c === 0
                     }
-                    Text { anchors.centerIn: parent; text: "Aucun élève dans cette classe"; font.pixelSize: 13; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("Aucun élève dans cette classe"); font.pixelSize: 13; color: Style.textTertiary }
                 }
             }
 

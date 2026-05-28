@@ -293,13 +293,22 @@ void ExamsController::createCourseWithRecurrence(const QVariantMap& data, const 
         QDate startDate = base.dateHeureDebut.date();
 
         if (recurrence == QStringLiteral("full")) {
-            if (startDate.month() >= 9) {
-                startDate = QDate(year, 9, 1);
-                endDate = QDate(year + 1, 6, 30);
+            // Use semester date range if provided, otherwise fall back to full school year
+            QString semStart = data.value("semestreStart").toString();
+            QString semEnd   = data.value("semestreEnd").toString();
+            if (!semStart.isEmpty() && !semEnd.isEmpty()) {
+                startDate = QDate::fromString(semStart, Qt::ISODate);
+                endDate   = QDate::fromString(semEnd,   Qt::ISODate);
             } else {
-                startDate = QDate(year - 1, 9, 1);
-                endDate = QDate(year, 6, 30);
+                if (startDate.month() >= 9) {
+                    startDate = QDate(year, 9, 1);
+                    endDate   = QDate(year + 1, 6, 30);
+                } else {
+                    startDate = QDate(year - 1, 9, 1);
+                    endDate   = QDate(year, 6, 30);
+                }
             }
+            // Align startDate to the same day-of-week as the chosen date
             int targetDow = base.dateHeureDebut.date().dayOfWeek();
             int startDow  = startDate.dayOfWeek();
             int diff = targetDow - startDow;
@@ -361,15 +370,25 @@ void ExamsController::loadCourseCountForMatiereClasse(int matiereId, int classeI
     });
 }
 
-void ExamsController::loadScheduledExamTitles(int matiereId, int classeId) {
+void ExamsController::loadScheduledExamTitles(int matiereId, int classeId,
+                                               const QString& semestreDebut,
+                                               const QString& semestreFin) {
     m_worker->submit("Exams.loadScheduledExamTitles",
-        [svc = m_service, matiereId, classeId]() -> QVariant {
+        [svc = m_service, matiereId, classeId, semestreDebut, semestreFin]() -> QVariant {
         auto seances = svc->getSeancesByClasse(classeId);
         QVariantList titles;
+        QDate debut = semestreDebut.isEmpty() ? QDate() : QDate::fromString(semestreDebut, Qt::ISODate);
+        QDate fin   = semestreFin.isEmpty()   ? QDate() : QDate::fromString(semestreFin,   Qt::ISODate);
+        bool filterBySemestre = debut.isValid() && fin.isValid();
         if (seances.isOk()) {
             for (const auto& s : seances.value()) {
-                if (s.matiereId == matiereId && s.typeSeance == GS::CategorieSeance::Examen)
-                    titles.append(s.titre);
+                if (s.matiereId != matiereId || s.typeSeance != GS::CategorieSeance::Examen)
+                    continue;
+                if (filterBySemestre) {
+                    QDate d = s.dateHeureDebut.date();
+                    if (d < debut || d > fin) continue;
+                }
+                titles.append(s.titre);
             }
         }
         return titles;
@@ -459,13 +478,13 @@ void ExamsController::onQueryCompleted(const QString& queryId, const QVariant& r
             int limit   = map.value("limit", 0).toInt();
             QString msg;
             if (count == 0) {
-                msg = QString("Limite déjà atteinte (%1 séances/an)").arg(limit);
+                msg = tr("Limite déjà atteinte (%1 séances/an)").arg(limit);
             } else if (count > 1) {
-                msg = QString("%1 séances créées").arg(count);
+                msg = tr("%1 séances créées").arg(count);
                 if (capped && limit > 0)
-                    msg += QString(" (limite annuelle de %1 atteinte)").arg(limit);
+                    msg += tr(" (limite annuelle de %1 atteinte)").arg(limit);
             } else {
-                msg = "Séance créée";
+                msg = tr("Séance créée");
             }
             emit operationSucceeded(msg);
         }

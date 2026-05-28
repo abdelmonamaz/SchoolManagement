@@ -5,8 +5,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QMetaObject>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QThread>
 #include <QUrl>
 
 #include <QtZlib/zlib.h>
@@ -239,95 +241,122 @@ void BackupController::onTimerTick() {
     doAutoBackup();
 }
 
-bool BackupController::doAutoBackup() {
-    if (m_autoBackupPath.isEmpty() || m_dbPath.isEmpty()) return false;
+void BackupController::doAutoBackup() {
+    if (m_autoBackupPath.isEmpty() || m_dbPath.isEmpty()) return;
 
     // Filename: gestion_scolaire_YYYY-MM-DD.zip
     const QString dateStr   = QDate::currentDate().toString("yyyy-MM-dd");
     const QString fileName  = QString("gestion_scolaire_%1.zip").arg(dateStr);
     const QString dest      = QDir(m_autoBackupPath).filePath(fileName);
     const QString entryName = QString("gestion_scolaire_%1.db").arg(dateStr);
+    const QString dbPath    = m_dbPath;
 
-    QFile existing(dest);
-    if (existing.exists()) existing.remove();
+    auto* thread = QThread::create([this, dest, dbPath, entryName, dateStr]() {
+        QFile existing(dest);
+        if (existing.exists()) existing.remove();
 
-    if (!writeZipFile(dest, m_dbPath, entryName)) {
-        emit backupError(tr("Sauvegarde automatique impossible : %1").arg(dest));
-        return false;
-    }
-
-    m_lastAutoBackupDate = dateStr;
-    QSettings().setValue(kLastAutoBackup, dateStr);
-    emit lastAutoBackupDateChanged();
-    emit backupSuccess(dest);
-    return true;
+        if (!writeZipFile(dest, dbPath, entryName)) {
+            const QString msg = tr("Sauvegarde automatique impossible : %1").arg(dest);
+            QMetaObject::invokeMethod(this, [this, msg]() { emit backupError(msg); },
+                                      Qt::QueuedConnection);
+            return;
+        }
+        QMetaObject::invokeMethod(this, [this, dest, dateStr]() {
+            m_lastAutoBackupDate = dateStr;
+            QSettings().setValue(kLastAutoBackup, dateStr);
+            emit lastAutoBackupDateChanged();
+            emit backupSuccess(dest);
+        }, Qt::QueuedConnection);
+    });
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
 }
 
 // ── Manual backup ─────────────────────────────────────────────────────────────
 
-bool BackupController::copyDatabaseTo(const QString& destPath) {
+void BackupController::copyDatabaseTo(const QString& destPath) {
     QString local = toLocalPath(destPath);
     if (m_dbPath.isEmpty() || local.isEmpty()) {
         emit backupError(tr("Chemin de destination invalide."));
-        return false;
+        return;
     }
 
     // Ensure .zip extension
     if (!local.endsWith(".zip", Qt::CaseInsensitive))
         local += ".zip";
 
-    QFile existing(local);
-    if (existing.exists()) existing.remove();
-
     const QString entryName = QFileInfo(local).baseName() + ".db";
-    if (!writeZipFile(local, m_dbPath, entryName)) {
-        emit backupError(tr("Impossible de créer la sauvegarde : %1").arg(local));
-        return false;
-    }
-    emit backupSuccess(local);
-    return true;
+    const QString dbPath    = m_dbPath;
+
+    auto* thread = QThread::create([this, local, dbPath, entryName]() {
+        QFile existing(local);
+        if (existing.exists()) existing.remove();
+
+        if (!writeZipFile(local, dbPath, entryName)) {
+            const QString msg = tr("Impossible de créer la sauvegarde : %1").arg(local);
+            QMetaObject::invokeMethod(this, [this, msg]() { emit backupError(msg); },
+                                      Qt::QueuedConnection);
+            return;
+        }
+        QMetaObject::invokeMethod(this, [this, local]() { emit backupSuccess(local); },
+                                  Qt::QueuedConnection);
+    });
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
 }
 
 // ── Restore ───────────────────────────────────────────────────────────────────
 
-bool BackupController::loadDatabase(const QString& srcPath) {
+void BackupController::loadDatabase(const QString& srcPath) {
     const QString local = toLocalPath(srcPath);
     if (local.isEmpty()) {
         emit restoreError(tr("Aucun fichier sélectionné."));
-        return false;
+        return;
     }
     if (!QFile::exists(local)) {
         emit restoreError(tr("Le fichier sélectionné n'existe pas : %1").arg(local));
-        return false;
+        return;
     }
 
     const QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     const QString staging = dataDir + "/pending_restore.db";
-    QFile::remove(staging);
 
-    if (local.endsWith(".zip", Qt::CaseInsensitive)) {
-        const QByteArray dbData = readFirstZipEntry(local);
-        if (dbData.isEmpty()) {
-            emit restoreError(tr("Impossible d'extraire la base de données depuis : %1").arg(local));
-            return false;
-        }
-        QFile out(staging);
-        if (!out.open(QIODevice::WriteOnly) || out.write(dbData) != dbData.size()) {
-            emit restoreError(tr("Impossible de préparer la restauration depuis : %1").arg(local));
-            return false;
-        }
-        out.close();
-    } else {
-        // Legacy: plain .db file
-        if (!QFile::copy(local, staging)) {
-            emit restoreError(tr("Impossible de préparer la restauration depuis : %1").arg(local));
-            return false;
-        }
-    }
+    auto* thread = QThread::create([this, local, staging]() {
+        QFile::remove(staging);
 
-    QSettings().setValue(kPendingRestore, staging);
-    emit restoreReady();
-    return true;
+        if (local.endsWith(".zip", Qt::CaseInsensitive)) {
+            const QByteArray dbData = readFirstZipEntry(local);
+            if (dbData.isEmpty()) {
+                const QString msg = tr("Impossible d'extraire la base de données depuis : %1").arg(local);
+                QMetaObject::invokeMethod(this, [this, msg]() { emit restoreError(msg); },
+                                          Qt::QueuedConnection);
+                return;
+            }
+            QFile out(staging);
+            if (!out.open(QIODevice::WriteOnly) || out.write(dbData) != dbData.size()) {
+                const QString msg = tr("Impossible de préparer la restauration depuis : %1").arg(local);
+                QMetaObject::invokeMethod(this, [this, msg]() { emit restoreError(msg); },
+                                          Qt::QueuedConnection);
+                return;
+            }
+            out.close();
+        } else {
+            // Legacy: plain .db file
+            if (!QFile::copy(local, staging)) {
+                const QString msg = tr("Impossible de préparer la restauration depuis : %1").arg(local);
+                QMetaObject::invokeMethod(this, [this, msg]() { emit restoreError(msg); },
+                                          Qt::QueuedConnection);
+                return;
+            }
+        }
+
+        QMetaObject::invokeMethod(this, [this, staging]() {
+            QSettings().setValue(kPendingRestore, staging);
+            emit restoreReady();
+        }, Qt::QueuedConnection);
+    });
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
 }
 
 // ── Startup helper ────────────────────────────────────────────────────────────

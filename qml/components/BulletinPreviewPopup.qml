@@ -1,6 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Qt.labs.platform
 import UI.Components
 
 // Popup d'aperçu et d'export du bulletin scolaire
@@ -40,15 +41,15 @@ ModalOverlay {
     }
 
     function apprBg(note) {
-        if (note >= 15) return "#d4edda"
-        if (note >= 10) return "#fff3cd"
-        return "#f8d7da"
+        if (note >= 15) return Style.successBg
+        if (note >= 10) return Style.warningBg
+        return Style.errorBg
     }
 
     function apprFg(note) {
-        if (note >= 15) return "#155724"
-        if (note >= 10) return "#856404"
-        return "#721c24"
+        if (note >= 15) return Style.zitounaDark
+        if (note >= 10) return Style.warningColor
+        return Style.errorColor
     }
 
     // Tous les titres d'épreuves uniques (ordre d'apparition)
@@ -69,15 +70,29 @@ ModalOverlay {
         var v = bulletinData.moyenneGenerale
         return (v !== null && v !== undefined) ? v : -1
     }
+    readonly property double moyenneSemestre1: {
+        var v = bulletinData.moyenneSemestre1
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property double moyenneSemestre2: {
+        var v = bulletinData.moyenneSemestre2
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property double moyenneAnnuelle: {
+        var v = bulletinData.moyenneAnnuelle
+        return (v !== null && v !== undefined) ? v : -1
+    }
+    readonly property bool hasSemestres: bulletinData.hasSemestres === true
 
     // ── Largeurs de colonnes (fixes pour aligner header ↔ données) ──────────
-    readonly property int cMat: 170   // Matière
+    readonly property int cMat: 160   // Matière
+    readonly property int cCoef: 44   // Coefficient
     readonly property int cMoy: 80    // Moyenne
     readonly property int cApp: 96    // Appréciation
     readonly property int cPre: 72    // Présence
     readonly property int tableWidth: billContent.width > 0 ? billContent.width - 32 : 660
     readonly property int cEp: allTitres.length > 0
-        ? Math.max(50, Math.floor((tableWidth - cMat - cMoy - cApp - cPre) / allTitres.length))
+        ? Math.max(50, Math.floor((tableWidth - cMat - cCoef - cMoy - cApp - cPre) / allTitres.length))
         : 60
 
     // ── Données présence (niveau classe) ─────────────────────────────────────
@@ -105,12 +120,12 @@ ModalOverlay {
                 Rectangle {
                     width: 44; height: 44; radius: 14
                     color: Style.primaryBg
-                    Text { anchors.centerIn: parent; text: "📄"; font.pixelSize: 20 }
+                    Text { anchors.centerIn: parent; text: qsTr("📄"); font.pixelSize: 20 }
                 }
 
                 Column {
                     spacing: 2
-                    Text { text: "Aperçu du Bulletin"; font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
+                    Text { text: qsTr("Aperçu du Bulletin"); font.pixelSize: 17; font.weight: Font.Black; color: Style.textPrimary }
                     Text { text: root.studentName || "Élève"; font.pixelSize: 11; color: Style.textTertiary }
                 }
             }
@@ -128,7 +143,7 @@ ModalOverlay {
             width: parent.width - 48
             anchors.horizontalCenter: parent.horizontalCenter
             height: Math.min(billScroll.contentHeight + 2, 560)
-            radius: 12; color: "#FFFFFF"
+            radius: 12; color: Style.background
             border.color: Style.borderLight
             clip: true
 
@@ -153,9 +168,9 @@ ModalOverlay {
                         Column {
                             width: parent.width - 112
                             spacing: 2
-                            Text { text: "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: "#2E7D52" }
-                            Text { text: "INSTITUT D'ENSEIGNEMENT ISLAMIQUE"; font.pixelSize: 8; font.weight: Font.Bold; color: "#888" }
-                            Text { text: "123 Rue de la Science, Casablanca, Maroc"; font.pixelSize: 9; color: "#AAA" }
+                            Text { text: setupController.associationData.nomAssociation || "Ez-Zaytouna"; font.pixelSize: 20; font.weight: Font.Black; color: Style.zitouna }
+                            Text { text: qsTr("INSTITUT D'ENSEIGNEMENT ISLAMIQUE"); font.pixelSize: 8; font.weight: Font.Bold; color: Style.textTertiary }
+                            Text { text: setupController.associationData.adresse || ""; font.pixelSize: 9; color: Style.textTertiary; visible: text.length > 0 }
                         }
 
                         Item { width: 4; height: 1 }
@@ -163,24 +178,24 @@ ModalOverlay {
                         // Badge année
                         Rectangle {
                             width: 108; height: 52; radius: 4
-                            color: "transparent"; border.color: "#F59E0B"; border.width: 2
+                            color: "transparent"; border.color: Style.warningColor; border.width: 2
                             Column {
                                 anchors.centerIn: parent; spacing: 2
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "ANNÉE SCOLAIRE"; font.pixelSize: 7; font.weight: Font.Black; color: "#F59E0B" }
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.anneeScolaire || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#F59E0B" }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("ANNÉE SCOLAIRE"); font.pixelSize: 7; font.weight: Font.Black; color: Style.warningColor }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.anneeScolaire || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.warningColor }
                             }
                         }
                     }
 
                     Item { width: 1; height: 8 }
-                    Rectangle { x: 16; width: parent.width - 32; height: 2; color: "#2E7D52" }
+                    Rectangle { x: 16; width: parent.width - 32; height: 2; color: Style.zitouna }
                     Item { width: 1; height: 10 }
 
                     // ── Titre ────────────────────────────────────────────────
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 34
-                        color: "#2E7D52"
-                        Text { anchors.centerIn: parent; text: "BULLETIN SCOLAIRE"; font.pixelSize: 14; font.weight: Font.Black; color: "white" }
+                        color: Style.zitouna
+                        Text { anchors.centerIn: parent; text: qsTr("BULLETIN SCOLAIRE"); font.pixelSize: 14; font.weight: Font.Black; color: "white" }
                     }
 
                     Item { width: 1; height: 12 }
@@ -189,7 +204,7 @@ ModalOverlay {
                     Rectangle {
                         x: 16; width: parent.width - 32
                         height: infoGrid.implicitHeight + 20
-                        radius: 6; color: "#F8F9FA"; border.color: "#E0E0E0"
+                        radius: 6; color: Style.background; border.color: Style.sidebarBorder
 
                         GridLayout {
                             id: infoGrid
@@ -197,20 +212,20 @@ ModalOverlay {
                             columns: 2; rowSpacing: 8; columnSpacing: 16
 
                             Column { spacing: 2
-                                Text { text: "NOM DE L'ÉLÈVE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.studentName || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: qsTr("NOM DE L'ÉLÈVE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.studentName || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "MATRICULE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.studentMatricule || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: qsTr("MATRICULE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.studentMatricule || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "NIVEAU"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.niveauNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: qsTr("NIVEAU"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.niveauNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                             Column { spacing: 2
-                                Text { text: "CLASSE"; font.pixelSize: 7; font.weight: Font.Bold; color: "#999" }
-                                Text { text: root.classeNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: "#1a1a2e" }
+                                Text { text: qsTr("CLASSE"); font.pixelSize: 7; font.weight: Font.Bold; color: Style.textTertiary }
+                                Text { text: root.classeNom || "—"; font.pixelSize: 13; font.weight: Font.Black; color: Style.foreground }
                             }
                         }
                     }
@@ -220,8 +235,8 @@ ModalOverlay {
                     // Label section
                     Row {
                         x: 16; width: parent.width - 32; spacing: 8
-                        Rectangle { width: 3; height: 14; radius: 2; color: "#2E7D52"; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: "RÉSULTATS ACADÉMIQUES"; font.pixelSize: 10; font.weight: Font.Black; color: "#1a1a2e"; anchors.verticalCenter: parent.verticalCenter }
+                        Rectangle { width: 3; height: 14; radius: 2; color: Style.zitouna; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: qsTr("RÉSULTATS ACADÉMIQUES"); font.pixelSize: 10; font.weight: Font.Black; color: Style.foreground; anchors.verticalCenter: parent.verticalCenter }
                     }
 
                     Item { width: 1; height: 8 }
@@ -229,14 +244,18 @@ ModalOverlay {
                     // ── En-tête du tableau ───────────────────────────────────
                     Rectangle {
                         x: 16; width: parent.width - 32; height: 32
-                        color: "#2E7D52"; radius: 2
+                        color: Style.zitouna; radius: 2
 
                         Row {
                             width: parent.width; height: parent.height
 
                             Item {
                                 width: root.cMat; height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: "MATIÈRE"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MATIÈRE"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; verticalAlignment: Text.AlignVCenter }
+                            }
+                            Item {
+                                width: root.cCoef; height: parent.height
+                                Text { anchors.fill: parent; text: qsTr("COEF."); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                             Repeater {
                                 model: root.allTitres
@@ -247,15 +266,15 @@ ModalOverlay {
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
-                                Text { anchors.fill: parent; text: "MOY."; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; text: qsTr("MOY."); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                             Item {
                                 width: root.cApp; height: parent.height
-                                Text { anchors.fill: parent; text: "APPRÉCIATION"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
+                                Text { anchors.fill: parent; text: qsTr("APPRÉCIATION"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
                             }
                             Item {
                                 width: root.cPre; height: parent.height
-                                Text { anchors.fill: parent; text: "PRÉSENCE"; font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
+                                Text { anchors.fill: parent; text: qsTr("PRÉSENCE"); font.pixelSize: 8; font.weight: Font.Black; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap; rightPadding: 4 }
                             }
                         }
                     }
@@ -267,8 +286,8 @@ ModalOverlay {
                         delegate: Rectangle {
                             id: matRow
                             x: 16; width: parent.width - 32; height: 40
-                            color: index % 2 === 0 ? "#FFFFFF" : "#F8FFFE"
-                            border.color: "#F0F0F0"
+                            color: index % 2 === 0 ? Style.background : Style.secondary
+                            border.color: Style.secondary
 
                             // Capture outer modelData before nested Repeater
                             property var mat:  modelData
@@ -292,7 +311,19 @@ ModalOverlay {
                                 // Nom matière
                                 Item {
                                     width: root.cMat; height: parent.height
-                                    Text { anchors.fill: parent; leftPadding: 8; text: root.matiereName(matRow.mat.matiereId); font.pixelSize: 10; font.weight: Font.Bold; color: "#1a1a2e"; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                    Text { anchors.fill: parent; leftPadding: 8; text: root.matiereName(matRow.mat.matiereId); font.pixelSize: 10; font.weight: Font.Bold; color: Style.foreground; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                }
+
+                                // Coefficient
+                                Item {
+                                    width: root.cCoef; height: parent.height
+                                    property double coef: matRow.mat.coefficient !== undefined ? matRow.mat.coefficient : 1.0
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: parent.coef === 1.0 ? "1" : parent.coef % 1 === 0 ? String(parent.coef) : parent.coef.toFixed(1)
+                                        font.pixelSize: 10; font.weight: Font.Bold
+                                        color: parent.coef !== 1.0 ? Style.zitouna : Style.textTertiary
+                                    }
                                 }
 
                                 // Notes épreuves
@@ -306,7 +337,7 @@ ModalOverlay {
                                             text: nv >= 0 ? nv.toFixed(1) + "/20" : "—"
                                             font.pixelSize: 10
                                             font.weight: nv >= 0 ? Font.Bold : Font.Normal
-                                            color: nv >= 0 ? "#1a1a2e" : "#CCCCCC"
+                                            color: nv >= 0 ? Style.foreground : Style.textTertiary
                                         }
                                     }
                                 }
@@ -318,7 +349,7 @@ ModalOverlay {
                                         anchors.centerIn: parent
                                         text: matRow.moy >= 0 ? matRow.moy.toFixed(2) + "/20" : "—"
                                         font.pixelSize: 11; font.weight: Font.Black
-                                        color: matRow.moy >= 0 ? "#2E7D52" : "#CCCCCC"
+                                        color: matRow.moy >= 0 ? Style.zitouna : Style.textTertiary
                                     }
                                 }
 
@@ -332,7 +363,7 @@ ModalOverlay {
                                         color: root.apprBg(matRow.moy)
                                         Text { anchors.centerIn: parent; text: root.appreciation(matRow.moy); font.pixelSize: 8; font.weight: Font.Bold; color: root.apprFg(matRow.moy) }
                                     }
-                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: "—"; font.pixelSize: 10; color: "#CCCCCC" }
+                                    Text { anchors.centerIn: parent; visible: matRow.moy < 0; text: qsTr("—"); font.pixelSize: 10; color: Style.textTertiary }
                                 }
 
                                 // Présence
@@ -343,33 +374,89 @@ ModalOverlay {
                                         text: matRow.presPres + "/" + matRow.presTotal
                                         font.pixelSize: 10; font.weight: Font.Bold
                                         color: matRow.presTotal > 0 && matRow.presPres === matRow.presTotal
-                                               ? "#2E7D52"
-                                               : matRow.presPres < matRow.presTotal ? "#856404" : "#1a1a2e"
+                                               ? Style.zitouna
+                                               : matRow.presPres < matRow.presTotal ? Style.warningColor : Style.foreground
                                     }
                                 }
                             }
                         }
                     }
 
-                    // ── Moyenne générale ─────────────────────────────────────
+                    // ── Moyennes (semestres + annuelle / générale) ───────────
+                    // Semestre 1
                     Rectangle {
-                        x: 16; width: parent.width - 32; height: 44
-                        color: "#F0FFF4"; border.color: "#2E7D52"; border.width: 1; radius: 2
-
+                        x: 16; width: parent.width - 32; height: 36
+                        visible: root.hasSemestres
+                        color: Style.primaryBg; border.color: Style.primary; border.width: 1; radius: 2
                         Row {
                             width: parent.width; height: parent.height
-
                             Item {
-                                width: root.cMat + root.allTitres.length * root.cEp
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
                                 height: parent.height
-                                Text { anchors.fill: parent; leftPadding: 8; text: "MOYENNE GÉNÉRALE"; font.pixelSize: 10; font.weight: Font.Black; color: "#2E7D52"; verticalAlignment: Text.AlignVCenter }
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE SEMESTRE 1"); font.pixelSize: 9; font.weight: Font.Black; color: Style.primary; verticalAlignment: Text.AlignVCenter }
                             }
                             Item {
                                 width: root.cMoy; height: parent.height
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.moyenneGenerale >= 0 ? root.moyenneGenerale.toFixed(2) + "/20" : "—"
-                                    font.pixelSize: 14; font.weight: Font.Black; color: "#2E7D52"
+                                    text: root.moyenneSemestre1 >= 0 ? root.moyenneSemestre1.toFixed(2) + "/20" : "—"
+                                    font.pixelSize: 13; font.weight: Font.Black; color: Style.primary
+                                }
+                            }
+                            Item { width: root.cApp + root.cPre; height: parent.height }
+                        }
+                    }
+
+                    // Semestre 2
+                    Rectangle {
+                        x: 16; width: parent.width - 32; height: 36
+                        visible: root.hasSemestres
+                        color: Qt.rgba(0.1, 0.5, 0.9, 0.07); border.color: Style.infoColor; border.width: 1; radius: 2
+                        Row {
+                            width: parent.width; height: parent.height
+                            Item {
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
+                                height: parent.height
+                                Text { anchors.fill: parent; leftPadding: 8; text: qsTr("MOYENNE SEMESTRE 2"); font.pixelSize: 9; font.weight: Font.Black; color: Style.infoColor; verticalAlignment: Text.AlignVCenter }
+                            }
+                            Item {
+                                width: root.cMoy; height: parent.height
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.moyenneSemestre2 >= 0 ? root.moyenneSemestre2.toFixed(2) + "/20" : "—"
+                                    font.pixelSize: 13; font.weight: Font.Black; color: Style.infoColor
+                                }
+                            }
+                            Item { width: root.cApp + root.cPre; height: parent.height }
+                        }
+                    }
+
+                    // Moyenne annuelle (si semestrielle) ou générale (si pas de semestres)
+                    Rectangle {
+                        x: 16; width: parent.width - 32; height: 44
+                        color: Style.successBg; border.color: Style.zitouna; border.width: 1; radius: 2
+
+                        Row {
+                            width: parent.width; height: parent.height
+
+                            Item {
+                                width: root.cMat + root.cCoef + root.allTitres.length * root.cEp
+                                height: parent.height
+                                Text {
+                                    anchors.fill: parent; leftPadding: 8
+                                    text: root.hasSemestres ? qsTr("MOYENNE ANNUELLE") : qsTr("MOYENNE GÉNÉRALE")
+                                    font.pixelSize: 10; font.weight: Font.Black; color: Style.zitouna; verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                            Item {
+                                width: root.cMoy; height: parent.height
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: {
+                                        var v = root.hasSemestres ? root.moyenneAnnuelle : root.moyenneGenerale
+                                        return v >= 0 ? v.toFixed(2) + "/20" : "—"
+                                    }
+                                    font.pixelSize: 14; font.weight: Font.Black; color: Style.zitouna
                                 }
                             }
                             Item { width: root.cApp; height: parent.height }
@@ -378,7 +465,7 @@ ModalOverlay {
                                 Text {
                                     anchors.centerIn: parent
                                     text: root.presenceTotale + "/" + root.seancesTotales
-                                    font.pixelSize: 11; font.weight: Font.Black; color: "#2E7D52"
+                                    font.pixelSize: 11; font.weight: Font.Black; color: Style.zitouna
                                 }
                             }
                         }
@@ -392,29 +479,29 @@ ModalOverlay {
 
                         Column {
                             width: (parent.width - 80) / 2; spacing: 4
-                            Rectangle { width: parent.width; height: 1; color: "#CCCCCC" }
+                            Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "ENSEIGNANT"; font.pixelSize: 8; font.weight: Font.Black; color: "#999" }
+                            Text { text: qsTr("ENSEIGNANT"); font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
 
                         Item { width: 80; height: 1 }
 
                         Column {
                             width: (parent.width - 80) / 2; spacing: 4
-                            Rectangle { width: parent.width; height: 1; color: "#CCCCCC" }
+                            Rectangle { width: parent.width; height: 1; color: Style.textTertiary }
                             Item { width: 1; height: 28 }
-                            Text { text: "DIRECTEUR"; font.pixelSize: 8; font.weight: Font.Black; color: "#999" }
+                            Text { text: qsTr("DIRECTEUR"); font.pixelSize: 8; font.weight: Font.Black; color: Style.textTertiary }
                         }
                     }
 
                     Item { width: 1; height: 12 }
-                    Rectangle { x: 16; width: parent.width - 32; height: 1; color: "#EEEEEE" }
+                    Rectangle { x: 16; width: parent.width - 32; height: 1; color: Style.muted }
                     Item { width: 1; height: 6 }
 
                     Text {
                         x: 16; width: parent.width - 32
-                        text: "Ez-Zaytouna Institut · Tél: +212 5 22 XX XX XX · Email: contact@ez-zaytouna.ma"
-                        font.pixelSize: 8; color: "#AAAAAA"; horizontalAlignment: Text.AlignHCenter
+                        text: setupController.associationData.nomAssociation || "Ez-Zaytouna"
+                        font.pixelSize: 8; color: Style.textTertiary; horizontalAlignment: Text.AlignHCenter
                     }
 
                     Item { width: 1; height: 8 }
@@ -427,16 +514,16 @@ ModalOverlay {
             width: parent.width - 48
             anchors.horizontalCenter: parent.horizontalCenter
             height: 36; radius: 10
-            color: "#F0FDF4"; border.color: "#BBF7D0"
+            color: Style.successBg; border.color: Style.successColor
             visible: root.exportedFilePath.length > 0
 
             RowLayout {
                 anchors.fill: parent; anchors.margins: 10; spacing: 8
-                Text { text: "✓"; font.pixelSize: 14; color: "#166534" }
-                Text { Layout.fillWidth: true; text: "PDF : " + root.exportedFilePath; font.pixelSize: 9; color: "#166534"; elide: Text.ElideMiddle }
+                Text { text: qsTr("✓"); font.pixelSize: 14; color: Style.zitouna }
+                Text { Layout.fillWidth: true; text: qsTr("PDF : ") + root.exportedFilePath; font.pixelSize: 9; color: Style.zitouna; elide: Text.ElideMiddle }
                 Rectangle {
-                    width: 60; height: 22; radius: 6; color: "#166534"
-                    Text { anchors.centerIn: parent; text: "OUVRIR"; font.pixelSize: 8; font.weight: Font.Black; color: "white" }
+                    width: 60; height: 22; radius: 6; color: Style.zitouna
+                    Text { anchors.centerIn: parent; text: qsTr("OUVRIR"); font.pixelSize: 8; font.weight: Font.Black; color: "white" }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally("file:///" + root.exportedFilePath) }
                 }
             }
@@ -454,10 +541,31 @@ ModalOverlay {
                 color: fMa.containsMouse ? Style.bgSecondary : Style.bgPage
                 border.color: Style.borderLight
                 Behavior on color { ColorAnimation { duration: 100 } }
-                Text { anchors.centerIn: parent; text: "FERMER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                Text { anchors.centerIn: parent; text: qsTr("FERMER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                 MouseArea {
                     id: fMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     onClicked: root.visible = false   // close() est un signal ici, pas la méthode Popup
+                }
+            }
+
+            // EXPORTER CSV
+            Rectangle {
+                Layout.fillWidth: true; height: 48; radius: 14
+                color: csvMa.containsMouse ? Style.zitouna : Style.successColor
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                RowLayout { anchors.centerIn: parent; spacing: 8
+                    IconLabel { iconName: "download"; iconSize: 14; iconColor: "white" }
+                    Text { text: qsTr("CSV"); font.pixelSize: 11; font.weight: Font.Black; color: "white" }
+                }
+
+                MouseArea {
+                    id: csvMa; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root._exportData = root.buildEnrichedData()
+                        csvSaveDialog.open()
+                    }
                 }
             }
 
@@ -478,22 +586,86 @@ ModalOverlay {
                     hoverEnabled: true; cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                     onClicked: {
                         root.exporting = true
-                        // Enrichit bulletinData avec les noms de matières pour le PDF
-                        var data = JSON.parse(JSON.stringify(root.bulletinData))
-                        var mats = data.matieres || []
-                        for (var i = 0; i < mats.length; i++)
-                            mats[i].nom = root.matiereName(mats[i].matiereId)
-                        data.matieres = mats
-
-                        var path = gradesController.exportBulletinPdf(
-                            data, root.studentName, root.studentMatricule,
-                            root.niveauNom, root.classeNom, root.anneeScolaire
-                        )
-                        root.exporting = false
-                        if (path.length > 0) root.exportedFilePath = path
+                        root._exportData = root.buildEnrichedData()
+                        pdfSaveDialog.open()
                     }
                 }
             }
+        }
+    }
+
+    // ── Temp storage for async file dialogs ──────────────────────────────────
+    property var _exportData: ({})
+
+    function buildEnrichedData() {
+        var data = JSON.parse(JSON.stringify(root.bulletinData))
+        var mats = data.matieres || []
+        for (var i = 0; i < mats.length; i++) {
+            if (!mats[i].nom) mats[i].nom = root.matiereName(mats[i].matiereId)
+            // Ensure coefficient is present (fallback to 1)
+            if (mats[i].coefficient === undefined) mats[i].coefficient = 1.0
+        }
+        data.matieres = mats
+        // Propagate weighted averages
+        data.moyenneSemestre1 = root.moyenneSemestre1 >= 0 ? root.moyenneSemestre1 : null
+        data.moyenneSemestre2 = root.moyenneSemestre2 >= 0 ? root.moyenneSemestre2 : null
+        data.moyenneAnnuelle  = root.moyenneAnnuelle  >= 0 ? root.moyenneAnnuelle  : null
+        data.hasSemestres     = root.hasSemestres
+        // Inject association info from setupController
+        var assoc = setupController.associationData
+        data.associationNom      = assoc.nomAssociation || "Ez-Zaytouna"
+        data.associationAdresse  = assoc.adresse || ""
+        return data
+    }
+
+    function urlToPath(fileUrl) {
+        var s = fileUrl.toString()
+        if (s.startsWith("file:///")) return s.substring(8)
+        if (s.startsWith("file://"))  return s.substring(7)
+        return s
+    }
+
+    // ── File dialogs ─────────────────────────────────────────────────────────
+    FileDialog {
+        id: pdfSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Enregistrer le bulletin PDF")
+        nameFilters: ["Fichiers PDF (*.pdf)", "Tous les fichiers (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinPdf(
+                root._exportData,
+                root.studentName,
+                root.studentMatricule,
+                root.niveauNom,
+                root.classeNom,
+                root.anneeScolaire,
+                path
+            )
+            root.exporting = false
+            if (result.length > 0) root.exportedFilePath = result
+        }
+        onRejected: { root.exporting = false }
+    }
+
+    FileDialog {
+        id: csvSaveDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Enregistrer le bulletin CSV")
+        nameFilters: ["Fichiers CSV (*.csv)", "Tous les fichiers (*)"]
+        defaultSuffix: "csv"
+        onAccepted: {
+            var path = root.urlToPath(file)
+            var result = gradesController.exportBulletinCsv(
+                root._exportData,
+                root.studentName,
+                root.niveauNom,
+                root.classeNom,
+                root.anneeScolaire,
+                path
+            )
+            if (result.length > 0) Qt.openUrlExternally("file:///" + result)
         }
     }
 

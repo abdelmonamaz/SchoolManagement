@@ -26,7 +26,8 @@ public:
                               const QString& telParent, const QString& commentaire,
                               GS::TypePublic categorie,
                               const QString& cinEleve = QString(),
-                              const QString& cinParent = QString());
+                              const QString& cinParent = QString(),
+                              const QString& niveauScolaireEducatif = QString());
     Result<bool> updateStudent(const Eleve& eleve);
     Result<bool> deleteStudent(int id);
     Result<int> getTotalCount();
@@ -35,6 +36,8 @@ public:
     Result<bool> unassignStudentsFromClasse(int classeId);
     Result<bool> removeStudentFromClasse(int studentId);
     Result<bool> assignToClasse(int studentId, int classeId);
+    Result<bool> removeStudentFromHallClasse(int studentId);
+    Result<bool> assignToHallClasse(int studentId, int hallClasseId);
     Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie);
 
     // Enrollments
@@ -45,6 +48,7 @@ public:
     Result<QList<Inscription>> getEnrollmentsForActiveYear();
     Result<bool> deleteEnrollment(int enrollmentId);
     Result<QVariantList> loadSchoolYears();
+    Result<QList<Eleve>> getStudentsByClasseAndYear(int classeId, int anneeId);
 
 private:
     IEleveRepository* m_eleveRepo;

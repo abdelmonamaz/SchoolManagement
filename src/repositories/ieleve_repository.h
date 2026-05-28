@@ -17,6 +17,8 @@ public:
     virtual Result<bool> unassignClasse(int classeId) = 0;
     virtual Result<bool> removeFromClasse(int studentId) = 0;
     virtual Result<bool> assignToClasse(int studentId, int classeId) = 0;
+    virtual Result<bool> removeFromHallClasse(int studentId) = 0;
+    virtual Result<bool> assignToHallClasse(int studentId, int hallClasseId) = 0;
     virtual Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) = 0;
 
     // Enrollments
@@ -27,6 +29,9 @@ public:
     virtual Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire) = 0;
     virtual Result<QList<Inscription>> getEnrollmentsForActiveYear() = 0;
     virtual Result<bool> deleteEnrollment(int enrollmentId) = 0;
+
+    // Bulletin helpers
+    virtual Result<QList<Eleve>> getByClasseAndYear(int classeId, int anneeId) = 0;
 
     // School years
     virtual Result<QVariantList> getSchoolYears() = 0;

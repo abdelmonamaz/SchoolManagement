@@ -20,6 +20,8 @@ public:
     Result<bool> unassignClasse(int classeId) override;
     Result<bool> removeFromClasse(int studentId) override;
     Result<bool> assignToClasse(int studentId, int classeId) override;
+    Result<bool> removeFromHallClasse(int studentId) override;
+    Result<bool> assignToHallClasse(int studentId, int hallClasseId) override;
     Result<QList<Eleve>> getUnassignedStudents(int niveauId, const QString& sexe, const QString& categorie) override;
 
     // Enrollments
@@ -30,6 +32,9 @@ public:
     Result<QList<Inscription>> getEnrollmentsForYear(const QString& anneeScolaire) override;
     Result<QList<Inscription>> getEnrollmentsForActiveYear() override;
     Result<bool> deleteEnrollment(int enrollmentId) override;
+
+    // Bulletin helpers
+    Result<QList<Eleve>> getByClasseAndYear(int classeId, int anneeId) override;
 
     // School years
     Result<QVariantList> getSchoolYears() override;

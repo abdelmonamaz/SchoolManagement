@@ -10,6 +10,7 @@ class DatabaseWorker;
 class SchoolingController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList niveaux READ niveaux NOTIFY niveauxChanged)
+    Q_PROPERTY(QVariantList niveauxGlobal READ niveauxGlobal NOTIFY niveauxGlobalChanged)
     Q_PROPERTY(QVariantList classes READ classes NOTIFY classesChanged)
     Q_PROPERTY(QVariantList allClasses READ allClasses NOTIFY allClassesChanged)
     Q_PROPERTY(QVariantList matieres READ matieres NOTIFY matieresChanged)
@@ -25,6 +26,7 @@ public:
     explicit SchoolingController(SchoolingService* service, DatabaseWorker* worker, QObject* parent = nullptr);
 
     QVariantList niveaux() const { return m_niveaux; }
+    QVariantList niveauxGlobal() const { return m_niveauxGlobal; }
     QVariantList classes() const { return m_classes; }
     QVariantList allClasses() const { return m_allClasses; }
     QVariantList matieres() const { return m_matieres; }
@@ -37,6 +39,7 @@ public:
     QString errorMessage() const { return m_errorMessage; }
 
     Q_INVOKABLE void loadNiveaux();
+    Q_INVOKABLE void loadNiveauxGlobal();
     Q_INVOKABLE void loadAllClasses();
     Q_INVOKABLE void loadClassesByNiveau(int niveauId);
     Q_INVOKABLE void loadAllMatieres();
@@ -45,22 +48,27 @@ public:
     Q_INVOKABLE void loadEquipements();
 
     Q_INVOKABLE void createNiveau(const QString& nom);
-    Q_INVOKABLE void updateNiveau(int id, const QString& nom);
+    Q_INVOKABLE void updateNiveau(int id, const QString& nom, int parentLevelId = 0, bool isFreestyle = false);
     Q_INVOKABLE void deleteNiveau(int id);
 
     Q_INVOKABLE void createClasse(const QString& nom, int niveauId);
     Q_INVOKABLE void updateClasse(int id, const QString& nom, int niveauId);
     Q_INVOKABLE void deleteClasse(int id);
 
-    Q_INVOKABLE void createMatiere(const QString& nom, int niveauId);
+    Q_INVOKABLE void createMatiere(const QString& nom, int niveauId, int semestreNumero = 0, double coefficient = 1.0, int nombreSeances = 0, int dureeSeanceMinutes = 60);
+    Q_INVOKABLE void cloneMatiereForSemestre(int sourceMatiereId, const QString& nom, int niveauId, int semestreNumero, double coefficient, int nombreSeances, int dureeSeanceMinutes);
     Q_INVOKABLE void updateMatiere(int id, const QVariantMap& data);
+    Q_INVOKABLE void setMatiereSemestre(int matiereId, int semestreNumero);
     Q_INVOKABLE void deleteMatiere(int id);
+    Q_INVOKABLE void deleteMatieres(const QVariantList& ids);
 
     Q_INVOKABLE void loadMatiereExamens(int matiereId);
     Q_INVOKABLE void createMatiereExamen(int matiereId, int typeExamenId);
     Q_INVOKABLE void createTypeAndMatiereExamen(int matiereId, const QString& titre);
+    Q_INVOKABLE void createTypeAndMatiereExamenForGroup(const QVariantList& matiereIds, const QString& titre);
     Q_INVOKABLE void updateMatiereExamen(int id, const QString& titre);
     Q_INVOKABLE void deleteMatiereExamen(int id);
+    Q_INVOKABLE void deleteMatiereExamenForGroup(const QVariantList& matiereIds, int typeExamenId);
 
     Q_INVOKABLE void loadTypeExamens();
     Q_INVOKABLE void createTypeExamen(const QString& titre);
@@ -76,6 +84,7 @@ public:
 
 signals:
     void niveauxChanged();
+    void niveauxGlobalChanged();
     void classesChanged();
     void allClassesChanged();
     void matieresChanged();
@@ -101,6 +110,7 @@ private:
     SchoolingService* m_service = nullptr;
     DatabaseWorker* m_worker = nullptr;
     QVariantList m_niveaux;
+    QVariantList m_niveauxGlobal;
     QVariantList m_classes;
     QVariantList m_allClasses;
     QVariantList m_matieres;

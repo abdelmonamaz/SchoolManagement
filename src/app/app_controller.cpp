@@ -3,6 +3,10 @@
 #include <QQmlContext>
 #include <QStandardPaths>
 #include <QDir>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QCoreApplication>
+#include <QGuiApplication>
 
 #include "database/database_worker.h"
 
@@ -18,6 +22,8 @@
 #include "repositories/sqlite/sqlite_seance_repository.h"
 #include "repositories/sqlite/sqlite_paiement_repository.h"
 #include "repositories/sqlite/sqlite_finance_repository.h"
+#include "repositories/sqlite/sqlite_setup_repository.h"
+#include "repositories/sqlite/sqlite_year_closure_repository.h"
 #include "repositories/sqlite/sqlite_paiement_personnel_repository.h"
 
 // Services
@@ -44,18 +50,75 @@
 
 AppController::AppController(QQmlApplicationEngine& engine, QObject* parent)
     : QObject(parent)
+    , m_engine(&engine)
 {
     setupDatabase();
     createRepositories();
     createServices();
     createControllers();
     registerWithQml(engine);
+    applyLanguage(getLanguage());
 }
 
 AppController::~AppController() {
     if (m_dbWorker) {
         m_dbWorker->stop();
     }
+}
+
+QString AppController::getLanguage() const {
+    QString lang = "français";
+    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString dbPath = dataDir + "/gestion_scolaire.db";
+
+    if (QFile::exists(dbPath)) {
+        // Create a distinct connection name for the main thread
+        QString connName = QStringLiteral("MainThread_Init_Lang");
+        {
+            auto db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            db.setDatabaseName(dbPath);
+            if (db.open()) {
+                QSqlQuery q(db);
+                if (q.exec(QStringLiteral("SELECT langue FROM association_config LIMIT 1")) && q.next()) {
+                    lang = q.value(0).toString();
+                }
+                db.close();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    }
+    return lang;
+}
+
+void AppController::applyLanguage(const QString& lang) {
+    if (m_translator) {
+        QCoreApplication::removeTranslator(m_translator);
+        delete m_translator;
+        m_translator = nullptr;
+    }
+
+    if (lang == "arabe") {
+        m_translator = new QTranslator(this);
+        const bool loaded =
+            m_translator->load(QStringLiteral(":/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral(":/qt/qml/GestionScolaire/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral(":/GestionScolaire/i18n/ar_AE.qm")) ||
+            m_translator->load(QStringLiteral("ar_AE"), QStringLiteral(":/i18n/"));
+        if (loaded) {
+            QCoreApplication::installTranslator(m_translator);
+            qInfo() << "[AppController] Traduction arabe chargée.";
+        } else {
+            qWarning() << "[AppController] Impossible de charger ar_AE.qm";
+            delete m_translator;
+            m_translator = nullptr;
+        }
+    }
+
+    if (auto* guiApp = qobject_cast<QGuiApplication*>(QCoreApplication::instance()))
+        guiApp->setLayoutDirection(lang == "arabe" ? Qt::RightToLeft : Qt::LeftToRight);
+
+    if (m_engine)
+        m_engine->retranslate();
 }
 
 void AppController::setupDatabase() {
@@ -104,6 +167,10 @@ void AppController::createRepositories() {
     m_paiementPersonnelRepo = std::make_unique<SqlitePaiementPersonnelRepository>(conn);
     m_tarifRepo = std::make_unique<SqliteTarifMensualiteRepository>(conn);
     m_depenseRepo = std::make_unique<SqliteDepenseRepository>(conn);
+    m_balanceRepo         = std::make_unique<SqliteFinanceBalanceRepository>(conn);
+    m_assocRepo           = std::make_unique<SqliteAssociationRepository>(conn);
+    m_setupSchoolYearRepo = std::make_unique<SqliteSetupSchoolYearRepository>(conn);
+    m_yearClosureRepo     = std::make_unique<SqliteYearClosureRepository>(conn);
 }
 
 void AppController::createServices() {
@@ -118,16 +185,15 @@ void AppController::createServices() {
         m_profRepo.get(), m_contratRepo.get(), m_seanceRepo.get());
 
     m_attendanceService = std::make_unique<AttendanceService>(
-        m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get(),
-        m_dbWorker->connectionName());
+        m_seanceRepo.get(), m_participationRepo.get(), m_eleveRepo.get());
 
     m_gradesService = std::make_unique<GradesService>(
-        m_participationRepo.get(), m_seanceRepo.get());
+        m_participationRepo.get(), m_seanceRepo.get(), m_matiereRepo.get());
 
     m_financeService = std::make_unique<FinanceService>(
         m_paiementRepo.get(), m_projetRepo.get(), m_donateurRepo.get(), m_donRepo.get(),
         m_paiementPersonnelRepo.get(), m_tarifRepo.get(), m_depenseRepo.get(),
-        m_dbWorker->connectionName());
+        m_balanceRepo.get());
 
     m_dashboardService = std::make_unique<DashboardService>(
         m_eleveRepo.get(), m_seanceRepo.get(), m_participationRepo.get(), m_matiereRepo.get());
@@ -136,8 +202,10 @@ void AppController::createServices() {
 void AppController::createControllers() {
     auto* w = m_dbWorker.get();
     m_backupController      = std::make_unique<BackupController>(m_dbPath, this);
-    m_setupController       = std::make_unique<SetupController>(m_dbPath, this);
-    m_yearClosureController = std::make_unique<YearClosureController>(m_dbPath, this);
+    m_setupController       = std::make_unique<SetupController>(
+        m_niveauRepo.get(), m_assocRepo.get(), m_setupSchoolYearRepo.get(), m_dbWorker.get(), this);
+    m_yearClosureController = std::make_unique<YearClosureController>(
+        m_yearClosureRepo.get(), m_dbWorker.get(), this);
     m_schoolingController = std::make_unique<SchoolingController>(m_schoolingService.get(), w, this);
     m_studentController = std::make_unique<StudentController>(m_studentService.get(), w, this);
     m_staffController = std::make_unique<StaffController>(m_staffService.get(), m_financeService.get(), w, this);

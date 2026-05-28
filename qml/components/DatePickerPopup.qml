@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Popup {
@@ -25,16 +25,16 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 
     // Internal state
     property int viewMonth: new Date().getMonth()      // 0-based
     property int viewYear: new Date().getFullYear()
 
-    readonly property var monthNames: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                                       "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-    readonly property var dayHeaders: ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"]
+    readonly property var monthNames: [qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+                                       qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")]
+    readonly property var dayHeaders: [qsTr("LUN"), qsTr("MAR"), qsTr("MER"), qsTr("JEU"), qsTr("VEN"), qsTr("SAM"), qsTr("DIM")]
 
     function daysInMonth(m, y) { return new Date(y, m + 1, 0).getDate() }
     function firstDayOffset(m, y) {
@@ -91,7 +91,7 @@ Popup {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "Choisir la Date"
+                    text: qsTr("Choisir la Date")
                     font.pixelSize: 16
                     font.weight: Font.Black
                     color: Style.textPrimary
@@ -260,7 +260,7 @@ Popup {
                                 text: parent.parent.dayNum.toString()
                                 font.pixelSize: 13
                                 font.weight: parent.parent.isSelected || parent.parent.isToday ? Font.Black : Font.Medium
-                                color: parent.parent.isSelected ? "#FFFFFF"
+                                color: parent.parent.isSelected ? Style.background
                                      : parent.parent.isToday ? Style.primary
                                      : Style.textPrimary
                             }
@@ -271,7 +271,7 @@ Popup {
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 2
                                 width: 4; height: 4; radius: 2
-                                color: parent.parent.isSelected ? "#FFFFFF" : Style.primary
+                                color: parent.parent.isSelected ? Style.background : Style.primary
                                 visible: parent.parent.isToday
                             }
                         }
@@ -335,7 +335,7 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "ANNULER"
+                        text: qsTr("ANNULER")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textSecondary; font.letterSpacing: 0.5
                     }
@@ -355,9 +355,9 @@ Popup {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "CONFIRMER"
+                        text: qsTr("CONFIRMER")
                         font.pixelSize: 10; font.weight: Font.Black
-                        color: "#FFFFFF"; font.letterSpacing: 0.5
+                        color: Style.background; font.letterSpacing: 0.5
                     }
 
                     MouseArea {

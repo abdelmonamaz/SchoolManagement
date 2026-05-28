@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Popup {
@@ -13,7 +13,6 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     required property var niveaux
-    required property var classes
 
     property int currentStep: 1
     property string selectedSexe: "M"
@@ -21,6 +20,7 @@ Popup {
     property string selectedAnneeScolaire: ""
     property double inscriptionFee: 50.0
     property bool isPaid: false
+    property bool hallOnly: false
 
     // Renvoie le frais d'inscription selon la catégorie (depuis les paramètres)
     function defaultFeeForCategorie(cat) {
@@ -32,6 +32,29 @@ Popup {
     signal createRequested(var data)
     signal closeRequested()
 
+    function reset() {
+        currentStep = 1
+        selectedSexe = "M"
+        selectedNiveauId = 0
+        inscriptionFee = defaultFeeForCategorie("Jeune")
+        isPaid = false
+        hallOnly = false
+        nameField.text = ""
+        prenomField.text = ""
+        phoneField.text = ""
+        addressField.text = ""
+        parentNameField.text = ""
+        parentPhoneField.text = ""
+        cinEleveField.text = ""
+        cinParentField.text = ""
+        niveauScolaireField.text = ""
+        commentField.text = ""
+        numeroRecuField.text = ""
+        feeInput.text = inscriptionFee.toString()
+        birthDateField.clear()
+        niveauCombo.currentIndex = 0
+    }
+
     // Met à jour le frais automatiquement quand la catégorie de l'élève change
     Connections {
         target: birthDateField
@@ -42,16 +65,15 @@ Popup {
     }
 
     onOpened: {
-        // Utiliser l'année scolaire active depuis les paramètres
         selectedAnneeScolaire = setupController.activeTarifs.libelle || ""
-        // Pré-remplir avec le frais Jeune par défaut
         root.inscriptionFee = root.defaultFeeForCategorie("Jeune")
+        feeInput.text = root.inscriptionFee.toString()
         nameField.inputItem.forceActiveFocus()
     }
 
     onClosed: {
         root.closeRequested()
-        currentStep = 1
+        root.reset()
     }
 
     background: Rectangle {
@@ -60,7 +82,7 @@ Popup {
     }
 
     Overlay.modal: Rectangle {
-        color: "#0F172A99"
+        color: Qt.alpha(Style.foreground, 0.60)
     }
 
     contentItem: Column {
@@ -153,16 +175,16 @@ Popup {
                             id: nameField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "NOM"
-                            placeholder: "ex: Ben Moussa"
+                            label: qsTr("NOM")
+                            placeholder: qsTr("ex: Ben Moussa")
                             nextTabItem: prenomField.inputItem
                         }
                         FormField {
                             id: prenomField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "PRÉNOM"
-                            placeholder: "ex: Ahmed"
+                            label: qsTr("PRÉNOM")
+                            placeholder: qsTr("ex: Ahmed")
                             nextTabItem: birthDateField.inputItem
                             prevTabItem: nameField.inputItem
                         }
@@ -174,7 +196,7 @@ Popup {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
                             spacing: 8
-                            SectionLabel { text: "SEXE" }
+                            SectionLabel { text: qsTr("SEXE") }
                             Row {
                                 spacing: 16
                                 Row {
@@ -186,7 +208,7 @@ Popup {
                                         Behavior on border.width { NumberAnimation { duration: 100 } }
                                         MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "M" }
                                     }
-                                    Text { text: "Masculin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                    Text { text: qsTr("Masculin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
                                 Row {
                                     spacing: 8
@@ -197,7 +219,7 @@ Popup {
                                         Behavior on border.width { NumberAnimation { duration: 100 } }
                                         MouseArea { anchors.fill: parent; onClicked: root.selectedSexe = "F" }
                                     }
-                                    Text { text: "Féminin"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
+                                    Text { text: qsTr("Féminin"); font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
                                 }
                             }
                         }
@@ -209,10 +231,10 @@ Popup {
                             DateField {
                                 id: birthDateField
                                 width: 240
-                                label: "DATE DE NAISSANCE"
+                                label: qsTr("DATE DE NAISSANCE")
                                 nextTabItem: phoneField.inputItem
                                 prevTabItem: prenomField.inputItem
-                                agePassage: setupController.associationData.agePassageAdulte || 12
+                                agePassage: setupController.associationData.agePassageAdulte || 16
                             }
                         }
                     }
@@ -223,8 +245,8 @@ Popup {
                             id: phoneField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "TÉLÉPHONE"
-                            placeholder: "XX XXX XXX"
+                            label: qsTr("TÉLÉPHONE")
+                            placeholder: qsTr("XX XXX XXX")
                             nextTabItem: addressField.inputItem
                             prevTabItem: birthDateField.inputItem
                             validator: RegularExpressionValidator {
@@ -235,8 +257,8 @@ Popup {
                             id: addressField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "ADRESSE"
-                            placeholder: "Adresse complète"
+                            label: qsTr("ADRESSE")
+                            placeholder: qsTr("Adresse complète")
                             nextTabItem: parentNameField.inputItem
                             prevTabItem: phoneField.inputItem
                         }
@@ -248,8 +270,8 @@ Popup {
                             id: parentNameField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "NOM DU PARENT / TUTEUR"
-                            placeholder: "ex: Mohamed Ben Moussa"
+                            label: qsTr("NOM DU PARENT / TUTEUR")
+                            placeholder: qsTr("ex: Mohamed Ben Moussa")
                             nextTabItem: parentPhoneField.inputItem
                             prevTabItem: addressField.inputItem
                         }
@@ -257,8 +279,8 @@ Popup {
                             id: parentPhoneField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "TÉLÉPHONE PARENT"
-                            placeholder: "XX XXX XXX"
+                            label: qsTr("TÉLÉPHONE PARENT")
+                            placeholder: qsTr("XX XXX XXX")
                             nextTabItem: cinEleveField.inputItem
                             prevTabItem: parentNameField.inputItem
                             validator: RegularExpressionValidator {
@@ -273,8 +295,8 @@ Popup {
                             id: cinEleveField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "CIN ÉLÈVE (optionnel)"
-                            placeholder: "ex: 12345678"
+                            label: qsTr("CIN ÉLÈVE (optionnel)")
+                            placeholder: qsTr("ex: 12345678")
                             nextTabItem: cinParentField.inputItem
                             prevTabItem: parentPhoneField.inputItem
                         }
@@ -282,16 +304,26 @@ Popup {
                             id: cinParentField
                             Layout.fillWidth: true
                             Layout.preferredWidth: 1
-                            label: "CIN PARENT (optionnel)"
-                            placeholder: "ex: 12345678"
+                            label: qsTr("CIN PARENT (optionnel)")
+                            placeholder: qsTr("ex: 12345678")
                             prevTabItem: cinEleveField.inputItem
+                            nextTabItem: niveauScolaireField.inputItem
                         }
+                    }
+
+                    FormField {
+                        id: niveauScolaireField
+                        Layout.fillWidth: true
+                        label: qsTr("NIVEAU SCOLAIRE ÉDUCATIF (optionnel)")
+                        placeholder: qsTr("ex: CE2, 6ème, 2ème lycée...")
+                        prevTabItem: cinParentField.inputItem
+                        nextTabItem: commentField
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        SectionLabel { text: "COMMENTAIRE / NOTES" }
+                        SectionLabel { text: qsTr("OBSERVATIONS / NOTES") }
                         Rectangle {
                             Layout.fillWidth: true
                             height: 80
@@ -302,7 +334,7 @@ Popup {
                                 anchors.fill: parent; anchors.margins: 12
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 wrapMode: TextEdit.Wrap
-                                placeholderText: "Informations complémentaires..."
+                                placeholderText: qsTr("Informations complémentaires...")
                                 background: null
                             }
                         }
@@ -322,8 +354,64 @@ Popup {
                             anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                             IconLabel { iconName: "info"; iconColor: Style.primary }
                             Text {
-                                text: "Nouvelle Inscription pour l'année scolaire " + root.selectedAnneeScolaire
+                                text: qsTr("Nouvelle Inscription pour l'année scolaire ") + root.selectedAnneeScolaire
                                 font.pixelSize: 14; font.weight: Font.Bold; color: Style.primary
+                            }
+                        }
+                    }
+
+                    // ── Checkbox Seulement Hall ─────────────────────────
+                    Rectangle {
+                        Layout.fillWidth: true; height: 44; radius: 12
+                        color: root.hallOnly ? Style.primaryBg : Style.bgPage
+                        border.color: root.hallOnly ? Style.primary : Style.borderLight
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 14; anchors.rightMargin: 14
+                            spacing: 10
+                            // Indicateur custom
+                            Rectangle {
+                                width: 18; height: 18; radius: 4
+                                color: root.hallOnly ? Style.primary : "transparent"
+                                border.color: root.hallOnly ? Style.primary : Style.borderMedium
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Text {
+                                    anchors.centerIn: parent; text: "✓"
+                                    font.pixelSize: 11; font.bold: true; color: Style.background
+                                    visible: root.hallOnly
+                                }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: qsTr("Seulement Hall Ezzaytouna")
+                                font.pixelSize: 13; font.bold: true
+                                color: root.hallOnly ? Style.primary : Style.textPrimary
+                                verticalAlignment: Text.AlignVCenter
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                            }
+                            Text {
+                                visible: root.hallOnly
+                                text: qsTr("Inscription gratuite · Frais = 0")
+                                font.pixelSize: 11; font.bold: true; color: Style.primary; opacity: 0.8
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.hallOnly = !root.hallOnly
+                                if (root.hallOnly) {
+                                    root.inscriptionFee = 0
+                                    feeInput.text = "0"
+                                    root.isPaid = true
+                                    root.selectedNiveauId = 0
+                                } else {
+                                    var fee = root.defaultFeeForCategorie(birthDateField.categorie || "Jeune")
+                                    root.inscriptionFee = fee
+                                    feeInput.text = fee.toString()
+                                    root.isPaid = false
+                                }
                             }
                         }
                     }
@@ -332,7 +420,7 @@ Popup {
                         spacing: 24
                         Column {
                             Layout.fillWidth: true; spacing: 8
-                            SectionLabel { text: "ANNÉE SCOLAIRE" }
+                            SectionLabel { text: qsTr("ANNÉE SCOLAIRE") }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
                                 color: Style.primaryBg; border.color: Style.primary; border.width: 1
@@ -346,7 +434,7 @@ Popup {
                                     }
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "· Année active"
+                                        text: qsTr("· Année active")
                                         font.pixelSize: 10; font.weight: Font.Bold; color: Style.primary; opacity: 0.7
                                     }
                                 }
@@ -355,37 +443,49 @@ Popup {
 
                         Column {
                             Layout.fillWidth: true; spacing: 8
-                            SectionLabel { text: "NIVEAU" }
+                            visible: !root.hallOnly
+                            SectionLabel { text: qsTr("NIVEAU") }
                             Rectangle {
                                 width: parent.width; height: 44; radius: 12
                                 color: Style.bgPage; border.color: Style.borderLight
                                 ComboBox {
                                     id: niveauCombo
                                     anchors.fill: parent; anchors.margins: 2
-                                    model: root.niveaux; textRole: "nom"
-                                    
+                                    model: {
+                                        var items = []
+                                        for (var i = 0; i < root.niveaux.length; i++)
+                                            if (!root.niveaux[i].isFreestyle) items.push(root.niveaux[i])
+                                        return items
+                                    }
+                                    textRole: "nom"
                                     background: Rectangle { color: "transparent" }
                                     contentItem: Text {
                                         text: niveauCombo.displayText
                                         font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                         verticalAlignment: Text.AlignVCenter; leftPadding: 8
                                     }
-
                                     onCurrentIndexChanged: {
-                                        if (currentIndex >= 0 && currentIndex < root.niveaux.length) {
-                                            root.selectedNiveauId = root.niveaux[currentIndex].id
-                                        }
+                                        if (currentIndex >= 0 && currentIndex < model.length)
+                                            root.selectedNiveauId = model[currentIndex].id
                                     }
                                 }
                             }
                         }
+
+                    }
+
+                    FormField {
+                        id: numeroRecuField
+                        Layout.fillWidth: true
+                        label: qsTr("N° REÇU (INSCRIPTION)")
+                        placeholder: qsTr("ex: REC-2024-001")
                     }
 
                     // Financial Section
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 16
-                        Text { text: "SECTION FINANCIÈRE"; font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
+                        Text { text: qsTr("SECTION FINANCIÈRE"); font.pixelSize: 10; font.weight: Font.Black; color: Style.primary; font.letterSpacing: 1 }
                         
                         Rectangle {
                             Layout.fillWidth: true; height: 100; radius: 20
@@ -394,7 +494,7 @@ Popup {
                                 anchors.fill: parent; anchors.margins: 20; spacing: 20
                                 Column {
                                     Layout.fillWidth: true; spacing: 4
-                                    SectionLabel { text: "FRAIS D'INSCRIPTION" }
+                                    SectionLabel { text: qsTr("FRAIS D'INSCRIPTION") }
                                     Row {
                                         spacing: 8
                                         TextInput {
@@ -406,13 +506,13 @@ Popup {
                                                 regularExpression: /^\d{0,4}(\.\d{0,3})?$/
                                             }
                                         }
-                                        Text { text: "DT"; font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
+                                        Text { text: qsTr("DT"); font.pixelSize: 14; font.weight: Font.Bold; color: Style.textTertiary; anchors.baseline: feeInput.baseline }
                                     }
                                 }
                                 
                                 Column {
                                     spacing: 8
-                                    SectionLabel { text: "STATUT DU PAIEMENT" }
+                                    SectionLabel { text: qsTr("STATUT DU PAIEMENT") }
                                     Row {
                                         spacing: 12
                                         Rectangle {
@@ -420,7 +520,7 @@ Popup {
                                             color: root.isPaid ? Style.successColor : Style.bgTertiary
                                             Rectangle {
                                                 x: root.isPaid ? 26 : 2; y: 2; width: 22; height: 22; radius: 11
-                                                color: "#FFFFFF"
+                                                color: Style.background
                                                 Behavior on x { NumberAnimation { duration: 150 } }
                                             }
                                             MouseArea { anchors.fill: parent; onClicked: root.isPaid = !root.isPaid }
@@ -481,14 +581,14 @@ Popup {
                     Layout.fillWidth: true
                     height: 52; radius: 16
                     readonly property bool canNext: nameField.text.trim() !== "" && prenomField.text.trim() !== "" && birthDateField.isValid
-                    readonly property bool canConfirm: canNext && root.selectedNiveauId !== 0
+                    readonly property bool canConfirm: canNext && (root.hallOnly || root.selectedNiveauId !== 0)
                     
                     color: (root.currentStep === 1 ? canNext : canConfirm) ? Style.primary : Style.bgTertiary
                     
                     Text {
                         anchors.centerIn: parent
                         text: root.currentStep === 1 ? "CONTINUER" : "CONFIRMER L'INSCRIPTION"
-                        font.pixelSize: 12; font.weight: Font.Black; color: "#FFFFFF"
+                        font.pixelSize: 12; font.weight: Font.Black; color: Style.background
                         font.letterSpacing: 1
                     }
                     MouseArea {
@@ -497,6 +597,11 @@ Popup {
                         onClicked: {
                             if (root.currentStep === 1) {
                                 root.currentStep = 2
+                                // Initialiser selectedNiveauId depuis le premier item du combo
+                                // (onCurrentIndexChanged ne se déclenche pas si currentIndex est déjà 0)
+                                var m = niveauCombo.model
+                                if (!root.hallOnly && m && m.length > 0)
+                                    root.selectedNiveauId = m[niveauCombo.currentIndex >= 0 ? niveauCombo.currentIndex : 0].id
                             } else {
                                 root.createRequested({
                                     // Identity
@@ -512,25 +617,18 @@ Popup {
                                     categorie: birthDateField.categorie,
                                     cinEleve: cinEleveField.text,
                                     cinParent: cinParentField.text,
+                                    niveauScolaireEducatif: niveauScolaireField.text,
 
                                     // Enrollment
                                     anneeScolaire: root.selectedAnneeScolaire,
                                     niveauId: root.selectedNiveauId,
                                     fraisInscriptionPaye: root.isPaid,
-                                    montantInscription: root.inscriptionFee
+                                    montantInscription: root.inscriptionFee,
+                                    hallOnly: root.hallOnly,
+                                    hallClasseId: 0,
+                                    numeroRecu: numeroRecuField.text.trim()
                                 })
-                                // Reset
-                                nameField.text = ""
-                                prenomField.text = ""
-                                phoneField.text = ""
-                                addressField.text = ""
-                                parentNameField.text = ""
-                                parentPhoneField.text = ""
-                                cinEleveField.text = ""
-                                cinParentField.text = ""
-                                commentField.text = ""
-                                birthDateField.clear()
-                                root.currentStep = 1
+                                root.reset()
                             }
                         }
                     }

@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 Item {
@@ -33,8 +33,8 @@ Item {
     property bool showAllMode: false
 
     property var monthNames: [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        qsTr("Janvier"), qsTr("Février"), qsTr("Mars"), qsTr("Avril"), qsTr("Mai"), qsTr("Juin"),
+        qsTr("Juillet"), qsTr("Août"), qsTr("Septembre"), qsTr("Octobre"), qsTr("Novembre"), qsTr("Décembre")
     ]
 
     function reloadData() {
@@ -118,12 +118,12 @@ Item {
             Layout.fillWidth: true
             PageHeader {
                 Layout.fillWidth: true
-                title: "Gestion du Personnel"
-                subtitle: "Administration des contrats et suivi de l'activité."
+                title: qsTr("Gestion du Personnel")
+                subtitle: qsTr("Administration des contrats et suivi de l'activité.")
             }
 
             PrimaryButton {
-                text: "Ajouter un membre"
+                text: qsTr("Ajouter un membre")
                 iconName: "plus"
                 onClicked: {
                     staffFormModal.reset()
@@ -139,7 +139,7 @@ Item {
 
             SearchField {
                 Layout.fillWidth: true
-                placeholder: "Rechercher par nom ou poste..."
+                placeholder: qsTr("Rechercher par nom ou poste...")
             }
 
             // Show All toggle
@@ -160,14 +160,14 @@ Item {
                     IconLabel {
                         iconName: "users"
                         iconSize: 14
-                        iconColor: showAllMode ? "#FFFFFF" : Style.textSecondary
+                        iconColor: showAllMode ? Style.background : Style.textSecondary
                     }
 
                     Text {
-                        text: "AFFICHER TOUT"
+                        text: qsTr("AFFICHER TOUT")
                         font.pixelSize: 10
                         font.weight: Font.Black
-                        color: showAllMode ? "#FFFFFF" : Style.textSecondary
+                        color: showAllMode ? Style.background : Style.textSecondary
                         font.letterSpacing: 0.5
                     }
                 }
@@ -208,7 +208,7 @@ Item {
                     }
 
                     Text {
-                        text: "▾"
+                        text: qsTr("▾")
                         font.pixelSize: 10
                         color: Style.textTertiary
                     }
@@ -302,7 +302,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             } else if (formData.mode === "editContract") {
                 staffController.updateContrat(
@@ -314,7 +315,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             } else {
                 // mode "full" - new member + contract
@@ -329,7 +331,8 @@ Item {
                     formData.valeurBase,
                     formData.dateDebut,
                     formData.dateFin || "",
-                    formData.joursTravail || 31
+                    formData.joursTravail || 31,
+                    formData.niveauScolaire || ""
                 )
             }
         }
@@ -371,14 +374,14 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "Confirmer la suppression"
+                        text: qsTr("Confirmer la suppression")
                         font.pixelSize: 22
                         font.weight: Font.Black
                         color: Style.textPrimary
                     }
 
                     Text {
-                        text: "CETTE ACTION EST IRRÉVERSIBLE"
+                        text: qsTr("CETTE ACTION EST IRRÉVERSIBLE")
                         font.pixelSize: 9
                         font.weight: Font.Bold
                         color: Style.errorColor
@@ -399,7 +402,7 @@ Item {
                     id: warningText
                     anchors.fill: parent
                     anchors.margins: 16
-                    text: "Êtes-vous sûr de vouloir supprimer <b>" + deleteTargetName + "</b> du personnel ? Cette action supprimera aussi tous ses contrats et ne peut pas être annulée."
+                    text: qsTr("Êtes-vous sûr de vouloir supprimer <b>") + deleteTargetName + "</b> du personnel ? Cette action supprimera aussi tous ses contrats et ne peut pas être annulée."
                     font.pixelSize: 13
                     font.weight: Font.Medium
                     color: Style.errorColor
@@ -412,8 +415,8 @@ Item {
             ModalButtons {
                 width: parent.width - 80
                 anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
-                confirmText: "SUPPRIMER"
+                cancelText: qsTr("Annuler")
+                confirmText: qsTr("SUPPRIMER")
                 confirmColor: Style.errorColor
                 onCancel: {
                     showDeleteConfirm = false
@@ -523,14 +526,14 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "Supprimer le contrat"
+                        text: qsTr("Supprimer le contrat")
                         font.pixelSize: 22
                         font.weight: Font.Black
                         color: Style.textPrimary
                     }
 
                     Text {
-                        text: "CETTE ACTION EST IRRÉVERSIBLE"
+                        text: qsTr("CETTE ACTION EST IRRÉVERSIBLE")
                         font.pixelSize: 9
                         font.weight: Font.Bold
                         color: Style.errorColor
@@ -551,7 +554,7 @@ Item {
                     id: deleteContratWarning
                     anchors.fill: parent
                     anchors.margins: 16
-                    text: "Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action ne peut pas être annulée."
+                    text: qsTr("Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action ne peut pas être annulée.")
                     font.pixelSize: 13
                     font.weight: Font.Medium
                     color: Style.errorColor
@@ -563,8 +566,8 @@ Item {
             ModalButtons {
                 width: parent.width - 80
                 anchors.horizontalCenter: parent.horizontalCenter
-                cancelText: "Annuler"
-                confirmText: "SUPPRIMER"
+                cancelText: qsTr("Annuler")
+                confirmText: qsTr("SUPPRIMER")
                 confirmColor: Style.errorColor
                 onCancel: {
                     showDeleteContratConfirm = false
@@ -616,14 +619,14 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "Erreur"
+                        text: qsTr("Erreur")
                         font.pixelSize: 22
                         font.weight: Font.Black
                         color: Style.textPrimary
                     }
 
                     Text {
-                        text: "UNE ERREUR EST SURVENUE"
+                        text: qsTr("UNE ERREUR EST SURVENUE")
                         font.pixelSize: 9
                         font.weight: Font.Bold
                         color: Style.errorColor
@@ -657,7 +660,7 @@ Item {
                 width: parent.width - 80
                 anchors.horizontalCenter: parent.horizontalCenter
                 cancelText: ""
-                confirmText: "COMPRIS"
+                confirmText: qsTr("COMPRIS")
                 onConfirm: showErrorPopup = false
                 onCancel: showErrorPopup = false
             }

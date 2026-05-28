@@ -1,21 +1,29 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
 import UI.Components
 
 ModalOverlay {
     id: root
     modalWidth: 520
-    modalColor: "#FAFBFC"
+    modalColor: Style.background
 
     required property bool show
     required property int  editingMatiereId
+
+    // Identifiants de tous les enregistrements du groupe (1 ou 2 semestres)
+    property var    initialMatiereIds:       []
+    // Semestres correspondants à chaque id dans initialMatiereIds
+    property var    initialSemestres:        [1]
 
     // Champs pré-remplis depuis l'extérieur
     property string initialNom:              ""
     property int    initialNombreSeances:    0
     property int    initialDureeMinutes:     60
     property int    editingNiveauId:         0
+    property real   initialCoefficient:      1.0
+
+    readonly property bool hasSemestres: setupController.activeSemestres.length >= 2
 
     // État confirmation
     property bool   showConfirm:     false
@@ -24,17 +32,26 @@ ModalOverlay {
     signal saveRequested(var data)
     signal closeRequested()
 
-    visible: show
+    onShowChanged: {
+        if (show) open()
+        else      visible = false
+    }
+    onClosed: closeRequested()
 
     onVisibleChanged: {
         if (visible) {
-            nomInput.text           = initialNom
-            nbSeancesInput.text     = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
-            dureeInput.text         = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
+            nomInput.text        = initialNom
+            nbSeancesInput.text  = initialNombreSeances > 0 ? String(initialNombreSeances) : ""
+            dureeInput.text      = initialDureeMinutes  > 0 ? String(initialDureeMinutes)  : ""
+            coeffInput.text      = initialCoefficient   > 0 ? String(initialCoefficient)   : "1"
+            // Initialise la sélection de semestres à partir du tableau initialSemestres
+            semestreSection.selectedSemestres = initialSemestres.length > 0
+                ? initialSemestres.slice()
+                : [1]
             newExamenCombo.editText = ""
             newExamenCombo.currentIndex = -1
-            showConfirm             = false
-            pendingSaveData         = null
+            showConfirm          = false
+            pendingSaveData      = null
         }
     }
 
@@ -50,8 +67,8 @@ ModalOverlay {
 
             Column {
                 Layout.fillWidth: true; spacing: 2
-                Text { text: "Modifier la matière"; font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
-                Text { text: "Séances, durée et évaluations"; font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
+                Text { text: qsTr("Modifier la matière"); font.pixelSize: 16; font.weight: Font.Black; color: Style.textPrimary }
+                Text { text: qsTr("Séances, durée et évaluations"); font.pixelSize: 10; color: Style.textTertiary; font.weight: Font.Medium }
             }
 
             IconButton { iconName: "close"; onClicked: root.closeRequested() }
@@ -72,7 +89,7 @@ ModalOverlay {
             // Nom
             Column {
                 width: parent.width; spacing: 6
-                Text { text: "NOM DE LA MATIÈRE"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                Text { text: qsTr("NOM DE LA MATIÈRE"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                 Rectangle {
                     width: parent.width; height: 44; radius: 12
                     color: Style.bgPage
@@ -83,18 +100,103 @@ ModalOverlay {
                         anchors.fill: parent; anchors.margins: 12
                         font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                         selectByMouse: true
-                        Text { visible: !parent.text; text: "Nom de la matière..."; font: parent.font; color: Style.textTertiary }
+                        Text { visible: !parent.text; text: qsTr("Nom de la matière..."); font: parent.font; color: Style.textTertiary }
                     }
                 }
             }
 
-            // Nombre de séances + Durée (côte à côte)
+            // Semestre(s) — visible seulement si l'année a des semestres
+            // Multi-sélection : S1, S2 ou les deux ; au moins un doit être actif.
+            Column {
+                id: semestreSection
+                width: parent.width; spacing: 6
+                visible: root.hasSemestres
+
+                // Tableau des semestres sélectionnés, ex. [1], [2] ou [1, 2]
+                property var selectedSemestres: [1]
+
+                Text { text: qsTr("SEMESTRE(S)"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+
+                Row {
+                    spacing: 8
+
+                    Repeater {
+                        model: [
+                            { label: qsTr("Semestre 1"), value: 1, icon: "S1" },
+                            { label: qsTr("Semestre 2"), value: 2, icon: "S2" }
+                        ]
+
+                        Rectangle {
+                            id: semBtn
+                            property var btnData: modelData
+                            readonly property bool active: semestreSection.selectedSemestres.indexOf(btnData.value) >= 0
+                            // Dernier semestre → on ne peut plus le décocher
+                            readonly property bool isLast: semestreSection.selectedSemestres.length === 1 && active
+
+                            width: 120; height: 40; radius: 10
+                            color: active ? (btnData.value === 1 ? Style.primaryBg : Qt.rgba(0.1, 0.5, 0.9, 0.08))
+                                          : Style.bgPage
+                            border.color: active ? (btnData.value === 1 ? Style.primary : Style.infoColor)
+                                                 : Style.borderLight
+                            border.width: active ? 2 : 1
+                            Behavior on color        { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                            Row {
+                                anchors.centerIn: parent; spacing: 6
+                                Text {
+                                    text: semBtn.btnData.icon
+                                    font.pixelSize: 13; font.weight: Font.Black
+                                    color: semBtn.active
+                                           ? (semBtn.btnData.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
+                                }
+                                Text {
+                                    text: semBtn.btnData.label
+                                    font.pixelSize: 11; font.bold: semBtn.active
+                                    color: semBtn.active
+                                           ? (semBtn.btnData.value === 1 ? Style.primary : Style.infoColor)
+                                           : Style.textTertiary
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: semBtn.isLast ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                                ToolTip.visible: containsMouse && semBtn.isLast
+                                ToolTip.text: qsTr("Au moins un semestre doit être sélectionné")
+                                ToolTip.delay: 400
+                                onClicked: {
+                                    var arr = semestreSection.selectedSemestres.slice()
+                                    var idx = arr.indexOf(semBtn.btnData.value)
+                                    if (idx >= 0) {
+                                        if (arr.length > 1) { arr.splice(idx, 1); semestreSection.selectedSemestres = arr }
+                                    } else {
+                                        arr.push(semBtn.btnData.value); arr.sort()
+                                        semestreSection.selectedSemestres = arr
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Indicateur « les deux semestres »
+                Text {
+                    visible: semestreSection.selectedSemestres.length >= 2
+                    text: qsTr("Cette matière sera présente dans les deux semestres")
+                    font.pixelSize: 10; font.italic: true; color: Qt.rgba(0.15, 0.55, 0.25, 0.9)
+                    leftPadding: 2
+                }
+            }
+
+            // Nombre de séances + Durée + Coefficient (côte à côte)
             RowLayout {
                 width: parent.width; spacing: 16
 
                 Column {
                     Layout.fillWidth: true; spacing: 6
-                    Text { text: "SÉANCES / AN"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { text: qsTr("SÉANCES / AN"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -108,19 +210,19 @@ ModalOverlay {
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 selectByMouse: true; inputMethodHints: Qt.ImhDigitsOnly
                                 validator: IntValidator { bottom: 0; top: 999 }
-                                Text { visible: !parent.text; text: "0"; font: parent.font; color: Style.textTertiary }
+                                Text { visible: !parent.text; text: qsTr("0"); font: parent.font; color: Style.textTertiary }
                             }
                             Column {
                                 spacing: 2
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: nbUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: nbUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(nbSeancesInput.text) || 0; nbSeancesInput.text = String(v + 1) } }
                                 }
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: nbDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: nbDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(nbSeancesInput.text) || 0; if (v > 0) nbSeancesInput.text = String(v - 1) } }
                                 }
@@ -131,7 +233,7 @@ ModalOverlay {
 
                 Column {
                     Layout.fillWidth: true; spacing: 6
-                    Text { text: "DURÉE (MIN)"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { text: qsTr("DURÉE (MIN)"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Rectangle {
                         width: parent.width; height: 44; radius: 12
                         color: Style.bgPage
@@ -145,21 +247,58 @@ ModalOverlay {
                                 font.pixelSize: 13; font.bold: true; color: Style.textPrimary
                                 selectByMouse: true; inputMethodHints: Qt.ImhDigitsOnly
                                 validator: IntValidator { bottom: 1; top: 480 }
-                                Text { visible: !parent.text; text: "60"; font: parent.font; color: Style.textTertiary }
+                                Text { visible: !parent.text; text: qsTr("60"); font: parent.font; color: Style.textTertiary }
                             }
                             Column {
                                 spacing: 2
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: durUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: durUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(dureeInput.text) || 60; dureeInput.text = String(v + 5) } }
                                 }
                                 Rectangle {
                                     width: 24; height: 18; radius: 6; color: durDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
-                                    Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: Style.textSecondary }
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
                                     MouseArea { id: durDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { var v = parseInt(dureeInput.text) || 60; if (v > 5) dureeInput.text = String(v - 5) } }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    Layout.fillWidth: true; spacing: 6
+                    Text { text: qsTr("COEFFICIENT"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Rectangle {
+                        width: parent.width; height: 44; radius: 12
+                        color: Style.bgPage
+                        border.color: coeffInput.activeFocus ? Style.primary : Style.borderLight
+                        HoverHandler { cursorShape: Qt.IBeamCursor }
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 8
+                            TextInput {
+                                id: coeffInput
+                                Layout.fillWidth: true
+                                font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                                selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                validator: DoubleValidator { bottom: 0.1; top: 99.9; decimals: 2; notation: DoubleValidator.StandardNotation }
+                                Text { visible: !parent.text; text: "1"; font: parent.font; color: Style.textTertiary }
+                            }
+                            Column {
+                                spacing: 2
+                                Rectangle {
+                                    width: 24; height: 18; radius: 6; color: coefUpMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                    Text { anchors.centerIn: parent; text: qsTr("▲"); font.pixelSize: 8; color: Style.textSecondary }
+                                    MouseArea { id: coefUpMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { var v = parseFloat(coeffInput.text) || 1; coeffInput.text = String(Math.round((v + 0.5) * 10) / 10) } }
+                                }
+                                Rectangle {
+                                    width: 24; height: 18; radius: 6; color: coefDownMa.containsMouse ? Style.bgSecondary : Style.bgPage
+                                    Text { anchors.centerIn: parent; text: qsTr("▼"); font.pixelSize: 8; color: Style.textSecondary }
+                                    MouseArea { id: coefDownMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { var v = parseFloat(coeffInput.text) || 1; if (v > 0.5) coeffInput.text = String(Math.round((v - 0.5) * 10) / 10) } }
                                 }
                             }
                         }
@@ -175,7 +314,7 @@ ModalOverlay {
 
                 RowLayout {
                     width: parent.width
-                    Text { Layout.fillWidth: true; text: "ÉVALUATIONS"; font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
+                    Text { Layout.fillWidth: true; text: qsTr("ÉVALUATIONS"); font.pixelSize: 9; font.weight: Font.Black; color: Style.textTertiary; font.letterSpacing: 0.8 }
                     Text {
                         text: schoolingController.matiereExamens.length + " définie" + (schoolingController.matiereExamens.length > 1 ? "s" : "")
                         font.pixelSize: 9; font.weight: Font.Bold; color: Style.textTertiary
@@ -222,7 +361,7 @@ ModalOverlay {
                                     text: parent.parent.editing ? "✓" : "✎"
                                     font.pixelSize: parent.parent.editing ? 14 : 13
                                     color: editConfirmMa.containsMouse
-                                           ? (parent.parent.editing ? "#FFFFFF" : Style.primary)
+                                           ? (parent.parent.editing ? Style.background : Style.primary)
                                            : Style.textTertiary
                                 }
                                 MouseArea {
@@ -247,14 +386,16 @@ ModalOverlay {
                             // Bouton Supprimer
                             Rectangle {
                                 width: 30; height: 30; radius: 9
-                                color: delExMa.containsMouse ? "#FEE2E2" : "transparent"
+                                color: delExMa.containsMouse ? Style.errorBorder : "transparent"
                                 Behavior on color { ColorAnimation { duration: 120 } }
-                                Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: delExMa.containsMouse ? Style.errorColor : Style.textTertiary }
+                                Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 11; font.bold: true; color: delExMa.containsMouse ? Style.errorColor : Style.textTertiary }
                                 MouseArea {
                                     id: delExMa; anchors.fill: parent
                                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        schoolingController.deleteMatiereExamen(modelData.id)
+                                        var grpIds = root.initialMatiereIds.length > 0
+                                            ? root.initialMatiereIds : [root.editingMatiereId]
+                                        schoolingController.deleteMatiereExamenForGroup(grpIds, modelData.typeExamenId)
                                         schoolingController.loadMatiereExamens(root.editingMatiereId)
                                     }
                                 }
@@ -266,7 +407,7 @@ ModalOverlay {
                     Text {
                         anchors.centerIn: parent
                         visible: examenList.count === 0
-                        text: "Aucune évaluation définie"
+                        text: qsTr("Aucune évaluation définie")
                         font.pixelSize: 12; font.italic: true; color: Style.textTertiary
                     }
                 }
@@ -321,7 +462,7 @@ ModalOverlay {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 8
                                         visible: !parent.text
-                                        text: "Choisir ou saisir..."
+                                        text: qsTr("Choisir ou saisir...")
                                         font: parent.font; color: Style.textTertiary
                                     }
                                 }
@@ -333,7 +474,7 @@ ModalOverlay {
                         // Indicateur de doublon — sous le ComboBox
                         Text {
                             visible: addExamenRow.isDuplicate
-                            text: "Ce type d'évaluation est déjà ajouté pour cette matière"
+                            text: qsTr("Ce type d'évaluation est déjà ajouté pour cette matière")
                             font.pixelSize: 10; font.weight: Font.Bold
                             color: Style.errorColor
                             leftPadding: 4
@@ -347,13 +488,15 @@ ModalOverlay {
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                         color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.primary : Style.primaryBg
                         Behavior on color { ColorAnimation { duration: 150 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? "#FFFFFF" : Style.primary }
+                        Text { anchors.centerIn: parent; text: qsTr("+"); font.pixelSize: 20; font.bold: true; color: addExMa.containsMouse && !addExamenRow.isDuplicate ? Style.background : Style.primary }
 
                         function doAdd() {
                             var t = newExamenCombo.editText.trim()
                             if (!t || root.editingMatiereId <= 0) return
                             if (addExamenRow.isDuplicate) return
-                            schoolingController.createTypeAndMatiereExamen(root.editingMatiereId, t)
+                            var ids = root.initialMatiereIds.length > 0
+                                ? root.initialMatiereIds : [root.editingMatiereId]
+                            schoolingController.createTypeAndMatiereExamenForGroup(ids, t)
                             newExamenCombo.editText = ""
                             newExamenCombo.currentIndex = -1
                         }
@@ -407,25 +550,37 @@ ModalOverlay {
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 height: 44; radius: 14; color: Style.bgWhite; border.color: Style.borderLight
-                Text { anchors.centerIn: parent; text: "ANNULER"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                Text { anchors.centerIn: parent; text: qsTr("ANNULER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.closeRequested() }
             }
 
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 height: 44; radius: 14; color: Style.primary
-                Text { anchors.centerIn: parent; text: "ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF"; font.letterSpacing: 0.5 }
+                Text { anchors.centerIn: parent; text: qsTr("ENREGISTRER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background; font.letterSpacing: 0.5 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         var nom = nomInput.text.trim()
                         if (!nom) return
                         root.pendingSaveData = {
+                            // ID principal (utilisé pour les examens)
                             id:                  root.editingMatiereId,
+                            // Tous les IDs du groupe (1 ou 2 enregistrements)
+                            allIds:              root.initialMatiereIds.length > 0
+                                                     ? root.initialMatiereIds
+                                                     : [root.editingMatiereId],
+                            // Semestres initiaux correspondants
+                            initialSemestres:    root.initialSemestres.length > 0
+                                                     ? root.initialSemestres
+                                                     : [1],
+                            // Semestres désirés après modification
+                            selectedSemestres:   semestreSection.selectedSemestres.slice(),
                             nom:                 nom,
                             niveauId:            root.editingNiveauId,
-                            nombreSeances:       parseInt(nbSeancesInput.text) || 0,
-                            dureeSeanceMinutes:  parseInt(dureeInput.text)     || 60
+                            nombreSeances:       parseInt(nbSeancesInput.text)  || 0,
+                            dureeSeanceMinutes:  parseInt(dureeInput.text)      || 60,
+                            coefficient:         parseFloat(coeffInput.text)    || 1.0
                         }
                         root.showConfirm = true
                     }
@@ -445,15 +600,15 @@ ModalOverlay {
             // Message
             Rectangle {
                 width: parent.width; height: 32; radius: 10
-                color: "#FFF7ED"
-                border.color: "#FED7AA"
+                color: Style.warningBg
+                border.color: Style.warningBorder
 
                 RowLayout {
                     anchors.centerIn: parent; spacing: 6
-                    Text { text: "⚠"; font.pixelSize: 14; color: "#F97316" }
+                    Text { text: qsTr("⚠"); font.pixelSize: 14; color: Style.chart1 }
                     Text {
-                        text: "Confirmer les modifications de la matière ?"
-                        font.pixelSize: 12; font.weight: Font.Bold; color: "#92400E"
+                        text: qsTr("Confirmer les modifications de la matière ?")
+                        font.pixelSize: 12; font.weight: Font.Bold; color: Style.warningColor
                     }
                 }
             }
@@ -468,16 +623,16 @@ ModalOverlay {
                     color: cancelConfirmMa.containsMouse ? Style.bgSecondary : Style.bgPage
                     border.color: Style.borderLight
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "NON"; font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
+                    Text { anchors.centerIn: parent; text: qsTr("NON"); font.pixelSize: 11; font.weight: Font.Black; color: Style.textTertiary }
                     MouseArea { id: cancelConfirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.showConfirm = false }
                 }
 
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredWidth: 1
                     height: 40; radius: 12
-                    color: okConfirmMa.containsMouse ? "#16A34A" : Style.successColor
+                    color: okConfirmMa.containsMouse ? Style.successColor : Style.successColor
                     Behavior on color { ColorAnimation { duration: 120 } }
-                    Text { anchors.centerIn: parent; text: "OUI, ENREGISTRER"; font.pixelSize: 11; font.weight: Font.Black; color: "#FFFFFF" }
+                    Text { anchors.centerIn: parent; text: qsTr("OUI, ENREGISTRER"); font.pixelSize: 11; font.weight: Font.Black; color: Style.background }
                     MouseArea {
                         id: okConfirmMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor

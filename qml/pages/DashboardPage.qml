@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import UI.Components
 
 Item {
@@ -7,6 +7,16 @@ Item {
     implicitHeight: mainLayout.implicitHeight
 
     Component.onCompleted: dashboardController.loadDashboard()
+
+    Connections {
+        target: gradesController
+        function onOperationSucceeded(msg) { dashboardController.loadDashboard() }
+    }
+
+    Connections {
+        target: attendanceController
+        function onOperationSucceeded(msg) { dashboardController.loadDashboard() }
+    }
 
     ColumnLayout {
         id: mainLayout
@@ -20,8 +30,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Bonjour, Admin !"
-                subtitle: "Voici l'état actuel de l'école Ez-Zaytouna pour aujourd'hui."
+                title: qsTr("Bonjour, Admin !")
+                subtitle: qsTr("Voici l'état actuel de l'école Ez-Zaytouna pour aujourd'hui.")
             }
 
             Rectangle {
@@ -37,7 +47,7 @@ Item {
                     spacing: 8
 
                     Text {
-                        text: "●"
+                        text: qsTr("●")
                         font.pixelSize: 10
                         color: Style.successColor
 
@@ -145,7 +155,7 @@ Item {
 
                                 RowLayout {
                                     width: parent.width
-                                    SectionLabel { text: "PROGRESSION"; Layout.fillWidth: true }
+                                    SectionLabel { text: qsTr("PROGRESSION"); Layout.fillWidth: true }
                                     SectionLabel { text: modelData.progress + "%" }
                                 }
 
@@ -180,25 +190,25 @@ Item {
 
             StatCard {
                 Layout.fillWidth: true
-                label: "Total Étudiants"; value: dashboardController.totalStudents.toString()
+                label: qsTr("Total Étudiants"); value: dashboardController.totalStudents.toString()
                 iconName: "users"; trend: ""; trendUp: true
                 accentColor: Style.chartBlue; accentBg: Style.chartBlueLight
             }
             StatCard {
                 Layout.fillWidth: true
-                label: "Cours Actifs"; value: dashboardController.activeCourses.toString()
+                label: qsTr("Cours Actifs"); value: dashboardController.activeCourses.toString()
                 iconName: "book"; trend: ""; trendUp: true
-                accentColor: Style.successColor; accentBg: Style.successBg
+                accentColor: Style.zitouna; accentBg: Style.successBg
             }
             StatCard {
                 Layout.fillWidth: true
-                label: "Présence Moy."; value: dashboardController.averageAttendance.toFixed(0) + "%"
+                label: qsTr("Présence Moy."); value: dashboardController.averageAttendance.toFixed(0) + "%"
                 iconName: "calendar"; trend: ""; trendUp: false
                 accentColor: Style.warningColor; accentBg: Style.warningBg
             }
             StatCard {
                 Layout.fillWidth: true
-                label: "Moyenne École"; value: dashboardController.schoolAverage.toFixed(1)
+                label: qsTr("Moyenne École"); value: dashboardController.schoolAverage.toFixed(1)
                 iconName: "trending"; trend: ""; trendUp: true
                 accentColor: Style.chartPurple; accentBg: Style.chartPurpleLight
             }
@@ -212,26 +222,20 @@ Item {
             AppCard {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 2
-                title: "Performance par Niveau"
+                title: qsTr("Performance par Niveau")
 
                 SimpleBarChart {
                     width: parent.width
                     height: 320
-                    data: [
-                        { label: "Niveau 1", values: [45, 38] },
-                        { label: "Niveau 2", values: [52, 44] },
-                        { label: "Niveau 3", values: [38, 32] },
-                        { label: "Niveau 4", values: [48, 41] },
-                        { label: "Niveau 5", values: [42, 35] }
-                    ]
+                    data: dashboardController.levelPerformanceData
                 }
             }
 
             AppCard {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                title: "Suivi des Absences"
-                subtitle: "Cette semaine"
+                title: qsTr("Suivi des Absences")
+                subtitle: qsTr("6 derniers mois")
 
                 Column {
                     width: parent.width
@@ -240,27 +244,21 @@ Item {
                     SimpleAreaChart {
                         width: parent.width
                         height: 200
-                        data: [
-                            { label: "Lun", value: 4 },
-                            { label: "Mar", value: 2 },
-                            { label: "Mer", value: 7 },
-                            { label: "Jeu", value: 3 },
-                            { label: "Ven", value: 5 },
-                            { label: "Sam", value: 1 }
-                        ]
+                        data: dashboardController.absencesByMonth
                     }
 
                     RowLayout {
                         width: parent.width
-                        Text { text: "Total absences"; font.pixelSize: 13; font.weight: Font.Medium; color: Style.textSecondary; Layout.fillWidth: true }
-                        Text { text: "22"; font.pixelSize: 13; font.bold: true; color: Style.textPrimary }
-                    }
-
-                    ProgressBar_ { width: parent.width; value: 0.15 }
-
-                    Text {
-                        text: "Moins de 5% du total des étudiants."
-                        font.pixelSize: 11; color: Style.textTertiary
+                        Text { text: qsTr("Total absences (6 mois)"); font.pixelSize: 13; font.weight: Font.Medium; color: Style.textSecondary; Layout.fillWidth: true }
+                        Text {
+                            text: {
+                                var total = 0
+                                var abs = dashboardController.absencesByMonth
+                                for (var i = 0; i < abs.length; i++) total += abs[i].value
+                                return total.toString()
+                            }
+                            font.pixelSize: 13; font.bold: true; color: Style.textPrimary
+                        }
                     }
                 }
             }
@@ -273,7 +271,7 @@ Item {
 
             AppCard {
                 Layout.fillWidth: true
-                title: "Dernières Notes Saisies"
+                title: qsTr("Dernières Notes Saisies")
 
                 Column {
                     width: parent.width
@@ -318,7 +316,7 @@ Item {
 
             AppCard {
                 Layout.fillWidth: true
-                title: "Examens à Venir"
+                title: qsTr("Examens à Venir")
 
                 Column {
                     width: parent.width

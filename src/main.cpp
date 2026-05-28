@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickStyle>
 #include <QFont>
 #include <QQuickWindow>
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
 
     app.setOrganizationName("Ez-Zaytouna");
     app.setApplicationName("Gestion Scolaire");
-    app.setApplicationVersion("2.0");
+    app.setApplicationVersion(QStringLiteral(APP_VERSION_STR));
 
     // Set default font
     QFont defaultFont("Inter", 13);
@@ -36,7 +37,12 @@ int main(int argc, char *argv[])
     // Add import paths for our QML modules
     engine.addImportPath("qrc:/qt/qml/");
 
-    // Bootstrap the entire C++ backend
+    // Expose version string to QML
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("appVersion"),
+        QStringLiteral(APP_VERSION_STR));
+
+    // Bootstrap the entire C++ backend (includes initial language setup)
     AppController appController(engine);
 
     const QUrl url(QStringLiteral("qrc:/qt/qml/GestionScolaire/qml/main.qml"));
@@ -69,3 +75,6 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
+
+

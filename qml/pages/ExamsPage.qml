@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import UI.Components
 
 Item {
@@ -94,8 +94,8 @@ Item {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: "Planning & Organisation"
-                subtitle: "Gestion centralisée des cours, examens et évènements scolaires."
+                title: qsTr("Planning & Organisation")
+                subtitle: qsTr("Gestion centralisée des cours, examens et évènements scolaires.")
             }
 
             Row {
@@ -122,7 +122,7 @@ Item {
                             Text {
                                 id: planningLabel
                                 anchors.centerIn: parent
-                                text: "PLANNING"
+                                text: qsTr("PLANNING")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: activeView === "planning" ? Style.primary : Style.textTertiary
@@ -148,7 +148,7 @@ Item {
                             Text {
                                 id: calendarLabel
                                 anchors.centerIn: parent
-                                text: "CALENDRIER"
+                                text: qsTr("CALENDRIER")
                                 font.pixelSize: 10
                                 font.weight: Font.Black
                                 color: activeView === "calendar" ? Style.primary : Style.textTertiary
@@ -183,7 +183,7 @@ Item {
                         IconLabel { iconName: "book"; iconSize: 14; iconColor: Style.primary }
 
                         Text {
-                            text: "COURS"
+                            text: qsTr("COURS")
                             font.pixelSize: 10; font.weight: Font.Black
                             color: Style.textPrimary; font.letterSpacing: 0.5
                         }
@@ -212,12 +212,12 @@ Item {
                         anchors.centerIn: parent
                         spacing: 6
 
-                        IconLabel { iconName: "check"; iconSize: 14; iconColor: "#FFFFFF" }
+                        IconLabel { iconName: "check"; iconSize: 14; iconColor: Style.background }
 
                         Text {
-                            text: "EXAMEN"
+                            text: qsTr("EXAMEN")
                             font.pixelSize: 10; font.weight: Font.Black
-                            color: "#FFFFFF"; font.letterSpacing: 0.5
+                            color: Style.background; font.letterSpacing: 0.5
                         }
                     }
 
@@ -237,19 +237,19 @@ Item {
                     implicitWidth: eventRow.implicitWidth + 24
                     height: 40
                     radius: 12
-                    color: eventMa.containsMouse ? "#D97706" : Style.warningColor
+                    color: eventMa.containsMouse ? Style.warningColor : Style.warningColor
 
                     RowLayout {
                         id: eventRow
                         anchors.centerIn: parent
                         spacing: 6
 
-                        Text { text: "✨"; font.pixelSize: 14 }
+                        Text { text: qsTr("✨"); font.pixelSize: 14 }
 
                         Text {
-                            text: "ÉVÈNEMENT"
+                            text: qsTr("ÉVÈNEMENT")
                             font.pixelSize: 10; font.weight: Font.Black
-                            color: "#FFFFFF"; font.letterSpacing: 0.5
+                            color: Style.background; font.letterSpacing: 0.5
                         }
                     }
 
@@ -382,11 +382,11 @@ Item {
 
                     Rectangle {
                         width: 36; height: 36; radius: 12
-                        color: "#FEE2E2"
+                        color: Style.errorBorder
 
                         Text {
                             anchors.centerIn: parent
-                            text: "!"
+                            text: qsTr("!")
                             font.pixelSize: 16; font.weight: Font.Black
                             color: Style.errorColor
                         }
@@ -394,7 +394,7 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "Conflit détecté"
+                        text: qsTr("Conflit détecté")
                         font.pixelSize: 16; font.weight: Font.Black
                         color: Style.textPrimary
                     }
@@ -423,7 +423,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "COMPRIS"
+                        text: qsTr("COMPRIS")
                         font.pixelSize: 10; font.weight: Font.Black
                         color: Style.textPrimary; font.letterSpacing: 0.5
                     }
